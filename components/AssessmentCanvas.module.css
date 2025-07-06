@@ -1,0 +1,116 @@
+.canvasContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-4);
+  background-color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  direction: rtl;
+}
+
+.toolbarTitle {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.toolbarControls {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.toolbarButton {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-1) var(--spacing-2);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color var(--animation-duration-normal) ease;
+}
+
+.toolbarButton:hover {
+  background-color: var(--muted);
+}
+
+.canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--card);
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.canvasHint {
+  padding: var(--spacing-3);
+  background-color: var(--muted);
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  text-align: center;
+  direction: rtl;
+}
+
+.canvasHint p {
+  margin: var(--spacing-1) 0;
+}
+
+/* Styles for component blocks rendered by PIXI */
+.componentBlock {
+  position: absolute;
+  width: 150px;
+  height: 80px;
+  background-color: var(--primary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-2);
+  cursor: move;
+  user-select: none;
+  color: var(--primary-foreground);
+  transition: transform var(--animation-duration-fast) ease, box-shadow var(--animation-duration-fast) ease;
+}
+
+.componentBlock:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.componentTitle {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: var(--spacing-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.componentContent {
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.connectionLine {
+  position: absolute;
+  pointer-events: none;
+  stroke: var(--primary);
+  stroke-width: 2;
+  stroke-dasharray: 5, 5;
+}

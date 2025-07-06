@@ -1,0 +1,118 @@
+.libraryContainer {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--sidebar);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  height: 100%;
+  overflow: hidden;
+  direction: rtl;
+}
+
+.libraryHeader {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.libraryTitle {
+  font-weight: 600;
+  margin: 0 0 var(--spacing-3);
+}
+
+.searchContainer {
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  right: var(--spacing-2);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.searchInput {
+  padding-right: calc(var(--spacing-2) * 2 + 16px);
+  font-size: 0.875rem;
+  height: 2rem;
+}
+
+.libraryContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-2);
+}
+
+.componentList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.componentItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-3);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: grab;
+  transition: transform var(--animation-duration-fast) ease, box-shadow var(--animation-duration-fast) ease;
+}
+
+.componentItem:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.componentItem:active {
+  cursor: grabbing;
+}
+
+.componentIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background-color: var(--muted);
+  border-radius: var(--radius);
+  font-size: 1.2rem;
+}
+
+.componentInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.componentTitle {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin: 0 0 var(--spacing-1);
+}
+
+.componentDescription {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: right;
+}
+
+.libraryFooter {
+  padding: var(--spacing-3);
+  border-top: 1px solid var(--border);
+  background-color: var(--muted);
+}
+
+.dragHint {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  text-align: center;
+  margin: 0;
+}

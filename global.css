@@ -1,0 +1,261 @@
+@import url(https://fonts.googleapis.com/css2?family=Heebo:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap);
+@import url(https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap);
+@import url(https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap);
+@import url(https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap);
+@import url(https://fonts.googleapis.com/css2?family=Fira+Code:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap);
+
+
+
+
+
+:root {
+  /* Content layers */
+  --z-content-low: 10; /* Minor elevated content */
+  --z-content: 20; /* Standard elevated content */
+  --z-content-high: 30; /* Important content that needs prominence */
+
+  /* Navigation layers */
+  --z-nav-low: 100; /* Secondary navigation components */
+  --z-nav: 200; /* Primary navigation bars */
+  --z-nav-sticky: 300; /* Sticky navigation elements */
+
+  /* Overlay layers */
+  --z-overlay: 400;
+
+  --z-spotlight: 1000; /* Tutorial spotlights/guided help */
+
+  /* System layers */
+  --z-critical: 2000; /* Critical system notifications */
+
+  /* spacing */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+}
+
+:root {
+  /* RTL Support */
+  --text-direction: rtl;
+  --text-align-start: right;
+  --text-align-end: left;
+  --margin-inline-start: margin-right;
+  --margin-inline-end: margin-left;
+  --padding-inline-start: padding-right;
+  --padding-inline-end: padding-left;
+  --border-inline-start: border-right;
+  --border-inline-end: border-left;
+  --inset-inline-start: right;
+  --inset-inline-end: left;
+
+  /* Light Mode (Default) */
+  --background: hsl(220, 30%, 97%);
+  --foreground: hsl(220, 20%, 25%);
+
+  --surface: hsl(220, 30%, 100%);
+  --surface-foreground: hsl(220, 20%, 25%);
+  --sidebar: hsl(220, 30%, 94%);
+  --sidebar-foreground: hsl(220, 15%, 40%);
+  --card: hsl(220, 30%, 100%);
+  --card-foreground: hsl(220, 20%, 25%);
+  --popup: hsl(220, 30%, 100%);
+  --popup-foreground: hsl(220, 20%, 25%);
+
+  --primary: hsl(210, 80%, 55%);
+  --primary-foreground: hsl(210, 80%, 99%);
+  --secondary: hsl(220, 15%, 90%);
+  --secondary-foreground: hsl(220, 15%, 30%);
+  --accent: hsl(260, 70%, 60%);
+  --accent-foreground: hsl(260, 70%, 99%);
+
+  --muted: hsl(220, 25%, 92%);
+  --muted-foreground: hsl(220, 15%, 50%);
+
+  --success: hsl(140, 60%, 45%);
+  --success-foreground: hsl(140, 60%, 99%);
+  --error: hsl(0, 75%, 55%);
+  --error-foreground: hsl(0, 75%, 99%);
+  --warning: hsl(40, 80%, 55%);
+  --warning-foreground: hsl(40, 80%, 10%);
+  --info: hsl(190, 70%, 50%);
+  --info-foreground: hsl(190, 70%, 99%);
+  --info-hover: hsl(190, 70%, 60%);
+  --info-active: hsl(190, 70%, 45%);
+
+  --border: hsl(220, 20%, 88%);
+
+  /* Font Families - Hebrew Support */
+  --font-family-base: 'Heebo', 'Noto Sans Hebrew', 'Rubik', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-heading: 'Heebo', 'Noto Sans Hebrew', 'Rubik', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-monospace: 'Fira Code', 'Courier New', monospace;
+  --font-family-cursive: 'cursive';
+
+  /* Border Radius and box shadows */
+  --shadow: 0 1px 2px 0 hsla(220, 10%, 10%, 0.05);
+  --shadow-md: 0 4px 6px -1px hsla(220, 10%, 10%, 0.06), 0 2px 4px -2px hsla(220, 10%, 10%, 0.06);
+  --shadow-lg: 0 10px 15px -3px hsla(220, 10%, 10%, 0.07), 0 4px 6px -4px hsla(220, 10%, 10%, 0.07);
+  --shadow-focus: 0 0 0 3px hsla(210, 80%, 55%, 0.3);
+
+  --radius-sm: 0.25rem; /* 4px */
+  --radius: 0.5rem; /* 8px */
+  --radius-md: 0.75rem; /* 12px */
+  --radius-lg: 1rem; /* 16px */
+  --radius-full: 9999px; 
+
+  /* Animation */
+  --animation-duration-fast: 150ms;
+  --animation-duration-normal: 300ms;
+  --animation-duration-slow: 500ms;
+
+  /* Chart colors */
+  --chart-color-1: hsl(210, 80%, 55%);
+  --chart-color-2: hsl(160, 60%, 45%);
+  --chart-color-3: hsl(40, 80%, 55%);
+  --chart-color-4: hsl(260, 70%, 60%);
+  --chart-color-5: hsl(340, 80%, 60%);
+}
+
+.dark {
+  --background: hsl(220, 20%, 12%);
+  --foreground: hsl(220, 20%, 88%);
+
+  --surface: hsl(220, 20%, 16%);
+  --surface-foreground: hsl(220, 20%, 88%);
+  --sidebar: hsl(220, 20%, 14%);
+  --sidebar-foreground: hsl(220, 15%, 65%);
+  --card: hsl(220, 20%, 16%);
+  --card-foreground: hsl(220, 20%, 88%);
+  --popup: hsl(220, 20%, 18%);
+  --popup-foreground: hsl(220, 20%, 88%);
+
+  --primary: hsl(210, 90%, 65%);
+  --primary-foreground: hsl(210, 90%, 10%);
+  --secondary: hsl(220, 15%, 25%);
+  --secondary-foreground: hsl(220, 15%, 85%);
+  --accent: hsl(260, 80%, 70%);
+  --accent-foreground: hsl(260, 80%, 10%);
+
+  --muted: hsl(220, 15%, 22%);
+  --muted-foreground: hsl(220, 15%, 60%);
+
+  --success: hsl(140, 60%, 55%);
+  --success-foreground: hsl(140, 60%, 10%);
+  --error: hsl(0, 80%, 65%);
+  --error-foreground: hsl(0, 80%, 10%);
+  --warning: hsl(40, 80%, 60%);
+  --warning-foreground: hsl(40, 80%, 10%);
+  --info: hsl(190, 80%, 60%);
+  --info-foreground: hsl(190, 80%, 10%);
+  --info-hover: hsl(190, 80%, 70%);
+  --info-active: hsl(190, 80%, 55%);
+
+  --border: hsl(220, 15%, 28%);
+
+  /* Shadows for Dark Mode */
+  --shadow: 0 1px 2px 0 hsla(0, 0%, 0%, 0.1);
+  --shadow-md: 0 4px 6px -1px hsla(0, 0%, 0%, 0.12), 0 2px 4px -2px hsla(0, 0%, 0%, 0.12);
+  --shadow-lg: 0 10px 15px -3px hsla(0, 0%, 0%, 0.15), 0 4px 6px -4px hsla(0, 0%, 0%, 0.15);
+  --shadow-focus: 0 0 0 3px hsla(210, 90%, 65%, 0.3);
+
+  /* Chart colors for Dark Mode */
+  --chart-color-1: hsl(210, 90%, 65%);
+  --chart-color-2: hsl(160, 70%, 55%);
+  --chart-color-3: hsl(40, 90%, 60%);
+  --chart-color-4: hsl(260, 80%, 70%);
+  --chart-color-5: hsl(340, 90%, 70%);
+}
+
+/* RTL Base Styles */
+html {
+  direction: var(--text-direction);
+}
+
+body {
+  font-family: var(--font-family-base);
+  text-align: var(--text-align-start);
+}
+
+/* RTL Text Utilities */
+.rtl-text {
+  direction: rtl;
+  text-align: right;
+  font-family: var(--font-family-base);
+}
+
+.ltr-text {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Hebrew Text Optimization */
+.hebrew-text {
+  direction: rtl;
+  text-align: right;
+  font-family: var(--font-family-base);
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+
+/* RTL Layout Utilities */
+.rtl-flex {
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+.rtl-grid {
+  direction: rtl;
+}
+
+/* RTL Form Elements */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+  direction: rtl;
+  text-align: right;
+}
+
+input[type="text"]:placeholder-shown,
+input[type="email"]:placeholder-shown,
+input[type="password"]:placeholder-shown,
+textarea:placeholder-shown {
+  text-align: right;
+}
+
+/* RTL Navigation */
+.nav-rtl {
+  direction: rtl;
+}
+
+.nav-rtl ul {
+  flex-direction: row-reverse;
+}
+
+/* RTL Card Layout */
+.card-rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+/* RTL Button Groups */
+.btn-group-rtl {
+  flex-direction: row-reverse;
+}
+
+.btn-group-rtl > *:first-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+}
+
+.btn-group-rtl > *:last-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+}

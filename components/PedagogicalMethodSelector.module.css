@@ -1,0 +1,348 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  width: 100%;
+  font-family: var(--font-family-base);
+}
+
+.header {
+  text-align: center;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: var(--spacing-2);
+}
+
+.subtitle {
+  font-size: 1.125rem;
+  color: var(--muted-foreground);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--spacing-6);
+}
+
+.card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  transition: all var(--animation-duration-normal) ease;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.card.selected {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.cardTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--surface-foreground);
+  flex-grow: 1;
+  cursor: pointer;
+}
+
+.compatibilityBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  background-color: color-mix(in srgb, var(--primary) 15%, transparent);
+  color: var(--primary);
+  padding: var(--spacing-1) var(--spacing-3);
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.description {
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  flex-grow: 1;
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+  border-top: 1px solid var(--border);
+  padding-top: var(--spacing-4);
+}
+
+.detailItem .detailTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--surface-foreground);
+  margin-bottom: var(--spacing-2);
+}
+
+.detailItem .detailTitle svg {
+  color: var(--muted-foreground);
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.list li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+}
+
+.list li::before {
+  content: '•';
+  color: var(--primary);
+  font-weight: bold;
+  display: inline-block;
+  margin-top: -2px;
+}
+
+.cardFooter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  border-top: 1px solid var(--border);
+  padding-top: var(--spacing-4);
+  margin-top: auto;
+}
+
+.difficulty, .tools {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.difficulty span, .tools svg {
+  flex-shrink: 0;
+}
+
+.stars {
+  display: flex;
+  gap: var(--spacing-1);
+  color: var(--warning);
+}
+
+.filledStar {
+  fill: currentColor;
+}
+
+.emptyStar {
+  color: var(--border);
+}
+
+.toolBadges {
+  display: flex;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--spacing-4);
+}
+
+.customMethodSection {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4) 0;
+  border-top: 1px solid var(--border);
+  margin-top: var(--spacing-4);
+}
+
+.addCustomButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.removeButton {
+  margin-top: var(--spacing-2);
+  color: var(--destructive);
+  border-color: var(--destructive);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.removeButton:hover {
+  background-color: var(--destructive);
+  color: var(--destructive-foreground);
+}
+
+.dialogContent {
+  background-color: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  max-width: 500px;
+  width: 100%;
+}
+
+.dialogTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--surface-foreground);
+  margin-bottom: var(--spacing-6);
+  text-align: center;
+}
+
+.dialogForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--surface-foreground);
+}
+
+.input, .textarea {
+  width: 100%;
+  padding: var(--spacing-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.input:focus, .textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--border);
+}
+
+.browseDialogContent {
+  background-color: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  max-width: 800px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.browseSubtitle {
+  font-size: 0.9375rem;
+  color: var(--muted-foreground);
+  text-align: center;
+  margin-bottom: var(--spacing-6);
+}
+
+.browseGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+}
+
+.browseCard {
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing-4);
+  transition: all var(--animation-duration-normal) ease;
+}
+
+.browseCard:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.browseCard.selected {
+  border-color: var(--primary);
+  background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+}
+
+.browseCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+}
+
+.browseCardTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--surface-foreground);
+  line-height: 1.4;
+  flex-grow: 1;
+}
+
+.browseCardDescription {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: var(--spacing-3);
+}
+
+.browseCardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--border);
+}

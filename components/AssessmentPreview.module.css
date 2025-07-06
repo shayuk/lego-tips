@@ -1,0 +1,232 @@
+.previewContainer {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  height: 300px;
+  transition: height var(--animation-duration-normal) ease;
+  direction: rtl;
+}
+
+.expanded {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100vh;
+  z-index: var(--z-overlay);
+  border-radius: 0;
+}
+
+.previewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.previewTitle {
+  font-weight: 600;
+  margin: 0;
+}
+
+.previewControls {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.previewContent {
+  flex: 1;
+  overflow: auto;
+  padding: var(--spacing-4);
+}
+
+.previewFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-top: 1px solid var(--border);
+  background-color: var(--muted);
+}
+
+/* Document styles */
+.previewDocument {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--spacing-4);
+  background-color: white;
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius);
+}
+
+.documentTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-2);
+}
+
+.documentDescription {
+  color: var(--muted-foreground);
+  margin-bottom: var(--spacing-4);
+}
+
+.sectionHeader {
+  margin: var(--spacing-6) 0 var(--spacing-3);
+  padding-bottom: var(--spacing-2);
+  border-bottom: 2px solid var(--primary);
+}
+
+.sectionHeader h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.instructionBlock {
+  margin: var(--spacing-4) 0;
+  padding: var(--spacing-3);
+  background-color: var(--muted);
+  border-radius: var(--radius);
+}
+
+.instructionBlock h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 var(--spacing-2);
+}
+
+.questionBlock {
+  margin: var(--spacing-6) 0;
+  padding: var(--spacing-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.questionBlock h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 var(--spacing-3);
+}
+
+.options {
+  margin-top: var(--spacing-3);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-2);
+}
+
+.option label {
+  margin-right: var(--spacing-2);
+}
+
+.answerArea {
+  width: 100%;
+  margin-top: var(--spacing-3);
+  padding: var(--spacing-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-family-base);
+  resize: vertical;
+}
+
+/* Instructor view styles */
+.metadataBlock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  padding: var(--spacing-3);
+  background-color: var(--muted);
+  border-radius: var(--radius);
+}
+
+.metadataItem {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.metadataLabel {
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.instructorComponent {
+  margin: var(--spacing-4) 0;
+  padding: var(--spacing-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.componentHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+  flex-direction: row-reverse;
+}
+
+.componentType {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: var(--spacing-1) var(--spacing-2);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: var(--radius-full);
+}
+
+.scoringInfo {
+  margin-top: var(--spacing-3);
+  padding-top: var(--spacing-2);
+  border-top: 1px dashed var(--border);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.pointsLabel {
+  font-weight: 600;
+}
+
+.pointsValue {
+  padding: var(--spacing-1) var(--spacing-2);
+  background-color: var(--muted);
+  border-radius: var(--radius-full);
+  font-weight: 600;
+}
+
+/* Rubric styles */
+.rubricTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--spacing-4);
+}
+
+.rubricTable th,
+.rubricTable td {
+  border: 1px solid var(--border);
+  padding: var(--spacing-2);
+  text-align: left;
+}
+
+.rubricTable th {
+  background-color: var(--muted);
+  font-weight: 600;
+}
+
+.rubricCriteria {
+  font-weight: 600;
+}
+
+.emptyRubric {
+  text-align: center;
+  padding: var(--spacing-6);
+  color: var(--muted-foreground);
+}

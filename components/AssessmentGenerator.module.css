@@ -1,0 +1,236 @@
+.container {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-8);
+  font-family: var(--font-family-base);
+  color: var(--foreground);
+  direction: rtl;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--muted-foreground);
+  font-size: 1.1rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-8);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.mainTitle {
+  font-family: var(--font-family-heading);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-3);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.sectionTitle {
+  font-family: var(--font-family-heading);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--primary);
+  padding-bottom: var(--spacing-2);
+  border-bottom: 2px solid var(--primary);
+  align-self: flex-start;
+}
+
+.subTitle {
+  font-family: var(--font-family-heading);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.description {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--surface-foreground);
+}
+
+.instructionsList,
+.requirementsList {
+  padding-right: var(--spacing-6);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.rubricContainer {
+  overflow-x: auto;
+}
+
+.rubricTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  table-layout: fixed;
+}
+
+.rubricTable th,
+.rubricTable td {
+  border: 1px solid var(--border);
+  padding: var(--spacing-3);
+  text-align: right;
+  vertical-align: top;
+}
+
+.rubricTable th {
+  background-color: var(--muted);
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.rubricTable thead th:first-child {
+  width: 20%;
+}
+.rubricTable thead th:last-child {
+  width: 7%;
+}
+
+.criterionName {
+  font-weight: 500;
+}
+
+.criterionName p {
+  margin: var(--spacing-2) 0 0;
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+
+.weightCell {
+  text-align: center;
+  vertical-align: middle;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+/* Styles for AI-generated HTML content */
+.content h1 {
+  font-family: var(--font-family-heading);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: var(--spacing-6);
+  padding-bottom: var(--spacing-3);
+  border-bottom: 2px solid var(--primary);
+  text-align: center;
+}
+
+.content h2 {
+  font-family: var(--font-family-heading);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-top: var(--spacing-8);
+  margin-bottom: var(--spacing-4);
+  padding-bottom: var(--spacing-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.content .course-info {
+  background-color: var(--muted);
+  padding: var(--spacing-4);
+  border-radius: var(--radius);
+  margin-bottom: var(--spacing-6);
+  border: 1px solid var(--border);
+}
+
+.content .course-info p {
+  margin: var(--spacing-2) 0;
+  font-size: 1rem;
+  color: var(--surface-foreground);
+}
+
+.content .course-info strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.content hr {
+  border: none;
+  height: 1px;
+  background-color: var(--border);
+  margin: var(--spacing-6) 0;
+}
+
+.content p {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--surface-foreground);
+  margin-bottom: var(--spacing-4);
+}
+
+.content ol, .content ul {
+  padding-right: var(--spacing-6);
+  margin: var(--spacing-4) 0;
+}
+
+.content li {
+  margin-bottom: var(--spacing-3);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--surface-foreground);
+}
+
+.content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--spacing-4) 0;
+  font-size: 0.9rem;
+}
+
+.content table th {
+  background-color: var(--muted);
+  color: var(--foreground);
+  padding: var(--spacing-3);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  text-align: right;
+}
+
+.content table td {
+  padding: var(--spacing-3);
+  border: 1px solid var(--border);
+  color: var(--surface-foreground);
+  vertical-align: top;
+  text-align: right;
+}
+
+.content table tr:nth-child(even) {
+  background-color: color-mix(in srgb, var(--muted) 30%, transparent);
+}
+
+.content table tr:hover {
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+}

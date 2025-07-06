@@ -1,0 +1,265 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+  overflow-y: auto;
+  height: 100%;
+  width: 100%;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+  padding: 32px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 16px;
+}
+
+.titleIcon {
+  color: #f6ad55;
+  width: 40px;
+  height: 40px;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: #718096;
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.bloomPyramid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: none;
+  overflow: visible;
+}
+
+.bloomLevel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.bloomLevel:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.levelHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border: none;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 0;
+}
+
+.levelHeader:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+.levelIcon {
+  font-size: 1.5rem;
+  margin-left: 12px;
+}
+
+.levelName {
+  flex: 1;
+  text-align: right;
+  margin-right: 16px;
+}
+
+.tipCount {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  margin-left: 12px;
+}
+
+.tipsContainer {
+  padding: 0 24px 24px;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+}
+
+.tipCard {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 24px;
+  border-right: 4px solid #4299e1;
+  transition: all 0.3s ease;
+}
+
+.tipCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+  border-right-color: #3182ce;
+}
+
+.tipTitle {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.tipSection {
+  margin-bottom: 20px;
+}
+
+.tipSection:last-child {
+  margin-bottom: 0;
+}
+
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.sectionTitle::before {
+  content: '';
+  width: 4px;
+  height: 16px;
+  background: #4299e1;
+  margin-left: 8px;
+  border-radius: 2px;
+}
+
+.tipDescription {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #2d3748;
+  margin-bottom: 0;
+}
+
+.tipExample {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #2d3748;
+  background: #edf2f7;
+  padding: 16px;
+  border-radius: 8px;
+  border-right: 3px solid #38b2ac;
+  margin-bottom: 0;
+  font-style: italic;
+}
+
+.bloomExplanation {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #2d3748;
+  background: #f0fff4;
+  padding: 16px;
+  border-radius: 8px;
+  border-right: 3px solid #48bb78;
+  margin-bottom: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+  
+  .title {
+    font-size: 2rem;
+  }
+  
+  .titleIcon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .subtitle {
+    font-size: 1.1rem;
+  }
+  
+  .levelHeader {
+    padding: 16px 20px;
+    font-size: 1.1rem;
+  }
+  
+  .tipsContainer {
+    grid-template-columns: 1fr;
+    padding: 0 20px 20px;
+  }
+  
+  .tipCard {
+    padding: 20px;
+  }
+  
+  .tipTitle {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 12px;
+  }
+  
+  .header {
+    padding: 20px;
+    margin-bottom: 32px;
+  }
+  
+  .title {
+    font-size: 1.8rem;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .levelHeader {
+    padding: 14px 16px;
+    font-size: 1rem;
+  }
+  
+  .levelIcon {
+    font-size: 1.3rem;
+    margin-left: 8px;
+  }
+  
+  .tipCount {
+    font-size: 0.8rem;
+    margin-left: 8px;
+  }
+  
+  .tipsContainer {
+    padding: 0 16px 16px;
+  }
+  
+  .tipCard {
+    padding: 16px;
+  }
+} 

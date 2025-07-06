@@ -1,0 +1,257 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 130px); /* Adjust for header and footer */
+  direction: rtl;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-4) var(--spacing-6);
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+  direction: rtl;
+}
+
+.titleSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  width: 50%;
+  text-align: right;
+}
+
+.mainTabs {
+  display: flex;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+}
+
+.modeToggle {
+  display: flex;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+}
+
+.titleInput {
+  font-size: 1.25rem;
+  font-weight: 600;
+  height: 2.75rem;
+}
+
+.descriptionInput {
+  font-size: 0.875rem;
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.progressIndicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-6) var(--spacing-4);
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+  direction: rtl;
+}
+
+.progressStep {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.progressCircle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all var(--animation-duration-normal) ease;
+}
+
+.progressActive {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.progressInactive {
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  border: 2px solid var(--border);
+}
+
+.progressLabel {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  transition: color var(--animation-duration-normal) ease;
+}
+
+.progressLabelActive {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+.progressLine {
+  width: 4rem;
+  height: 2px;
+  background-color: var(--border);
+  margin: 0 var(--spacing-4);
+  transition: background-color var(--animation-duration-normal) ease;
+}
+
+.progressLineActive {
+  background-color: var(--primary);
+}
+
+.workspace {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.workspaceWithTips {
+  display: flex;
+  flex: 1;
+  overflow-y: auto;
+  height: calc(100vh - 200px);
+}
+
+.guidedContent {
+  flex: 1;
+  padding: var(--spacing-6);
+  overflow-y: auto;
+  background-color: var(--background);
+}
+
+.guidedNavigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-4) var(--spacing-6);
+  background-color: var(--surface);
+  border-top: 1px solid var(--border);
+  direction: rtl;
+}
+
+.navigationLeft {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.navigationRight {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.sidebar {
+  width: 300px;
+  border-left: 1px solid var(--border);
+  background-color: var(--sidebar);
+  overflow-y: auto;
+}
+
+.mainContent {
+  flex: 1;
+  overflow: hidden;
+  padding: var(--spacing-4);
+  background-color: var(--background);
+}
+
+.previewSection {
+  height: 300px;
+  border-top: 1px solid var(--border);
+}
+
+.previewToggle {
+  display: flex;
+  justify-content: center;
+  padding: var(--spacing-2);
+  background-color: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .container {
+    height: auto;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-4);
+    padding: var(--spacing-4);
+  }
+  
+  .titleSection {
+    width: 100%;
+  }
+  
+  .mainTabs {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .modeToggle {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .progressIndicator {
+    flex-direction: column;
+    gap: var(--spacing-4);
+    padding: var(--spacing-4);
+  }
+  
+  .progressStep {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .progressLine {
+    width: 2px;
+    height: 2rem;
+    margin: var(--spacing-2) 0;
+  }
+  
+  .workspace {
+    flex-direction: column;
+    height: auto;
+  }
+  
+  .sidebar {
+    width: 100%;
+    height: 300px;
+    border-left: none;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .mainContent {
+    height: 400px;
+  }
+  
+  .guidedNavigation {
+    flex-direction: column;
+    gap: var(--spacing-3);
+  }
+  
+  .navigationLeft,
+  .navigationRight {
+    width: 100%;
+    justify-content: center;
+  }
+}

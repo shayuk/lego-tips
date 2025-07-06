@@ -1,0 +1,228 @@
+.container {
+  padding: var(--spacing-8) var(--spacing-12);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-8);
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 1.125rem;
+  color: var(--muted-foreground);
+  margin-top: var(--spacing-2);
+}
+
+.tabs {
+  width: 100%;
+}
+
+.tabContent {
+  padding-top: var(--spacing-6);
+}
+
+/* My Assessments Tab */
+.assessmentsGrid {
+  display: grid;
+  gap: var(--spacing-6);
+}
+
+.assessmentCard {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: box-shadow var(--animation-duration-normal), transform var(--animation-duration-normal);
+  box-shadow: var(--shadow);
+}
+
+.assessmentCard:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.assessmentInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.assessmentTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.assessmentDescription {
+  color: var(--muted-foreground);
+  margin: 0;
+  max-width: 60ch;
+}
+
+.assessmentMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  margin-top: var(--spacing-2);
+}
+
+.assessmentActions {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.destructiveAction:hover {
+  color: var(--error);
+}
+
+.emptyState {
+  text-align: center;
+  padding: var(--spacing-16) 0;
+  background-color: var(--surface);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.emptyState h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.emptyState p {
+  color: var(--muted-foreground);
+  margin-top: var(--spacing-2);
+}
+
+/* Explore Methods Tab */
+.filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-6);
+  gap: var(--spacing-4);
+}
+
+.searchWrapper {
+  position: relative;
+  flex-grow: 1;
+  max-width: 400px;
+}
+
+.searchIcon {
+  position: absolute;
+  right: var(--spacing-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.searchInput {
+  padding-right: calc(var(--spacing-3) * 2 + 20px);
+}
+
+.categoryFilters {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.methodsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--spacing-6);
+}
+
+.methodCard {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  transition: box-shadow var(--animation-duration-normal), border-color var(--animation-duration-normal);
+}
+
+.methodCard:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary);
+}
+
+.methodHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.methodTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.methodDescription {
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  flex-grow: 1;
+}
+
+.methodTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-4);
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-4);
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .categoryFilters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .assessmentCard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-4);
+  }
+
+  .assessmentActions {
+    align-self: flex-end;
+  }
+}
