@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useState } from "react";
 import { FileDown, Maximize2, Minimize2, Printer } from "lucide-react";

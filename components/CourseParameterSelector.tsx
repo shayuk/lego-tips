@@ -26,8 +26,38 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
   const [fileSuccess, setFileSuccess] = useState<string | null>(null);
   const [selectedFaculty, setSelectedFaculty] = useState<string>('');
 
-  const handleClearContent = () => {
-    setValue('courseContent', '', { shouldValidate: true });
+  // הפרדת תוכן ידני מתוכן קובץ מועלה
+  const separateContent = (content: string) => {
+    const syllabusStart = content.indexOf('--- תוכן הסילבוס ---');
+    const articleStart = content.indexOf('--- תוכן המאמר ---');
+    
+    const separatorStart = Math.min(
+      syllabusStart === -1 ? Infinity : syllabusStart,
+      articleStart === -1 ? Infinity : articleStart
+    );
+    
+    if (separatorStart === Infinity) {
+      return { manualContent: content, fileContent: '' };
+    }
+    
+    return {
+      manualContent: content.substring(0, separatorStart).trim(),
+      fileContent: content.substring(separatorStart).trim()
+    };
+  };
+
+  const handleClearManualText = () => {
+    const currentContent = watch('courseContent') || '';
+    const { fileContent } = separateContent(currentContent);
+    setValue('courseContent', fileContent, { shouldValidate: true });
+    setFileError(null);
+    setFileSuccess(null);
+  };
+
+  const handleClearFile = () => {
+    const currentContent = watch('courseContent') || '';
+    const { manualContent } = separateContent(currentContent);
+    setValue('courseContent', manualContent, { shouldValidate: true });
     setSyllabusFile(null);
     setFileError(null);
     setFileSuccess(null);
@@ -92,7 +122,7 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
       .replace(/\{V4pW&A\|d\?ks\{gPv\$3IuH8\s*\(K/g, '') // specific garbage pattern
       .replace(/YTlDC_:j\}\s*&#8-/g, '') // specific garbage pattern
       .replace(/j0EJ\(eh4NDB81\$14\s*\{1\}/g, '') // specific garbage pattern from image
-             .replace(/[^\w\s\u0590-\u05FF\u200E\u200F\u202A-\u202E.,!?;:()[\]{}"'`~@#$%^&*+=|\\/<>-\r\n]/g, ''); // תווים לא קריאים
+             .replace(/[^\w\s\u0590-\u05FF\u200E\u200F\u202A-\u202E.,!?;:()[\]{}"'`~@#$%^&*+=|\\/<>\r\n-]/g, ''); // תווים לא קריאים
 
     // שלב 2: ניקוי תווים לפי character codes (מתוקן)
     cleaned = cleaned
@@ -312,6 +342,20 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
               subtitle="סוגי קבצים: TXT, PDF, DOC, DOCX. גודל מקסימלי: 5MB"
               icon={<Upload size={36} />}
             />
+            {syllabusFile && (
+              <div style={{ marginTop: '8px', textAlign: 'center' }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearFile}
+                  title="הסר סילבוס"
+                >
+                  <X size={14} />
+                  הסר סילבוס
+                </Button>
+              </div>
+            )}
           </div>
           <div className={styles.orSeparator}>תוכן הקורס</div>
           <div className={styles.textareaContainer}>
@@ -348,9 +392,9 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={handleClearContent}
+                    onClick={handleClearManualText}
                     className={styles.clearButton}
-                    title="נקה תוכן"
+                    title="נקה טקסט ידני"
                   >
                     <X size={16} />
                   </Button>

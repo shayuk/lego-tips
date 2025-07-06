@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search, Edit, Trash2, Info } from "lucide-react";

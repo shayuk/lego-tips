@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState } from "react";
 import { ArrowRight, ArrowLeft, RotateCcw, Lightbulb, Building } from "lucide-react";
 import { AppLayout } from "../components/AppLayout";
