@@ -58,38 +58,87 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
   const watchedFaculty = watch('faculty');
 
     const cleanGibberish = (text: string): string => {
-    // הסרת תווים לא קריאים ושמירה על טקסט קריא בלבד
+    if (!text || typeof text !== 'string') return '';
+    
+    // שלב 1: הסרת פטרנים ספציפיים של קבצים בינאריים ו-XML
     let cleaned = text
+      .replace(/PK\\x03\\x04[\s\S]*?/g, '') // DOCX binary signatures
+      .replace(/PK[\s\S]*?xml/gi, '') // DOCX signatures
+      .replace(/%PDF[\s\S]*?obj/gi, '') // PDF signatures
+      .replace(/�/g, '') // replacement characters
+      .replace(/\\x00/g, '') // null bytes
+      .replace(/[\\x01-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F-\\x9F]/g, '') // control characters
+      .replace(/<[^>]*>/g, '') // XML/HTML tags
+      .replace(/obj\s*<<[^>]*>>/g, '') // PDF objects
+      .replace(/endobj/g, '') // PDF end objects
+      .replace(/stream[\s\S]*?endstream/gi, '') // PDF streams
+      .replace(/xref[\s\S]*?trailer/gi, '') // PDF xref tables
+      .replace(/\/[A-Z][a-zA-Z]*\s*\d+/g, '') // PDF references
+      .replace(/\d+\s+\d+\s+obj/g, '') // PDF object headers
+      .replace(/BT[\s\S]*?ET/g, '') // PDF text objects
+      .replace(/q[\s\S]*?Q/g, '') // PDF graphics state
+      .replace(/[0-9]+\.?[0-9]*\s+[0-9]+\.?[0-9]*\s+[0-9]+\.?[0-9]*\s+[rg|RG|k|K]/g, '') // PDF color commands
+      .replace(/\/F\d+\s+\d+\s+Tf/g, '') // PDF font commands
+      .replace(/\d+\.?\d*\s+\d+\.?\d*\s+Td/g, '') // PDF text positioning
+      .replace(/\(\s*\)/g, '') // empty parentheses
+      .replace(/\[\s*\]/g, '') // empty brackets
+      .replace(/{\s*}/g, '') // empty braces
+      .replace(/w%=\^i7\+d&0A6l4L60#S/g, '') // specific garbage pattern
+      .replace(/0X\*V\$:B~\^K/g, '') // specific garbage pattern
+      .replace(/Pl~7\$iJ&B0ZDut0JK\(HxG\//g, '') // specific garbage pattern
+      .replace(/L\+vdcW>\*\^XRmpZ\}HwnMVn-/g, '') // specific garbage pattern
+      .replace(/sDXj;A\*c4\[S9>\s*"\)/g, '') // specific garbage pattern
+      .replace(/ZwB`4/g, '') // specific garbage pattern
+      .replace(/\{V4pW&A\|d\?ks\{gPv\$3IuH8\s*\(K/g, '') // specific garbage pattern
+      .replace(/YTlDC_:j\}\s*&#8-/g, '') // specific garbage pattern
+      .replace(/j0EJ\(eh4NDB81\$14\s*\{1\}/g, '') // specific garbage pattern from image
+             .replace(/[^\w\s\u0590-\u05FF\u200E\u200F\u202A-\u202E.,!?;:()[\]{}"'`~@#$%^&*+=|\\/<>-\r\n]/g, ''); // תווים לא קריאים
+
+    // שלב 2: ניקוי תווים לפי character codes (מתוקן)
+    cleaned = cleaned
       .split('')
       .filter(char => {
         const code = char.charCodeAt(0);
-        // שמירה על תווים קריאים: רווח, tab, newline, אנגלית, מספרים, עברית, ערבית, סימני פיסוק בסיסיים
         return (
           code === 32 ||  // space
           code === 9 ||   // tab
           code === 10 ||  // newline
           code === 13 ||  // carriage return
           (code >= 33 && code <= 126) || // ASCII printable
-          (code >= 1488 && code <= 1514) || // עברית
+          (code >= 1488 && code <= 1514) || // עברית בסיסית
           (code >= 1520 && code <= 1524) || // עברית נוספת
           (code >= 1425 && code <= 1479) || // ניקוד עברי
           (code >= 8204 && code <= 8207) || // RTL/LTR marks
-          (code >= 160 && code <= 255) // Latin extended
+          (code >= 160 && code <= 255) || // Latin extended
+          code === 8226 || // bullet point
+          code === 8211 || // en dash
+          code === 8212 || // em dash
+          code === 8216 || // left single quote
+          code === 8217 || // right single quote
+          code === 8220 || // left double quote
+          code === 8221    // right double quote
         );
       })
       .join('');
 
-    // הסרת פטרנים ספציפיים של קבצים
+    // שלב 3: ניקוי פורמט וארגון מחדש
     cleaned = cleaned
-      .replace(/�/g, '') // replacement characters
-      .replace(/PK[\s\S]*?xml/gi, '') // DOCX signatures
-      .replace(/%PDF[\s\S]*?obj/gi, '') // PDF signatures
-      .replace(/[^\w\s\u0590-\u05FF\u200E\u200F\u202A-\u202E.,!?;:()[\]{}"'`~@#$%^&*+=|\\/<>-]/g, '') // תווים מוזרים
-      .replace(/\s{3,}/g, ' ') // מרווחים מרובים
-      .replace(/\n{3,}/g, '\n\n') // שורות ריקות מרובות
+      .replace(/\s{4,}/g, '   ') // מרווחים מרובים יותר מדי
+      .replace(/\n\s*\n\s*\n/g, '\n\n') // שורות ריקות מרובות
+      .replace(/^\s+/gm, '') // רווחים בתחילת שורות
+      .replace(/\s+$/gm, '') // רווחים בסוף שורות
+      .replace(/([.!?])\s*([a-zA-Z\u0590-\u05FF])/g, '$1 $2') // רווח אחרי סימני פיסוק
       .trim();
 
-    return cleaned;
+    // שלב 4: בדיקת תוכן משמעותי
+    // הסרת שורות קצרות מדי שעשויות להיות רעש
+    const lines = cleaned.split('\n').filter(line => {
+      const trimmed = line.trim();
+             return trimmed.length > 2 && // לא שורות קצרות מדי
+              !/^[\d\s.,!?;:()[\]{}"'`~@#$%^&*+=|\\/<>-]+$/.test(trimmed); // לא רק סימנים
+    });
+
+    return lines.join('\n').trim();
   };
 
   const handleFileSelect = useCallback((files: File[]) => {
