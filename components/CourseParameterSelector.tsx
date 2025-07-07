@@ -25,8 +25,9 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
   const [fileError, setFileError] = useState<string | null>(null);
   const [fileSuccess, setFileSuccess] = useState<string | null>(null);
   const [selectedFaculty, setSelectedFaculty] = useState<string>('');
+  const [fileType, setFileType] = useState<'syllabus' | 'article'>('syllabus'); // הוספת state לסוג הקובץ
 
-  // הפרדת תוכן ידני מתוכן קובץ מועלה
+  // הפרדת תוכן ידני מתוכן קובץ מועלה - מעודכן לתמיכה במאמרים
   const separateContent = (content: string) => {
     const syllabusStart = content.indexOf('--- תוכן הסילבוס ---');
     const articleStart = content.indexOf('--- תוכן המאמר ---');
@@ -195,10 +196,11 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
           return;
         }
         
-        // הקובץ נקרא בהצלחה - הוסף את התוכן הנקי
+        // הקובץ נקרא בהצלחה - הוסף את התוכן הנקי עם סמן דינמי
         const currentContent = watch('courseContent') || '';
+        const contentSeparator = fileType === 'syllabus' ? '--- תוכן הסילבוס ---' : '--- תוכן המאמר ---';
         const combinedContent = currentContent 
-          ? `${currentContent}\n\n--- תוכן הסילבוס ---\n${cleanedText}`
+          ? `${currentContent}\n\n${contentSeparator}\n${cleanedText}`
           : cleanedText;
         setValue('courseContent', combinedContent, { shouldValidate: true });
         
@@ -222,7 +224,8 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
 
   const onSubmit = (data: CourseParameterSchema) => {
     if (!data.courseContent || data.courseContent.trim() === '') {
-        setFileError('יש להזין תוכן הקורס (העלאת סילבוס או כתיבה חופשית).');
+        const fileTypeName = fileType === 'syllabus' ? 'סילבוס' : 'מאמר';
+        setFileError(`יש להזין תוכן הקורס (העלאת ${fileTypeName} או כתיבה חופשית).`);
         return;
     }
     setFileError(null);
@@ -327,8 +330,43 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
           <FileText size={24} className={styles.titleIcon} />
           תכני הקורס
         </h2>
+        
+        {/* בחירת סוג הקובץ */}
+        <div className={styles.field}>
+          <label className={styles.label}>
+            <FileText size={16} />
+            סוג התוכן
+          </label>
+          <div className={styles.fileTypeSelector}>
+            <label className={`${styles.fileTypeOption} ${fileType === 'syllabus' ? styles.selected : ''}`}>
+              <input
+                type="radio"
+                name="fileType"
+                value="syllabus"
+                checked={fileType === 'syllabus'}
+                onChange={(e) => setFileType(e.target.value as 'syllabus' | 'article')}
+                className={styles.radioInput}
+              />
+              <School size={16} />
+              סילבוס
+            </label>
+            <label className={`${styles.fileTypeOption} ${fileType === 'article' ? styles.selected : ''}`}>
+              <input
+                type="radio"
+                name="fileType"
+                value="article"
+                checked={fileType === 'article'}
+                onChange={(e) => setFileType(e.target.value as 'syllabus' | 'article')}
+                className={styles.radioInput}
+              />
+              <FileText size={16} />
+              מאמר
+            </label>
+          </div>
+        </div>
+        
         <p className={styles.sectionDescription}>
-          ניתן להעלות קובץ סילבוס (TXT, PDF, DOC, DOCX) ואז לכתוב הוראות ספציפיות נוספות בתיבת הטקסט, או להדביק את תכני הקורס ישירות. 
+          ניתן להעלות קובץ {fileType === 'syllabus' ? 'סילבוס' : 'מאמר'} (TXT, PDF, DOC, DOCX) ואז לכתוב הוראות ספציפיות נוספות בתיבת הטקסט, או להדביק את תכני הקורס ישירות. 
           <br /><strong>טיפ:</strong> אם תכתבו הוראות ספציפיות כמו "המטלה תתרכז בנושא X", ה-AI יתמקד בדיוק בנושא הזה.
           <br /><strong>הערה:</strong> אם קובץ PDF/DOC לא נקרא כראוי, המערכת תבקש להעתיק את התוכן ידנית.
         </p>
@@ -338,7 +376,7 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
               onFilesSelected={handleFileSelect}
               accept=".txt,.pdf,.doc,.docx"
               maxSize={5 * 1024 * 1024} // 5MB
-              title={syllabusFile ? `הקובץ "${syllabusFile.name}" נבחר` : "גרור קובץ סילבוס לכאן או לחץ לבחירה"}
+              title={syllabusFile ? `הקובץ "${syllabusFile.name}" נבחר` : `גרור קובץ ${fileType === 'syllabus' ? 'סילבוס' : 'מאמר'} לכאן או לחץ לבחירה`}
               subtitle="סוגי קבצים: TXT, PDF, DOC, DOCX. גודל מקסימלי: 5MB"
               icon={<Upload size={36} />}
             />
@@ -349,10 +387,10 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
                   variant="outline"
                   size="sm"
                   onClick={handleClearFile}
-                  title="הסר סילבוס"
+                  title={`הסר ${fileType === 'syllabus' ? 'סילבוס' : 'מאמר'}`}
                 >
                   <X size={14} />
-                  הסר סילבוס
+                  הסר {fileType === 'syllabus' ? 'סילבוס' : 'מאמר'}
                 </Button>
               </div>
             )}
@@ -367,7 +405,7 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
                   <Textarea
                     {...field}
                     placeholder={syllabusFile ? 
-                      "תוכן הסילבוס נטען. ניתן לערוך ולהוסיף פרטים נוספים כמו: המטלה תתרכז בהיסטוריה של הסכסוך הערבי-ישראלי במאה ה-20..." : 
+                      `תוכן ה${fileType === 'syllabus' ? 'סילבוס' : 'מאמר'} נטען. ניתן לערוך ולהוסיף פרטים נוספים כמו: המטלה תתרכז בהיסטוריה של הסכסוך הערבי-ישראלי במאה ה-20...` : 
                       "הדבק כאן את תכני הקורס, ראשי פרקים, או תיאור כללי. לדוגמה: המטלה תתרכז בהיסטוריה של הסכסוך הערבי-ישראלי במאה ה-20..."
                     }
                     className={styles.textarea}

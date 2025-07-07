@@ -5,7 +5,7 @@ export const courseParameterSchema = z.object({
   courseName: z.string().min(1, { message: 'יש להזין את שם הקורס.' }),
   faculty: z.string().min(1, { message: 'יש לבחור את הפקולטה.' }),
   department: z.string().min(1, { message: 'יש לבחור את המחלקה.' }),
-  courseContent: z.string().min(1, { message: 'יש להזין תיאור קורס או להעלות סילבוס.' }),
+  courseContent: z.string().min(1, { message: 'יש להזין תיאור קורס או להעלות סילבוס/מאמר.' }),
   courseType: z.custom<AssessmentMethodCategory>(val => typeof val === 'string' && val.length > 0, {
     message: 'יש לבחור את סוג הקורס.',
   }),

@@ -25,60 +25,71 @@ SOFTWARE.
 
 import { useState, useLayoutEffect } from "react";
 
+// אפשרויות קונפיגורציה עבור ה-hook
 type UseMediaQueryOptions = {
-  defaultValue?: boolean;
-  initializeWithValue?: boolean;
+  defaultValue?: boolean;        // ערך ברירת מחדל כאשר אין אפשרות לבדוק
+  initializeWithValue?: boolean; // האם לאתחל עם הערך הנוכחי או עם ברירת המחדל
 };
 
+// בדיקה האם אנחנו בסביבת שרת (SSR) - אין window object
 const IS_SERVER = typeof window === "undefined";
 
+/**
+ * Hook לבדיקת media queries ברזולוציות שונות
+ * מאפשר למעקב אחר שינויים בגודל המסך, נושא כהה/בהיר וכו'
+ */
 export function useMediaQuery(
-  query: string,
+  query: string,                 // המדיה query לבדיקה (כמו "(max-width: 768px)")
   {
     defaultValue = false,
     initializeWithValue = true,
   }: UseMediaQueryOptions = {},
 ): boolean {
+  
+  // פונקציה עוזרת לבדיקת התאמה של המדיה query
   const getMatches = (query: string): boolean => {
     if (IS_SERVER) {
-      return defaultValue;
+      return defaultValue; // בשרת מחזירים ברירת מחדל
     }
-    return window.matchMedia(query).matches;
+    return window.matchMedia(query).matches; // בדיקה אמיתית בדפדפן
   };
 
+  // State שמחזיק האם ה-query תואם כרגע
   const [matches, setMatches] = useState<boolean>(() => {
     if (initializeWithValue) {
-      return getMatches(query);
+      return getMatches(query); // אתחול עם בדיקה מיידית
     }
-    return defaultValue;
+    return defaultValue; // אתחול עם ברירת מחדל
   });
 
-  // Handles the change event of the media query.
+  // פונקציה שמטפלת בשינויים של המדיה query
   function handleChange() {
-    setMatches(getMatches(query));
+    setMatches(getMatches(query)); // עדכון ה-state כשיש שינוי
   }
 
+  // האפקט הראשי - הגדרת מאזינים לשינויים במדיה query
   useLayoutEffect(() => {
-    const matchMedia = window.matchMedia(query);
+    const matchMedia = window.matchMedia(query); // יצירת MediaQueryList object
 
-    // Triggered at the first client-side load and if query changes
+    // בדיקה ראשונית מיד אחרי ההרכבה
     handleChange();
 
-    // Use deprecated `addListener` and `removeListener` to support Safari < 14 (#135)
+    // הוספת מאזין לשינויים - תמיכה גם בגרסאות ישנות של Safari
     if (matchMedia.addListener) {
-      matchMedia.addListener(handleChange);
+      matchMedia.addListener(handleChange);        // דרך ישנה (deprecated)
     } else {
-      matchMedia.addEventListener("change", handleChange);
+      matchMedia.addEventListener("change", handleChange); // דרך חדשה
     }
 
+    // נקיון - הסרת המאזין כשהקומפוננטה מתפרקת או כש-query משתנה
     return () => {
       if (matchMedia.removeListener) {
-        matchMedia.removeListener(handleChange);
+        matchMedia.removeListener(handleChange);     // דרך ישנה
       } else {
-        matchMedia.removeEventListener("change", handleChange);
+        matchMedia.removeEventListener("change", handleChange); // דרך חדשה
       }
     };
-  }, [query]);
+  }, [query]); // האפקט רץ מחדש כאשר ה-query משתנה
 
-  return matches;
+  return matches; // החזרת התוצאה - true אם ה-query תואם, false אחרת
 }
