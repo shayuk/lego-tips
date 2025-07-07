@@ -1,12 +1,15 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Upload, FileText, BookOpen, Users, School, Monitor, TestTube, Briefcase, X, Wand2 } from 'lucide-react';
+import { Upload, FileText, BookOpen, Users, School, Monitor, TestTube, Briefcase, X, Wand2, File, Trash2, Save, CheckCircle } from 'lucide-react';
 
 import { Button } from './Button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Select';
 import { Textarea } from './Textarea';
 import { FileDropzone } from './FileDropzone';
+import { useAppToast } from './AppLayout';
+import { TOAST_MESSAGES } from '../helpers/useToast';
+import { cleanFileText, quickClean, aggressiveClean, isTextGarbled } from '../helpers/textCleaner';
 import { courseParameterSchema, CourseParameterSchema, courseTypeOptions, teachingMethodOptions, classSizeOptions, facultyOptions, departmentOptions } from '../helpers/courseParameterSchemas';
 import styles from './CourseParameterSelector.module.css';
 
@@ -16,35 +19,127 @@ export interface CourseParameterSelectorProps {
   isSubmitting?: boolean;
 }
 
+interface UploadedFile {
+  id: string;
+  file: File;
+  type: 'syllabus' | 'article' | 'other';
+  content: string;
+}
+
+interface AutoSaveData {
+  formData: Partial<CourseParameterSchema>;
+  uploadedFiles: Omit<UploadedFile, 'file'>[];
+  timestamp: number;
+}
+
+const AUTO_SAVE_KEY = 'pedagogical-lego-autosave';
+const AUTO_SAVE_INTERVAL = 5000; // 5 seconds
+
 export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = ({
   className,
   onParametersSubmit,
   isSubmitting = false,
 }) => {
-  const [syllabusFile, setSyllabusFile] = useState<File | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const [fileSuccess, setFileSuccess] = useState<string | null>(null);
-  const [selectedFaculty, setSelectedFaculty] = useState<string>('');
-  const [fileType, setFileType] = useState<'syllabus' | 'article'>('syllabus'); // הוספת state לסוג הקובץ
 
-  // הפרדת תוכן ידני מתוכן קובץ מועלה - מעודכן לתמיכה במאמרים
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  
+  // Toast functionality
+  const toast = useAppToast();
+
+  // פונקציות שמירה אוטומטית
+  const saveToLocalStorage = useCallback((data: Partial<CourseParameterSchema>) => {
+    // הגנה מפני שמירה במהלך הקלדה אקטיבית
+    if (autoSaveStatus === 'saving') return;
+    
+    try {
+      const autoSaveData: AutoSaveData = {
+        formData: data,
+        uploadedFiles: uploadedFiles.map(({ file, ...rest }) => rest), // הסרת file object שלא ניתן לשמור
+        timestamp: Date.now()
+      };
+      localStorage.setItem(AUTO_SAVE_KEY, JSON.stringify(autoSaveData));
+      setAutoSaveStatus('saved');
+      setLastSaved(new Date());
+      
+      // הסתרת הודעה אחרי 2 שניות
+      setTimeout(() => {
+        setAutoSaveStatus('idle');
+      }, 1500);
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+      setAutoSaveStatus('error');
+      // אל תזרוק toast error בכל פעם - רק לוג לקונסול
+      setTimeout(() => {
+        setAutoSaveStatus('idle');
+      }, 1500);
+    }
+  }, [uploadedFiles, autoSaveStatus]);
+
+  const loadFromLocalStorage = useCallback(() => {
+    try {
+      const saved = localStorage.getItem(AUTO_SAVE_KEY);
+      if (saved) {
+        const autoSaveData: AutoSaveData = JSON.parse(saved);
+        
+        // בדיקה אם הנתונים לא ישנים מדי (24 שעות)
+        const isOld = Date.now() - autoSaveData.timestamp > 24 * 60 * 60 * 1000;
+        if (isOld) {
+          localStorage.removeItem(AUTO_SAVE_KEY);
+          return null;
+        }
+        
+        return autoSaveData;
+      }
+    } catch (error) {
+      console.error('Error loading from localStorage:', error);
+      localStorage.removeItem(AUTO_SAVE_KEY);
+    }
+    return null;
+  }, []);
+
+  const clearAutoSave = useCallback(() => {
+    localStorage.removeItem(AUTO_SAVE_KEY);
+    setLastSaved(null);
+  }, []);
+
+  // הפרדת תוכן ידני מתוכן קבצים מועלים - מעודכן לתמיכה בקבצים מרובים
   const separateContent = (content: string) => {
-    const syllabusStart = content.indexOf('--- תוכן הסילבוס ---');
-    const articleStart = content.indexOf('--- תוכן המאמר ---');
+    const separators = ['--- תוכן הסילבוס ---', '--- תוכן המאמר ---', '--- תוכן קובץ נוסף ---'];
+    let manualContent = content;
+    let fileContent = '';
     
-    const separatorStart = Math.min(
-      syllabusStart === -1 ? Infinity : syllabusStart,
-      articleStart === -1 ? Infinity : articleStart
-    );
-    
-    if (separatorStart === Infinity) {
-      return { manualContent: content, fileContent: '' };
+    for (const separator of separators) {
+      const separatorIndex = content.indexOf(separator);
+      if (separatorIndex !== -1) {
+        manualContent = content.substring(0, separatorIndex).trim();
+        fileContent = content.substring(separatorIndex).trim();
+        break;
+      }
     }
     
-    return {
-      manualContent: content.substring(0, separatorStart).trim(),
-      fileContent: content.substring(separatorStart).trim()
-    };
+    return { manualContent, fileContent };
+  };
+
+  // פונקציה חדשה לניקוי תוכן מסמנים אוטומטיים - משמרת את התוכן
+  const removeAllSeparators = (content: string) => {
+    const separators = ['--- תוכן הסילבוס ---', '--- תוכן המאמר ---', '--- תוכן קובץ נוסף ---'];
+    let cleanedContent = content;
+    
+    // מסיר את הסמנים עצמם אבל משאיר את התוכן שאחריהם
+    separators.forEach(separator => {
+      cleanedContent = cleanedContent.replace(new RegExp(separator + '\\s*', 'g'), '');
+    });
+    
+    // נקה שורות ריקות מיותרות אבל שמור מבנה בסיסי
+    cleanedContent = cleanedContent
+      .replace(/\n{3,}/g, '\n\n') // מקסימום 2 שורות ריקות רצופות
+      .trim();
+    
+    return cleanedContent;
   };
 
   const handleClearManualText = () => {
@@ -55,21 +150,74 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
     setFileSuccess(null);
   };
 
-  const handleClearFile = () => {
+  const handleClearAllFiles = () => {
     const currentContent = watch('courseContent') || '';
     const { manualContent } = separateContent(currentContent);
     setValue('courseContent', manualContent, { shouldValidate: true });
-    setSyllabusFile(null);
+    setUploadedFiles([]);
     setFileError(null);
     setFileSuccess(null);
+  };
+
+  // פונקציה חדשה לניקוי כל התוכן כולל סמנים
+  const handleClearAllContent = () => {
+    setValue('courseContent', '', { shouldValidate: true });
+    setUploadedFiles([]);
+    setFileError(null);
+    setFileSuccess(null);
+    toast.showInfo('התוכן נוקה', 'כל התוכן והקבצים הועלו הוסרו');
+  };
+
+  // פונקציה משופרת לניקוי סמנים בלבד
+  const handleRemoveSeparators = () => {
+    const currentContent = watch('courseContent') || '';
+    const cleanedContent = removeAllSeparators(currentContent);
+    setValue('courseContent', cleanedContent, { shouldValidate: true });
+    
+    // הודעה מפורטת למשתמש
+    const lengthBefore = currentContent.length;
+    const lengthAfter = cleanedContent.length;
+    const removedChars = lengthBefore - lengthAfter;
+    
+    toast.showSuccess(
+      'הסמנים הוסרו בהצלחה', 
+      `הוסרו ${removedChars} תווים של סמנים. התוכן של הקבצים נשמר במלואו (${lengthAfter} תווים נותרו)`
+    );
+  };
+
+  const handleRemoveFile = (fileId: string) => {
+    const updatedFiles = uploadedFiles.filter(f => f.id !== fileId);
+    setUploadedFiles(updatedFiles);
+    
+    // עדכון תוכן הטקסט
+    const currentContent = watch('courseContent') || '';
+    const { manualContent } = separateContent(currentContent);
+    
+    const newFileContent = updatedFiles.map(f => {
+      const separator = f.type === 'syllabus' ? '--- תוכן הסילבוס ---' : 
+                       f.type === 'article' ? '--- תוכן המאמר ---' : 
+                       '--- תוכן קובץ נוסף ---';
+      return `${separator}\n${f.content}`;
+    }).join('\n\n');
+    
+    const combinedContent = manualContent + (newFileContent ? `\n\n${newFileContent}` : '');
+    setValue('courseContent', combinedContent, { shouldValidate: true });
   };
 
   const handleCleanGibberish = () => {
     const currentContent = watch('courseContent') || '';
     if (currentContent) {
-      const cleanedContent = cleanGibberish(currentContent);
+      // Check if text is heavily garbled and choose appropriate cleaning level
+      const cleanedContent = isTextGarbled(currentContent) 
+        ? aggressiveClean(currentContent)
+        : quickClean(currentContent);
+      
       setValue('courseContent', cleanedContent, { shouldValidate: true });
-      setFileSuccess('תווים לא קריאים הוסרו מהטקסט.');
+      
+      toast.showSuccess(
+        'ניקוי הטקסט הושלם', 
+        'תווים לא קריאים הוסרו מהטקסט בהצלחה'
+      );
     }
   };
 
@@ -87,148 +235,191 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
   });
 
   const watchedFaculty = watch('faculty');
+  const watchedData = watch(); // צפייה בכל הנתונים לשמירה אוטומטית
 
-    const cleanGibberish = (text: string): string => {
-    if (!text || typeof text !== 'string') return '';
+  // שחזור נתונים בטעינת העמוד - רק פעם אחת
+  const [hasLoaded, setHasLoaded] = useState(false);
+  
+  useEffect(() => {
+    if (hasLoaded) return; // מונע טעינה חוזרת
     
-    // שלב 1: הסרת פטרנים ספציפיים של קבצים בינאריים ו-XML
-    let cleaned = text
-      .replace(/PK\\x03\\x04[\s\S]*?/g, '') // DOCX binary signatures
-      .replace(/PK[\s\S]*?xml/gi, '') // DOCX signatures
-      .replace(/%PDF[\s\S]*?obj/gi, '') // PDF signatures
-      .replace(/�/g, '') // replacement characters
-      .replace(/\\x00/g, '') // null bytes
-      .replace(/[\\x01-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F-\\x9F]/g, '') // control characters
-      .replace(/<[^>]*>/g, '') // XML/HTML tags
-      .replace(/obj\s*<<[^>]*>>/g, '') // PDF objects
-      .replace(/endobj/g, '') // PDF end objects
-      .replace(/stream[\s\S]*?endstream/gi, '') // PDF streams
-      .replace(/xref[\s\S]*?trailer/gi, '') // PDF xref tables
-      .replace(/\/[A-Z][a-zA-Z]*\s*\d+/g, '') // PDF references
-      .replace(/\d+\s+\d+\s+obj/g, '') // PDF object headers
-      .replace(/BT[\s\S]*?ET/g, '') // PDF text objects
-      .replace(/q[\s\S]*?Q/g, '') // PDF graphics state
-      .replace(/[0-9]+\.?[0-9]*\s+[0-9]+\.?[0-9]*\s+[0-9]+\.?[0-9]*\s+[rg|RG|k|K]/g, '') // PDF color commands
-      .replace(/\/F\d+\s+\d+\s+Tf/g, '') // PDF font commands
-      .replace(/\d+\.?\d*\s+\d+\.?\d*\s+Td/g, '') // PDF text positioning
-      .replace(/\(\s*\)/g, '') // empty parentheses
-      .replace(/\[\s*\]/g, '') // empty brackets
-      .replace(/{\s*}/g, '') // empty braces
-      .replace(/w%=\^i7\+d&0A6l4L60#S/g, '') // specific garbage pattern
-      .replace(/0X\*V\$:B~\^K/g, '') // specific garbage pattern
-      .replace(/Pl~7\$iJ&B0ZDut0JK\(HxG\//g, '') // specific garbage pattern
-      .replace(/L\+vdcW>\*\^XRmpZ\}HwnMVn-/g, '') // specific garbage pattern
-      .replace(/sDXj;A\*c4\[S9>\s*"\)/g, '') // specific garbage pattern
-      .replace(/ZwB`4/g, '') // specific garbage pattern
-      .replace(/\{V4pW&A\|d\?ks\{gPv\$3IuH8\s*\(K/g, '') // specific garbage pattern
-      .replace(/YTlDC_:j\}\s*&#8-/g, '') // specific garbage pattern
-      .replace(/j0EJ\(eh4NDB81\$14\s*\{1\}/g, '') // specific garbage pattern from image
-             .replace(/[^\w\s\u0590-\u05FF\u200E\u200F\u202A-\u202E.,!?;:()[\]{}"'`~@#$%^&*+=|\\/<>\r\n-]/g, ''); // תווים לא קריאים
+    const savedData = loadFromLocalStorage();
+    if (savedData) {
+      // שחזור נתוני הטופס באופן זהיר
+      if (savedData.formData) {
+        Object.entries(savedData.formData).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            setValue(key as keyof CourseParameterSchema, value, { shouldValidate: false, shouldDirty: false });
+          }
+        });
+      }
+      
+      // הודעה למשתמש על שחזור הנתונים (רק אם יש תוכן משמעותי)
+      const hasSignificantContent = savedData.formData.courseContent || 
+                                   savedData.formData.courseName || 
+                                   savedData.uploadedFiles?.length > 0;
+      
+      if (hasSignificantContent) {
+        toast.showInfo(TOAST_MESSAGES.DATA_RESTORED.title, TOAST_MESSAGES.DATA_RESTORED.message);
+        setLastSaved(new Date(savedData.timestamp));
+      }
+    }
+    
+    setHasLoaded(true);
+  }, [setValue, loadFromLocalStorage, toast, hasLoaded]);
 
-    // שלב 2: ניקוי תווים לפי character codes (מתוקן)
-    cleaned = cleaned
-      .split('')
-      .filter(char => {
-        const code = char.charCodeAt(0);
-        return (
-          code === 32 ||  // space
-          code === 9 ||   // tab
-          code === 10 ||  // newline
-          code === 13 ||  // carriage return
-          (code >= 33 && code <= 126) || // ASCII printable
-          (code >= 1488 && code <= 1514) || // עברית בסיסית
-          (code >= 1520 && code <= 1524) || // עברית נוספת
-          (code >= 1425 && code <= 1479) || // ניקוד עברי
-          (code >= 8204 && code <= 8207) || // RTL/LTR marks
-          (code >= 160 && code <= 255) || // Latin extended
-          code === 8226 || // bullet point
-          code === 8211 || // en dash
-          code === 8212 || // em dash
-          code === 8216 || // left single quote
-          code === 8217 || // right single quote
-          code === 8220 || // left double quote
-          code === 8221    // right double quote
-        );
-      })
-      .join('');
+  // שמירה אוטומטית עם debounce - לא מפריעה להקלדה
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      // שמירה רק אם יש תוכן משמעותי ואין משתמש פעיל
+      const hasContent = watchedData.courseName || 
+                        watchedData.courseContent || 
+                        watchedData.faculty ||
+                        uploadedFiles.length > 0;
+      
+      if (hasContent && !isSubmitting && autoSaveStatus !== 'saving') {
+        setAutoSaveStatus('saving');
+        try {
+          saveToLocalStorage(watchedData);
+        } catch (error) {
+          console.error('Auto-save error:', error);
+          setAutoSaveStatus('error');
+        }
+      }
+    }, 3000); // השהיה של 3 שניות לאחר שינוי
 
-    // שלב 3: ניקוי פורמט וארגון מחדש
-    cleaned = cleaned
-      .replace(/\s{4,}/g, '   ') // מרווחים מרובים יותר מדי
-      .replace(/\n\s*\n\s*\n/g, '\n\n') // שורות ריקות מרובות
-      .replace(/^\s+/gm, '') // רווחים בתחילת שורות
-      .replace(/\s+$/gm, '') // רווחים בסוף שורות
-      .replace(/([.!?])\s*([a-zA-Z\u0590-\u05FF])/g, '$1 $2') // רווח אחרי סימני פיסוק
-      .trim();
+    return () => clearTimeout(timeoutId);
+  }, [watchedData, saveToLocalStorage, isSubmitting, uploadedFiles.length, autoSaveStatus]);
 
-    // שלב 4: בדיקת תוכן משמעותי
-    // הסרת שורות קצרות מדי שעשויות להיות רעש
-    const lines = cleaned.split('\n').filter(line => {
-      const trimmed = line.trim();
-             return trimmed.length > 2 && // לא שורות קצרות מדי
-              !/^[\d\s.,!?;:()[\]{}"'`~@#$%^&*+=|\\/<>-]+$/.test(trimmed); // לא רק סימנים
-    });
+  // פורמט זמן אחרון שנשמר
+  const formatLastSaved = (date: Date): string => {
+    const now = new Date();
+    const diffMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
+    
+    if (diffMinutes < 1) return 'זה עתה';
+    if (diffMinutes < 60) return `לפני ${diffMinutes} דקות`;
+    
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `לפני ${diffHours} שעות`;
+    
+    return date.toLocaleDateString('he-IL');
+  };
 
-    return lines.join('\n').trim();
+
+
+  const determineFileType = (fileName: string): 'syllabus' | 'article' | 'other' => {
+    const name = fileName.toLowerCase();
+    if (name.includes('syllabus') || name.includes('סילבוס')) return 'syllabus';
+    if (name.includes('article') || name.includes('מאמר')) return 'article';
+    return 'other';
   };
 
   const handleFileSelect = useCallback((files: File[]) => {
-    if (files.length > 0) {
-      const file = files[0];
-      setSyllabusFile(file);
-      setFileError(null);
-      setFileSuccess(null);
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        
-        // ניקוי הטקסט מג'בריש
-        const cleanedText = cleanGibberish(text);
-        
-        // בדיקה אם נשאר טקסט משמעותי אחרי הניקוי
-        if (cleanedText.length < 10) {
-          setFileError(
-            `הקובץ "${file.name}" לא מכיל טקסט קריא. ` +
-            'אנא פתח את הקובץ, העתק את התוכן (Ctrl+A → Ctrl+C) והדבק בתיבת הטקסט למטה (Ctrl+V).'
-          );
-          setSyllabusFile(null);
+    if (files.length === 0) return;
+    
+    setFileError(null);
+    setFileSuccess(null);
+    
+    // עיבוד כל הקבצים
+    const filePromises = files.map(file => {
+      return new Promise<UploadedFile>((resolve, reject) => {
+        // בדיקת גודל הקובץ - הגדלנו ל-20MB
+        if (file.size > 20 * 1024 * 1024) {
+          reject(new Error(`הקובץ "${file.name}" חורג מהמגבלה של 20MB`));
           return;
         }
         
-        // הקובץ נקרא בהצלחה - הוסף את התוכן הנקי עם סמן דינמי
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target?.result as string;
+          const cleanedText = cleanFileText(text);
+          
+          if (cleanedText.length < 10) {
+            reject(new Error(`הקובץ "${file.name}" לא מכיל טקסט קריא`));
+            return;
+          }
+          
+          const uploadedFile: UploadedFile = {
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            file,
+            type: determineFileType(file.name),
+            content: cleanedText
+          };
+          
+          resolve(uploadedFile);
+        };
+        
+        reader.onerror = () => {
+          reject(new Error(`שגיאה בקריאת הקובץ "${file.name}"`));
+        };
+        
+        reader.readAsText(file, 'UTF-8');
+      });
+    });
+    
+    Promise.allSettled(filePromises).then(results => {
+      const successful: UploadedFile[] = [];
+      const errors: string[] = [];
+      
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          successful.push(result.value);
+        } else {
+          errors.push(result.reason.message);
+        }
+      });
+      
+      if (successful.length > 0) {
+        const newFiles = [...uploadedFiles, ...successful];
+        setUploadedFiles(newFiles);
+        
+        // עדכון תוכן הטקסט
         const currentContent = watch('courseContent') || '';
-        const contentSeparator = fileType === 'syllabus' ? '--- תוכן הסילבוס ---' : '--- תוכן המאמר ---';
-        const combinedContent = currentContent 
-          ? `${currentContent}\n\n${contentSeparator}\n${cleanedText}`
-          : cleanedText;
+        const { manualContent } = separateContent(currentContent);
+        
+        const newFileContent = successful.map(f => {
+          const separator = f.type === 'syllabus' ? '--- תוכן הסילבוס ---' : 
+                           f.type === 'article' ? '--- תוכן המאמר ---' : 
+                           '--- תוכן קובץ נוסף ---';
+          return `${separator}\n${f.content}`;
+        }).join('\n\n');
+        
+        const combinedContent = manualContent + (manualContent ? '\n\n' : '') + newFileContent;
         setValue('courseContent', combinedContent, { shouldValidate: true });
         
-        // הצגת הודעת הצלחה
-        const significantChange = Math.abs(cleanedText.length - text.length) > text.length * 0.1; // שינוי של יותר מ-10%
-        if (significantChange && cleanedText.length > 10) {
-          setFileSuccess(`הקובץ "${file.name}" נטען בהצלחה. תווים לא קריאים הוסרו אוטומטית.`);
-        } else {
-          setFileSuccess(`הקובץ "${file.name}" נטען בהצלחה.`);
-        }
-      };
+        toast.showSuccess(
+          `נטענו בהצלחה ${successful.length} קבצים`,
+          `הקבצים זמינים לעריכה בתיבת הטקסט`
+        );
+      }
       
-      reader.onerror = () => {
-        setFileError(`שגיאה בקריאת הקובץ "${file.name}". אנא נסה להעתיק ולהדביק את התוכן ידנית.`);
-        setSyllabusFile(null);
-      };
-      
-      reader.readAsText(file, 'UTF-8');
-    }
-  }, [setValue, watch]);
+      if (errors.length > 0) {
+        toast.showError('שגיאה בהעלאת קבצים', errors.join(', '));
+      }
+    });
+  }, [setValue, watch, uploadedFiles]);
 
   const onSubmit = (data: CourseParameterSchema) => {
+    // אם אין תוכן קורס, נתן הודעה אך נמשיך בתהליך
     if (!data.courseContent || data.courseContent.trim() === '') {
-        const fileTypeName = fileType === 'syllabus' ? 'סילבוס' : 'מאמר';
-        setFileError(`יש להזין תוכן הקורס (העלאת ${fileTypeName} או כתיבה חופשית).`);
-        return;
+        toast.showWarning(
+          'הערה חשובה',
+          'לא הועלה תוכן קורס. ההמלצות יהיו כלליות יותר. מומלץ להעלות תוכן לקבלת המלצות מותאמות יותר.'
+        );
+        // נמשיך בכל מקרה
+        data.courseContent = 'לא הועלה תוכן קורס ספציפי - המערכת תציע המלצות כלליות על בסיס הפרמטרים שהוזנו.';
     }
     setFileError(null);
+    
+    // הודעת הצלחה
+    toast.showSuccess(
+      TOAST_MESSAGES.FORM_SUBMIT_SUCCESS.title,
+      TOAST_MESSAGES.FORM_SUBMIT_SUCCESS.message
+    );
+    
+    // ניקוי שמירה אוטומטית לאחר שליחה מוצלחת
+    clearAutoSave();
+    
     onParametersSubmit(data);
   };
 
@@ -247,6 +438,62 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className={`${styles.container} ${className || ''}`} noValidate>
+      {/* Auto-save status */}
+      <div className={styles.autoSaveContainer}>
+        <div className={styles.autoSaveStatus}>
+          {autoSaveStatus === 'saving' && (
+            <div className={styles.autoSaveIndicator}>
+              <Save size={14} className={styles.savingIcon} />
+              <span>שומר...</span>
+            </div>
+          )}
+          {autoSaveStatus === 'saved' && (
+            <div className={styles.autoSaveIndicator}>
+              <CheckCircle size={14} className={styles.savedIcon} />
+              <span>נשמר אוטומטית</span>
+            </div>
+          )}
+          {autoSaveStatus === 'error' && (
+            <div className={styles.autoSaveIndicator}>
+              <X size={14} className={styles.errorIcon} />
+              <span>שגיאה בשמירה</span>
+            </div>
+          )}
+          {lastSaved && autoSaveStatus === 'idle' && (
+            <div className={styles.lastSavedInfo}>
+              <span>נשמר לאחרונה: {formatLastSaved(lastSaved)}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearAutoSave}
+                className={styles.clearSaveButton}
+                title="נקה נתונים שמורים"
+              >
+                <X size={12} />
+              </Button>
+            </div>
+          )}
+          {autoSaveStatus === 'idle' && !lastSaved && (
+            <div className={styles.debugActions}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  clearAutoSave();
+                  window.location.reload();
+                }}
+                className={styles.clearSaveButton}
+                title="נקה הכל ורענן דף"
+              >
+                🔄 רענן טופס
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>
           <BookOpen size={24} className={styles.titleIcon} />
@@ -269,6 +516,11 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
                   placeholder="למשל: מבוא לפסיכולוגיה"
                   className={`${styles.input} ${errors.courseName ? styles.errorInput : ''}`}
                   disabled={isSubmitting}
+                  autoComplete="off"
+                  autoFocus={false}
+                  readOnly={false}
+                  tabIndex={0}
+                  style={{ pointerEvents: 'auto' }}
                 />
               )}
             />
@@ -331,66 +583,100 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
           תכני הקורס
         </h2>
         
-        {/* בחירת סוג הקובץ */}
-        <div className={styles.field}>
-          <label className={styles.label}>
-            <FileText size={16} />
-            סוג התוכן
-          </label>
-          <div className={styles.fileTypeSelector}>
-            <label className={`${styles.fileTypeOption} ${fileType === 'syllabus' ? styles.selected : ''}`}>
-              <input
-                type="radio"
-                name="fileType"
-                value="syllabus"
-                checked={fileType === 'syllabus'}
-                onChange={(e) => setFileType(e.target.value as 'syllabus' | 'article')}
-                className={styles.radioInput}
-              />
-              <School size={16} />
-              סילבוס
-            </label>
-            <label className={`${styles.fileTypeOption} ${fileType === 'article' ? styles.selected : ''}`}>
-              <input
-                type="radio"
-                name="fileType"
-                value="article"
-                checked={fileType === 'article'}
-                onChange={(e) => setFileType(e.target.value as 'syllabus' | 'article')}
-                className={styles.radioInput}
-              />
-              <FileText size={16} />
-              מאמר
-            </label>
-          </div>
-        </div>
-        
         <p className={styles.sectionDescription}>
-          ניתן להעלות קובץ {fileType === 'syllabus' ? 'סילבוס' : 'מאמר'} (TXT, PDF, DOC, DOCX) ואז לכתוב הוראות ספציפיות נוספות בתיבת הטקסט, או להדביק את תכני הקורס ישירות. 
+          ניתן להעלות מספר קבצים (סילבוס, מאמרים, חומרי עזר) בפורמט TXT, PDF, DOC, DOCX ואז לכתוב הוראות ספציפיות נוספות בתיבת הטקסט. 
           <br /><strong>טיפ:</strong> אם תכתבו הוראות ספציפיות כמו "המטלה תתרכז בנושא X", ה-AI יתמקד בדיוק בנושא הזה.
           <br /><strong>הערה:</strong> אם קובץ PDF/DOC לא נקרא כראוי, המערכת תבקש להעתיק את התוכן ידנית.
         </p>
+        
+        {/* קבצים שהועלו */}
+        {uploadedFiles.length > 0 && (
+          <div className={styles.uploadedFiles}>
+            <h4 className={styles.uploadedFilesTitle}>קבצים שהועלו:</h4>
+            <div className={styles.fileList}>
+              {uploadedFiles.map((uploadedFile) => (
+                <div key={uploadedFile.id} className={styles.fileItem}>
+                  <div className={styles.fileInfo}>
+                    <File size={16} />
+                    <span className={styles.fileName}>{uploadedFile.file.name}</span>
+                    <span className={styles.fileType}>
+                      {uploadedFile.type === 'syllabus' ? 'סילבוס' : 
+                       uploadedFile.type === 'article' ? 'מאמר' : 'חומר נוסף'}
+                    </span>
+                    <span className={styles.fileSize}>
+                      {(uploadedFile.file.size / 1024 / 1024).toFixed(1)}MB
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveFile(uploadedFile.id)}
+                    className={styles.removeFileButton}
+                    title="הסר קובץ"
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* הודעת אזהרה לטקסט מקולקל */}
+        {isTextGarbled(watch('courseContent') || '') && (
+          <div className={styles.garbageWarning}>
+            <div className={styles.warningIcon}>⚠️</div>
+            <div className={styles.warningContent}>
+              <strong>זוהה טקסט מקולקל!</strong>
+              <p>
+                הטקסט מכיל תווים לא קריאים מקובץ PDF/DOC. 
+                לחץ על כפתור "🧹 ניקוי מתקדם" בתיבת הטקסט לניקוי אוטומטי.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* כפתור חירום אם יש בעיה עם העריכה */}
+        {watch('courseContent') && watch('courseContent')!.length > 0 && (
+          <div style={{ marginBottom: '16px', textAlign: 'center' }}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                clearAutoSave();
+                localStorage.clear();
+                window.location.reload();
+              }}
+              style={{ marginLeft: '8px' }}
+              title="אם התיבה לא עובדת - לחץ כאן"
+            >
+              🆘 אם לא ניתן לערוך - לחץ כאן
+            </Button>
+          </div>
+        )}
+
         <div className={styles.contentInput}>
           <div className={styles.dropzoneContainer}>
             <FileDropzone
               onFilesSelected={handleFileSelect}
               accept=".txt,.pdf,.doc,.docx"
-              maxSize={5 * 1024 * 1024} // 5MB
-              title={syllabusFile ? `הקובץ "${syllabusFile.name}" נבחר` : `גרור קובץ ${fileType === 'syllabus' ? 'סילבוס' : 'מאמר'} לכאן או לחץ לבחירה`}
-              subtitle="סוגי קבצים: TXT, PDF, DOC, DOCX. גודל מקסימלי: 5MB"
+              maxSize={20 * 1024 * 1024} // 20MB
+              title={uploadedFiles.length > 0 ? `נטענו ${uploadedFiles.length} קבצים` : "גרור קבצים לכאן או לחץ לבחירה"}
+              subtitle="סוגי קבצים: TXT, PDF, DOC, DOCX. גודל מקסימלי: 20MB"
               icon={<Upload size={36} />}
             />
-            {syllabusFile && (
+            {uploadedFiles.length > 0 && (
               <div style={{ marginTop: '8px', textAlign: 'center' }}>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={handleClearFile}
-                  title={`הסר ${fileType === 'syllabus' ? 'סילבוס' : 'מאמר'}`}
+                  onClick={handleClearAllFiles}
+                  title="הסר את כל הקבצים"
                 >
                   <X size={14} />
-                  הסר {fileType === 'syllabus' ? 'סילבוס' : 'מאמר'}
+                  הסר את כל הקבצים
                 </Button>
               </div>
             )}
@@ -404,13 +690,15 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
                 render={({ field }) => (
                   <Textarea
                     {...field}
-                    placeholder={syllabusFile ? 
-                      `תוכן ה${fileType === 'syllabus' ? 'סילבוס' : 'מאמר'} נטען. ניתן לערוך ולהוסיף פרטים נוספים כמו: המטלה תתרכז בהיסטוריה של הסכסוך הערבי-ישראלי במאה ה-20...` : 
+                    placeholder={uploadedFiles.length > 0 ? 
+                      "תוכן הקבצים נטען. ניתן לערוך ולהוסיף פרטים נוספים כמו: המטלה תתרכז בהיסטוריה של הסכסוך הערבי-ישראלי במאה ה-20..." : 
                       "הדבק כאן את תכני הקורס, ראשי פרקים, או תיאור כללי. לדוגמה: המטלה תתרכז בהיסטוריה של הסכסוך הערבי-ישראלי במאה ה-20..."
                     }
                     className={styles.textarea}
                     rows={8}
                     disabled={false}
+                    readOnly={false}
+                    style={{ pointerEvents: 'auto', userSelect: 'auto' }}
                   />
                 )}
               />
@@ -425,6 +713,36 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
                     title="נקה תווים לא קריאים"
                   >
                     <Wand2 size={16} />
+                  </Button>
+                  {isTextGarbled(watch('courseContent') || '') && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const currentContent = watch('courseContent') || '';
+                        const cleanedContent = aggressiveClean(currentContent);
+                        setValue('courseContent', cleanedContent, { shouldValidate: true });
+                        toast.showWarning(
+                          'ניקוי מתקדם הושלם', 
+                          'טקסט מקולקל נוקה באופן אגרסיבי'
+                        );
+                      }}
+                      className={styles.aggressiveCleanButton}
+                      title="ניקוי אגרסיבי לטקסט מקולקל"
+                    >
+                      🧹 ניקוי מתקדם
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRemoveSeparators}
+                    className={styles.cleanButton}
+                    title="הסר סמני קבצים"
+                  >
+                    🗑️ הסר סמנים
                   </Button>
                   <Button
                     type="button"
@@ -525,6 +843,22 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
       </div>
 
       <div className={styles.actions}>
+        {/* הצגת שדות חסרים */}
+        {Object.keys(errors).length > 0 && (
+          <div className={styles.missingFieldsAlert}>
+            <div className={styles.alertHeader}>⚠️ יש למלא את השדות הבאים:</div>
+            <ul className={styles.missingFieldsList}>
+              {errors.courseName && <li>שם הקורס</li>}
+              {errors.faculty && <li>פקולטה</li>}
+              {errors.department && <li>מחלקה</li>}
+              {errors.courseContent && <li>תכני הקורס</li>}
+              {errors.courseType && <li>סוג הקורס</li>}
+              {errors.teachingMethod && <li>שיטת ההוראה</li>}
+              {errors.classSize && <li>גודל הכיתה</li>}
+            </ul>
+          </div>
+        )}
+        
         <Button type="submit" size="lg" disabled={isSubmitting}>
           {isSubmitting ? 'מעבד...' : 'הצע לי חלופות הערכה'}
         </Button>

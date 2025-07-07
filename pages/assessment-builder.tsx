@@ -119,6 +119,7 @@ export default function AssessmentBuilderPage() {
         return (
           <PedagogicalMethodSelector
             courseParameters={courseParams}
+            courseContent={courseParameters.courseContent}
             onSelectMethods={handleMethodsSelect}
           />
         );

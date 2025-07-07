@@ -16,16 +16,38 @@ export async function generateIntegratedAssignment({
   courseDescription: string,
   selectedPedagogicalComponents: string[]
 }): Promise<{ html: string; modelUsed: string }> {
+  console.log('🎯 generateIntegratedAssignment נקראה עם הפרמטרים:', {
+    courseName,
+    faculty,
+    department,
+    courseDescriptionLength: courseDescription?.length || 0,
+    selectedPedagogicalComponents
+  });
+
+  // Check API keys availability
+  console.log('🔑 בדיקת מפתחות API:', {
+    claudeAvailable: !!CLAUDE_API_KEY,
+    openaiAvailable: !!OPENAI_API_KEY,
+    claudeKeyLength: CLAUDE_API_KEY?.length || 0,
+    openaiKeyLength: OPENAI_API_KEY?.length || 0
+  });
+
   const courseContext = courseName && faculty && department 
     ? `שם הקורס: "${courseName}"
        פקולטה: "${faculty}"
        מחלקה: "${department}"`
     : '';
 
-  // Validate that we have some course information
-  if (!courseDescription || courseDescription.trim().length < 5) {
-    throw new Error("Course information is missing. Please provide at least basic course information.");
-  }
+  // אם אין תוכן מפורט, ה-AI יחפש תוכן רלוונטי בעצמו
+  const hasMinimalContent = !courseDescription || courseDescription.trim().length < 5;
+  const hasPlaceholderContent = courseDescription?.includes('לא הועלה תוכן קורס ספציפי');
+  
+  console.log('🔍 בדיקת תוכן לפני שליחה ל-AI:', {
+    hasMinimalContent,
+    hasPlaceholderContent,
+    contentLength: courseDescription?.length || 0,
+    courseContext: !!courseContext
+  });
 
   const prompt = `
     ${courseContext}
@@ -54,7 +76,32 @@ export async function generateIntegratedAssignment({
     
     2. **אם התכנים מפורטים:** בחר נושא ספציפי אחד או יותר מתוך תכני הקורס שסופקו (לדוגמה: תיאוריות למידה של פבלוב וסקינר, גישות תיאורטיות בפסיכולוגיה, שיטות מחקר, פסיכולוגיה ביולוגית, וכו').
     
-    **אם התכנים כלליים או לא מפורטים:** השתמש בידע שלך על הקורס הספציפי (בהתבסס על שם הקורס, פקולטה ומחלקה) ובחר נושא או תיאוריה ספציפית שמתאימה לרמת הקורס ולמוסד האקדמי. לדוגמה:
+    ${hasMinimalContent || hasPlaceholderContent ? 
+    `**הוראות מיוחדות - תוכן הקורס לא הועלה או מינימלי:**
+    
+    מכיוון שהמרצה לא העלה תוכן ספציפי, **עליך לחפש ולבנות תוכן מתאים** על בסיס הפרטים הבאים:
+    
+    1. **חפש תוכן אקדמי רלוונטי** מתוך הידע שלך על:
+       - קורסים דומים באוניברסיטאות בישראל  
+       - סילבוסים טיפוסיים לתחום זה ברמת תואר ראשון/שני
+       - ספרות אקדמית מקובלת בתחום
+       - חוקרים ותיאוריות מרכזיות בתחום
+    
+    2. **התאם את התוכן לפרטי הקורס:**
+       - שם הקורס: "${courseName || 'לא צוין'}"
+       - פקולטה: "${faculty || 'לא צוין'}"  
+       - מחלקה: "${department || 'לא צוין'}"
+    
+    3. **דוגמאות לחיפוש תוכן מתאים:**
+       - עבור "מבוא לפסיכולוגיה": חפש נושאים כמו תיאוריות למידה, פסיכולוגיה התפתחותית, פסיכופתולוגיה
+       - עבור "מזרח תיכון": חפש נושאים כמו הסכסוך הערבי-ישראלי, גיאופוליטיקה אזורית, דמוקרטיזציה  
+       - עבור "כלכלה מקרו": חפש נושאים כמו מדיניות מוניטרית, צמיחה כלכלית, משברים פיננסיים
+    
+    4. **בחר 2-3 נושאים ספציפיים** מתוך התוכן שמצאת ובנה עליהם את המטלה
+    
+    5. **הזכר במטלה** שהמרצה יכול להתאים את הנושאים הספציפיים לפי הסילבוס הפרקטי` 
+    : 
+    `**אם התכנים כלליים או לא מפורטים:** השתמש בידע שלך על הקורס הספציפי (בהתבסס על שם הקורס, פקולטה ומחלקה) ובחר נושא או תיאוריה ספציפית שמתאימה לרמת הקורס ולמוסד האקדמי. לדוגמה:`}
     - עבור "מבוא לפסיכולוגיה" תואר ראשון: בחר תיאוריה ספציפית כמו תיאוריית ההתקשרות של בולבי, תיאוריות למידה של פבלוב או סקינר, או גישת הפסיכואנליזה של פרויד.
     - עבור קורסים מתקדמים: בחר תיאוריות או מחקרים עכשוויים ברמה מתאימה.
     
@@ -324,6 +371,7 @@ export async function generateIntegratedAssignment({
   // Try Claude first
   if (CLAUDE_API_KEY) {
     try {
+      console.log('🤖 מנסה לקרוא ל-Claude API...');
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -339,22 +387,34 @@ export async function generateIntegratedAssignment({
           ]
         })
       });
+      
+      console.log('📡 תגובה מ-Claude:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Claude הצליח! אורך התשובה:', data.content?.[0]?.text?.length || 0);
         if (data.content?.[0]?.text) {
           return { html: data.content[0].text, modelUsed: "Claude 3 Sonnet" };
         }
       } else {
-        console.warn("Claude API error:", response.status, response.statusText);
+        const errorText = await response.text();
+        console.warn("❌ Claude API error:", response.status, response.statusText, errorText);
       }
     } catch (err) {
-      console.warn("Claude API call failed, falling back to OpenAI:", err);
+      console.warn("❌ Claude API call failed, falling back to OpenAI:", err);
     }
+  } else {
+    console.log('⚠️ מפתח Claude לא זמין, עובר ל-OpenAI');
   }
 
   // Fallback to OpenAI GPT-4o
   if (OPENAI_API_KEY) {
     try {
+      console.log('🤖 מנסה לקרוא ל-OpenAI API...');
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -369,19 +429,50 @@ export async function generateIntegratedAssignment({
           ]
         })
       });
+      
+      console.log('📡 תגובה מ-OpenAI:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ OpenAI הצליח! אורך התשובה:', data.choices?.[0]?.message?.content?.length || 0);
         if (data.choices?.[0]?.message?.content) {
           return { html: data.choices[0].message.content, modelUsed: OPENAI_MODEL };
         }
       } else {
+        const errorText = await response.text();
+        console.error("❌ OpenAI API error:", response.status, response.statusText, errorText);
         throw new Error("OpenAI API error: " + response.statusText);
       }
     } catch (err) {
-      console.error("OpenAI API call failed:", err);
+      console.error("❌ OpenAI API call failed:", err);
       throw err;
     }
+  } else {
+    console.log('⚠️ מפתח OpenAI לא זמין');
   }
 
-  throw new Error("No valid API key for Claude or OpenAI, or both APIs failed.");
+  const errorMessage = `❌ לא ניתן ליצור את המטלה. 
+
+🔑 בעיה במפתחות API:
+${!CLAUDE_API_KEY && !OPENAI_API_KEY ? '• לא הוגדרו מפתחות Claude או OpenAI' : ''}
+${CLAUDE_API_KEY && !OPENAI_API_KEY ? '• מפתח Claude קיים אבל נכשל, ומפתח OpenAI חסר' : ''}
+${!CLAUDE_API_KEY && OPENAI_API_KEY ? '• מפתח OpenAI קיים אבל נכשל, ומפתח Claude חסר' : ''}
+${CLAUDE_API_KEY && OPENAI_API_KEY ? '• שני המפתחות קיימים אבל שני ה-APIs נכשלו' : ''}
+
+📋 כדי לפתור:
+1. צור קובץ בשם .env בתיקיית הפרויקט
+2. הוסף את השורות הבאות:
+   VITE_CLAUDE_API_KEY=המפתח_שלך_מ_Claude
+   VITE_OPENAI_API_KEY=המפתח_שלך_מ_OpenAI
+3. שמור את הקובץ ורענן את הדפדפן
+
+🌐 לקבלת מפתחות:
+• Claude: https://console.anthropic.com/
+• OpenAI: https://platform.openai.com/api-keys`;
+
+  throw new Error(errorMessage);
 } 

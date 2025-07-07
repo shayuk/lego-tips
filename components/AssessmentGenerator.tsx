@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { Copy } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Copy, AlertCircle, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import { AssessmentMethod, CourseParameters } from '../helpers/assessmentTypes';
 import { Button } from './Button';
 import { useAssessmentGenerator } from '../helpers/useAssessmentGenerator';
@@ -24,15 +24,34 @@ export const AssessmentGenerator = ({
   courseContent,
   className,
 }: AssessmentGeneratorProps) => {
-  const { generatedAssessment, generatedRubric, rubricHtml, modelUsed } = useAssessmentGenerator({
+  const [shouldStartGeneration, setShouldStartGeneration] = useState(false);
+  
+  const { generatedAssessment, generatedRubric, rubricHtml, modelUsed, loadingState, error } = useAssessmentGenerator({
     selectedMethods,
     courseParams,
     courseName,
     faculty,
     department,
     courseContent,
+    shouldGenerate: shouldStartGeneration,
   });
   const contentRef = useRef<HTMLDivElement>(null);
+  
+  const handleStartGeneration = () => {
+    console.log('🚀 לוחץ על צור מטלה');
+    setShouldStartGeneration(true);
+    console.log('🚀 shouldStartGeneration הוגדר לtrue');
+  };
+
+  const handleRetry = () => {
+    console.log('🔄 מנסה שוב - מאפס מצב');
+    // איפוס רק המצב של הגנרציה, לא כל הטופס
+    setShouldStartGeneration(false);
+    setTimeout(() => {
+      console.log('🔄 מפעיל מחדש את הגנרציה');
+      setShouldStartGeneration(true);
+    }, 100);
+  };
 
   // Clean HTML content from unwanted tags and formatting
   const cleanHtmlContent = (html: string): string => {
@@ -76,6 +95,16 @@ export const AssessmentGenerator = ({
     }
   };
 
+  // Format time display
+  const formatTime = (seconds: number): string => {
+    if (seconds <= 0) return '';
+    if (seconds < 60) return `${seconds} שניות`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (remainingSeconds === 0) return `${minutes} דקות`;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')} דקות`;
+  };
+
   if (selectedMethods.length === 0) {
     return (
       <div className={`${styles.container} ${styles.placeholder} ${className || ''}`}>
@@ -83,6 +112,163 @@ export const AssessmentGenerator = ({
       </div>
     );
   }
+
+  // Show start button if not yet generating
+  if (selectedMethods.length > 0 && !shouldStartGeneration && !rubricHtml) {
+    console.log('📋 מציג מסך התחלה עם הפרמטרים:', {
+      selectedMethodsLength: selectedMethods.length,
+      shouldStartGeneration,
+      hasRubricHtml: !!rubricHtml,
+      hasError: !!error
+    });
+    return (
+      <div className={`${styles.container} ${className || ''}`}>
+        <header className={styles.header}>
+          <h2 className={styles.mainTitle}>מוכן ליצירת מטלה</h2>
+        </header>
+        
+        <div className={styles.startContainer}>
+          <div className={styles.selectedMethodsPreview}>
+            <h3>השיטות הפדגוגיות שנבחרו:</h3>
+            <ul>
+              {selectedMethods.map(method => (
+                <li key={method.id}>{method.title}</li>
+              ))}
+            </ul>
+          </div>
+          
+          <div className={styles.startActions}>
+            <Button 
+              size="lg" 
+              onClick={handleStartGeneration}
+              className={styles.startButton}
+            >
+              🚀 צור מטלה
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => window.history.back()}
+            >
+              ← שנה בחירות
+            </Button>
+          </div>
+          
+          <p className={styles.startDescription}>
+            המערכת תיצור מטלה מותאמת אישית ומחוון הערכה מפורט על בסיס השיטות שבחרת ותכני הקורס.
+          </p>
+          
+          <div className={styles.debugInfo} style={{marginTop: '1rem', padding: '1rem', background: '#f5f5f5', borderRadius: '8px', fontSize: '0.9rem', color: '#666'}}>
+            <strong>מצב נוכחי:</strong><br/>
+            שיטות נבחרות: {selectedMethods.length}<br/>
+            תוכן קורס: {courseContent ? `${courseContent.length} תווים` : 'חסר'}<br/>
+            shouldStartGeneration: {shouldStartGeneration ? 'true' : 'false'}<br/>
+            error: {error || 'אין'}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state display
+  if (loadingState.isLoading) {
+    console.log('⏳ מציג מסך טעינה:', loadingState);
+    return (
+      <div className={`${styles.container} ${className || ''}`}>
+        <header className={styles.header}>
+          <h2 className={styles.mainTitle}>יוצר הצעת מטלה ומחוון</h2>
+        </header>
+
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingContent}>
+            <div className={styles.loadingIconContainer}>
+              <Loader2 size={48} className={styles.loadingSpinner} />
+            </div>
+            
+            <h3 className={styles.loadingTitle}>{loadingState.message}</h3>
+            
+            <div className={styles.progressContainer}>
+              <div className={styles.progressBar}>
+                <div 
+                  className={styles.progressFill} 
+                  style={{ width: `${loadingState.progress}%` }}
+                />
+              </div>
+              <span className={styles.progressText}>{loadingState.progress}%</span>
+            </div>
+            
+            {loadingState.estimatedTime && loadingState.estimatedTime > 0 && (
+              <div className={styles.timeEstimate}>
+                <Clock size={16} />
+                <span>זמן משוער: {formatTime(loadingState.estimatedTime)}</span>
+              </div>
+            )}
+            
+            <div className={styles.loadingSteps}>
+              <div className={`${styles.step} ${loadingState.progress >= 10 ? styles.active : ''}`}>
+                <div className={styles.stepIcon}>
+                  {loadingState.progress >= 25 ? <CheckCircle size={16} /> : '1'}
+                </div>
+                <span>ניתוח תכני הקורס</span>
+              </div>
+              <div className={`${styles.step} ${loadingState.progress >= 25 ? styles.active : ''}`}>
+                <div className={styles.stepIcon}>
+                  {loadingState.progress >= 50 ? <CheckCircle size={16} /> : '2'}
+                </div>
+                <span>בחירת שיטות הערכה</span>
+              </div>
+              <div className={`${styles.step} ${loadingState.progress >= 50 ? styles.active : ''}`}>
+                <div className={styles.stepIcon}>
+                  {loadingState.progress >= 75 ? <CheckCircle size={16} /> : '3'}
+                </div>
+                <span>יצירת מטלה מותאמת</span>
+              </div>
+              <div className={`${styles.step} ${loadingState.progress >= 75 ? styles.active : ''}`}>
+                <div className={styles.stepIcon}>
+                  {loadingState.progress >= 100 ? <CheckCircle size={16} /> : '4'}
+                </div>
+                <span>מכין מחוון הערכה</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state display
+  if (error) {
+    console.log('❌ מציג מסך שגיאה:', error);
+    return (
+      <div className={`${styles.container} ${className || ''}`}>
+        <header className={styles.header}>
+          <h2 className={styles.mainTitle}>שגיאה ביצירת המטלה</h2>
+        </header>
+
+        <div className={styles.errorContainer}>
+          <div className={styles.errorContent}>
+            <AlertCircle size={48} className={styles.errorIcon} />
+            <h3 className={styles.errorTitle}>אופס! משהו השתבש</h3>
+            <p className={styles.errorMessage}>{error}</p>
+            <div className={styles.errorActions}>
+              <Button onClick={handleRetry}>
+                נסה שוב
+              </Button>
+              <Button variant="outline" onClick={() => window.history.back()}>
+                חזור לשלב הקודם
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('✅ מציג תוצאות מוכנות:', {
+    hasRubricHtml: !!rubricHtml,
+    modelUsed,
+    selectedMethodsLength: selectedMethods.length,
+    shouldStartGeneration
+  });
 
   return (
     <div className={`${styles.container} ${className || ''}`}>

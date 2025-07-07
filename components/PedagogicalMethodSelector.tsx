@@ -12,6 +12,7 @@ import styles from './PedagogicalMethodSelector.module.css';
 
 interface PedagogicalMethodSelectorProps {
   courseParameters: CourseParameters;
+  courseContent?: string;
   onSelectMethods: (selectedMethods: AssessmentMethod[]) => void;
   className?: string;
 }
@@ -28,9 +29,97 @@ const DifficultyStars = ({ level }: { level: number }) => {
 
 export const PedagogicalMethodSelector = ({
   courseParameters,
+  courseContent,
   onSelectMethods,
   className,
 }: PedagogicalMethodSelectorProps) => {
+  // פונקציה לחישוב התאמה אמיתית על בסיס תוכן הקורס
+  const calculateContentCompatibility = (method: AssessmentMethod): number => {
+    console.log('📋 בדיקת תוכן הקורס:', {
+      hasContent: !!courseContent,
+      contentLength: courseContent?.length || 0,
+      contentPreview: courseContent?.substring(0, 100) || 'ללא תוכן',
+      isPlaceholder: courseContent?.includes('לא הועלה תוכן קורס ספציפי')
+    });
+    
+    if (!courseContent || 
+        courseContent.trim().length < 50 || 
+        courseContent.includes('לא הועלה תוכן קורס ספציפי')) {
+      console.log('🔶 נמצא בלי תוכן ספציפי - מחזיר ציון 80%');
+      return 80; // אם אין תוכן ספציפי, נתן ציון כללי טוב
+    }
+
+    let score = 70; // ציון בסיס
+    const content = courseContent.toLowerCase();
+    
+    // ניתוח מילות מפתח
+    const keywords = {
+      // מילות מפתח לשיטות פדגוגיות ספציפיות
+      group_work: ['קבוצ', 'צוות', 'שיתוף', 'עבודה משותפת', 'פרויקט', 'קולקטיב'],
+      current_events: ['אקטואל', 'חדש', 'עכשווי', 'אירוע', 'חדשות', 'מעוכב', 'זמן אמת', 'עכשיו'],
+      ai_analysis: ['בינה מלאכותית', 'ai', 'טכנולוגי', 'דיגיטל', 'מחשב', 'אלגוריתם', 'נתונים', 'ניתוח נתונים'],
+      reflection: ['רפלקציה', 'חשיבה', 'הרהור', 'הגיון', 'מחשבה', 'חוויה אישית', 'למידה אישית'],
+      article_analysis: ['מאמר', 'טקסט', 'ספרות', 'חומר', 'ניתוח', 'הקושי', 'פרשנות', 'ביקורת'],
+      obfuscation: ['התחכמות', 'חומר יחיד', 'הקלטה', 'ייחודי', 'לא זמין', 'פרטי', 'מיוחד'],
+      method_8200: ['תיאוריה', 'מודל', 'גישה', 'סיג', 'חוק', 'עקרון', 'שיטה', 'מתודולוגי']
+    };
+
+    // בדיקת התאמה ספציפית לכל שיטה
+    switch (method.id) {
+      case 'am_11': // עבודה בקבוצות
+        if (keywords.group_work.some(word => content.includes(word))) score += 20;
+        if (content.includes('פרויקט') || content.includes('מטלה גדולה')) score += 10;
+        break;
+        
+      case 'am_14': // אירועים אקטואליים
+        if (keywords.current_events.some(word => content.includes(word))) score += 25;
+        if (content.includes('חדשות') || content.includes('עכשיו')) score += 10;
+        break;
+        
+      case 'am_05': // ניתוח AI
+      case 'am_03': // ניתוח פרומפטים
+      case 'am_12': // אתגרים ביקורתיים על AI
+        if (keywords.ai_analysis.some(word => content.includes(word))) score += 25;
+        if (content.includes('chatgpt') || content.includes('claude')) score += 15;
+        break;
+        
+      case 'am_04': // רפלקציה
+      case 'am_10': // יומני למידה
+        if (keywords.reflection.some(word => content.includes(word))) score += 20;
+        if (content.includes('אישי') || content.includes('חוויה')) score += 10;
+        break;
+        
+      case 'am_02': // מטלות התחכמות
+        if (keywords.obfuscation.some(word => content.includes(word))) score += 30;
+        if (content.includes('הקלטה') || content.includes('ייחודי')) score += 15;
+        break;
+        
+      case 'am_18': // משימות 8200
+        if (keywords.method_8200.some(word => content.includes(word))) score += 25;
+        if (content.includes('תיאוריה') && content.includes('שימוש')) score += 15;
+        break;
+        
+      default:
+        // בדיקה כללית למאמרים וניתוח טקסט
+        if (keywords.article_analysis.some(word => content.includes(word))) score += 10;
+    }
+
+         // הגבלת הציון למקסימום
+     const finalScore = Math.min(score, 100);
+     
+     // דיבוג - הצגת החישוב
+     console.log(`🎯 ניתוח התאמה עבור ${method.title}:`, {
+       methodId: method.id,
+       initialScore: 70,
+       contentBonus: score - 70,
+       finalScore,
+       hasContent: !!courseContent && courseContent.trim().length >= 50,
+       contentLength: courseContent?.length || 0
+     });
+     
+     return finalScore;
+   };
+
   const [selectedMethodIds, setSelectedMethodIds] = useState<Set<string>>(new Set());
   const [customMethods, setCustomMethods] = useState<AssessmentMethod[]>([]);
   const [showCustomDialog, setShowCustomDialog] = useState(false);
@@ -41,8 +130,13 @@ export const PedagogicalMethodSelector = ({
   });
 
   const recommendedMethods = useMemo(() => {
-    return getTopCompatibleMethods(courseParameters, 6);
-  }, [courseParameters]);
+    // נקבל את השיטות הבסיסיות ונחליף את הציון בחישוב החדש
+    const baseMethods = getTopCompatibleMethods(courseParameters, 6);
+    return baseMethods.map(method => ({
+      ...method,
+      compatibilityScore: calculateContentCompatibility(method)
+    })).sort((a, b) => b.compatibilityScore - a.compatibilityScore);
+  }, [courseParameters, courseContent]);
 
   const allMethods = useMemo(() => {
     return [...recommendedMethods, ...customMethods];
@@ -123,7 +217,20 @@ export const PedagogicalMethodSelector = ({
       <div className={styles.header}>
         <h2 className={styles.title}>שיטות הערכה מומלצות</h2>
         <p className={styles.subtitle}>
-          בחרנו עבורך את שיטות ההערכה המתאימות ביותר על סמך מאפייני הקורס שהזנת. ניתן לבחור שיטה אחת או יותר.
+          {(!courseContent || courseContent.includes('לא הועלה תוכן קורס ספציפי')) ? (
+            <>
+              המערכת מציגה המלצות כלליות מכיוון שלא הועלה תוכן ספציפי. 
+              <strong> לקבלת המלצות מותאמות יותר, חזור לשלב הקודם והעלה תוכן קורס.</strong>
+            </>
+          ) : (
+            <>
+              המערכת מחשבת התאמה אמיתית על בסיס תוכן הקורס שהעלית. 
+              אחוזי ההתאמה משתנים לפי התוכן: 
+              <span style={{color: '#22c55e', fontWeight: 600}}> ירוק = 85%+</span>, 
+              <span style={{color: '#f59e0b', fontWeight: 600}}> כתום = 70-84%</span>, 
+              <span style={{color: '#ef4444', fontWeight: 600}}> אדום = מתחת ל-70%</span>
+            </>
+          )}
         </p>
       </div>
 
@@ -146,9 +253,23 @@ export const PedagogicalMethodSelector = ({
                 <label htmlFor={`method-${method.id}`} className={styles.cardTitle} onClick={(e) => e.stopPropagation()}>
                   {method.title}
                 </label>
-                <div className={styles.compatibilityBadge}>
+                <div className={`${styles.compatibilityBadge} ${
+                  method.id.startsWith('custom-') 
+                    ? styles.compatibilityHigh
+                    : (() => {
+                        const score = calculateContentCompatibility(method);
+                        if (score >= 85) return styles.compatibilityHigh;
+                        if (score >= 70) return styles.compatibilityMedium;
+                        return styles.compatibilityLow;
+                      })()
+                }`}>
                   <Sparkles size={16} />
-                  <span>{method.id.startsWith('custom-') ? '100' : '95'}% התאמה</span>
+                  <span>
+                    {method.id.startsWith('custom-') 
+                      ? '100' 
+                      : calculateContentCompatibility(method)
+                    }% התאמה
+                  </span>
                 </div>
               </div>
               <p className={styles.description}>{method.description}</p>
