@@ -32,20 +32,29 @@ interface AutoSaveData {
   timestamp: number;
 }
 
+type AutoSaveStatus = "idle" | "saving" | "saved" | "error";
+interface CourseParameterState {
+  uploadedFiles: UploadedFile[];
+  fileError: string | null;
+  fileSuccess: string | null;
+  autoSaveStatus: AutoSaveStatus;
+  lastSaved: Date | null;
+  hasLoaded: boolean;
+}
+
 const AUTO_SAVE_KEY = 'pedagogical-lego-autosave';
-const AUTO_SAVE_INTERVAL = 5000; // 5 seconds
 
 export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = ({
   className,
   onParametersSubmit,
   isSubmitting = false,
 }) => {
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [fileError, setFileError] = useState<string | null>(null);
-  const [fileSuccess, setFileSuccess] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<CourseParameterState["uploadedFiles"]>([]);
+  const [fileError, setFileError] = useState<CourseParameterState["fileError"]>(null);
+  const [fileSuccess, setFileSuccess] = useState<CourseParameterState["fileSuccess"]>(null);
 
-  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<CourseParameterState['autoSaveStatus']>('idle');
+  const [lastSaved, setLastSaved] = useState<CourseParameterState['lastSaved']>(null);
   
   // Toast functionality
   const toast = useAppToast();
@@ -158,17 +167,6 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
     setFileError(null);
     setFileSuccess(null);
   };
-
-  // פונקציה חדשה לניקוי כל התוכן כולל סמנים
-  const handleClearAllContent = () => {
-    setValue('courseContent', '', { shouldValidate: true });
-    setUploadedFiles([]);
-    setFileError(null);
-    setFileSuccess(null);
-    toast.showInfo('התוכן נוקה', 'כל התוכן והקבצים הועלו הוסרו');
-  };
-
-  // פונקציה משופרת לניקוי סמנים בלבד
   const handleRemoveSeparators = () => {
     const currentContent = watch('courseContent') || '';
     const cleanedContent = removeAllSeparators(currentContent);
@@ -238,7 +236,7 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
   const watchedData = watch(); // צפייה בכל הנתונים לשמירה אוטומטית
 
   // שחזור נתונים בטעינת העמוד - רק פעם אחת
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState<CourseParameterState['hasLoaded']>(false);
   
   useEffect(() => {
     if (hasLoaded) return; // מונע טעינה חוזרת
