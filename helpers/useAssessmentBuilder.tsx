@@ -98,11 +98,16 @@ export function useAssessmentBuilder(initialAssessment?: Assessment) {
   const connectComponents = useCallback((sourceId: string, targetId: string) => {
     setAssessment(prev => ({
       ...prev,
-      components: prev.components.map(c => 
-        c.id === sourceId 
-          ? { ...c, connections: [...c.connections, targetId] } 
-          : c
-      ),
+      components: prev.components.map(c => {
+        if (c.id !== sourceId) return c;
+        const alreadyConnected = c.connections.includes(targetId);
+        return {
+          ...c,
+          connections: alreadyConnected
+            ? c.connections
+            : [...c.connections, targetId],
+        };
+      }),
       updatedAt: new Date(),
     }));
   }, []);
