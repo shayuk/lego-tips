@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { ArrowRight, ArrowLeft, RotateCcw, Lightbulb, Building } from "lucide-react";
 import { AppLayout } from "../components/AppLayout";
 import { CourseParameterSelector } from "../components/CourseParameterSelector";

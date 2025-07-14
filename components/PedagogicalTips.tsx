@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from "react";
 import { ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
 import { Button } from './Button';
-import { Collapsible } from './Collapsible';
 import styles from './PedagogicalTips.module.css';
 
 interface PedagogicalTip {
