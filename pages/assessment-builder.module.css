@@ -1,7 +1,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 130px); /* Adjust for header and footer */
+  min-height: calc(100vh - 200px); /* Flexible height for header and footer */
   direction: rtl;
 }
 
@@ -13,6 +13,7 @@
   background-color: var(--surface);
   border-bottom: 1px solid var(--border);
   direction: rtl;
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .titleSection {
@@ -58,6 +59,7 @@
   background-color: var(--surface);
   border-bottom: 1px solid var(--border);
   direction: rtl;
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .progressStep {
@@ -117,13 +119,14 @@
   display: flex;
   flex: 1;
   overflow: hidden;
+  min-height: 0; /* Allow flexbox to work properly */
 }
 
 .workspaceWithTips {
   display: flex;
   flex: 1;
   overflow-y: auto;
-  height: calc(100vh - 200px);
+  min-height: 0; /* Allow flexbox to work properly */
 }
 
 .guidedContent {
@@ -131,6 +134,7 @@
   padding: var(--spacing-6);
   overflow-y: auto;
   background-color: var(--background);
+  min-height: 0; /* Allow flexbox to work properly */
 }
 
 .guidedNavigation {
@@ -141,6 +145,7 @@
   background-color: var(--surface);
   border-top: 1px solid var(--border);
   direction: rtl;
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .navigationLeft {
@@ -158,6 +163,7 @@
   border-left: 1px solid var(--border);
   background-color: var(--sidebar);
   overflow-y: auto;
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .mainContent {
@@ -165,11 +171,13 @@
   overflow: hidden;
   padding: var(--spacing-4);
   background-color: var(--background);
+  min-height: 0; /* Allow flexbox to work properly */
 }
 
 .previewSection {
   height: 300px;
   border-top: 1px solid var(--border);
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .previewToggle {
@@ -178,18 +186,17 @@
   padding: var(--spacing-2);
   background-color: var(--surface);
   border-top: 1px solid var(--border);
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
+/* Responsive design */
 @media (max-width: 768px) {
   .container {
-    height: auto;
+    min-height: calc(100vh - 160px); /* Adjust for mobile */
   }
   
   .header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-4);
-    padding: var(--spacing-4);
+    padding: var(--spacing-3) var(--spacing-4);
   }
   
   .titleSection {
@@ -197,61 +204,40 @@
   }
   
   .mainTabs {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .modeToggle {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .actions {
-    width: 100%;
-    justify-content: flex-end;
+    flex-direction: column;
+    gap: var(--spacing-1);
   }
   
   .progressIndicator {
-    flex-direction: column;
-    gap: var(--spacing-4);
-    padding: var(--spacing-4);
+    padding: var(--spacing-4) var(--spacing-2);
   }
   
   .progressStep {
     flex-direction: column;
-    text-align: center;
+    gap: var(--spacing-1);
   }
   
   .progressLine {
-    width: 2px;
-    height: 2rem;
+    width: 100%;
+    height: 1px;
     margin: var(--spacing-2) 0;
   }
   
   .workspace {
     flex-direction: column;
-    height: auto;
   }
   
   .sidebar {
     width: 100%;
-    height: 300px;
     border-left: none;
-    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
   }
   
-  .mainContent {
-    height: 400px;
+  .guidedContent {
+    padding: var(--spacing-4);
   }
   
   .guidedNavigation {
-    flex-direction: column;
-    gap: var(--spacing-3);
-  }
-  
-  .navigationLeft,
-  .navigationRight {
-    width: 100%;
-    justify-content: center;
+    padding: var(--spacing-3) var(--spacing-4);
   }
 }

@@ -6,6 +6,7 @@ import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/Tabs";
 import { Badge } from "../components/Badge";
+import { AppLayout } from "../components/AppLayout";
 import { assessmentMethods, type AssessmentMethodCategory } from "../helpers/assessmentTypes";
 import styles from "./my-assessments.module.css";
 
@@ -119,7 +120,8 @@ export default function MyAssessmentsPage() {
           content="נהל את ההערכות שלך וגלה שיטות הערכה חלופיות חדשניות."
         />
       </Helmet>
-      <div className={styles.container} dir="rtl">
+      <AppLayout>
+        <div className={styles.container} dir="rtl">
         <header className={styles.header}>
           <div>
             <h1 className={styles.title}>ההערכות שלי</h1>
@@ -206,7 +208,8 @@ export default function MyAssessmentsPage() {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
+        </div>
+      </AppLayout>
     </>
   );
 }

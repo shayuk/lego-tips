@@ -1,5 +1,5 @@
 // Use import.meta.env for environment variables (type declarations should be in vite-env.d.ts)
-import { buildCourseContext, formatSyllabusData, generateInstructionsPrompt } from './promptUtils';
+import { buildCourseContext, formatSyllabusData, generateInstructionsPrompt, buildSystemPrompt } from './promptUtils';
 
 const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY;
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;

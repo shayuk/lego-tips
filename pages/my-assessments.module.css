@@ -1,7 +1,9 @@
 .container {
-  padding: var(--spacing-8) var(--spacing-12);
+  padding: var(--spacing-6) var(--spacing-8);
   max-width: 1400px;
   margin: 0 auto;
+  min-height: calc(100vh - 200px); /* Flexible height for header and footer */
+  direction: rtl;
 }
 
 .header {
@@ -9,6 +11,8 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-8);
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
 }
 
 .title {
@@ -26,10 +30,17 @@
 
 .tabs {
   width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .tabContent {
   padding-top: var(--spacing-6);
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 /* My Assessments Tab */
@@ -59,6 +70,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2);
+  flex: 1;
 }
 
 .assessmentTitle {
@@ -86,6 +98,7 @@
 .assessmentActions {
   display: flex;
   gap: var(--spacing-2);
+  flex-shrink: 0;
 }
 
 .destructiveAction:hover {
@@ -94,15 +107,18 @@
 
 .emptyState {
   text-align: center;
-  padding: var(--spacing-16) 0;
+  padding: var(--spacing-16) var(--spacing-8);
   background-color: var(--surface);
   border: 2px dashed var(--border);
   border-radius: var(--radius-lg);
+  margin-top: var(--spacing-8);
 }
 
 .emptyState h2 {
   font-size: 1.5rem;
   font-weight: 600;
+  margin-bottom: var(--spacing-4);
+  color: var(--foreground);
 }
 
 .emptyState p {
@@ -111,41 +127,26 @@
 }
 
 /* Explore Methods Tab */
-.filters {
+.searchSection {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-6);
   gap: var(--spacing-4);
-}
-
-.searchWrapper {
-  position: relative;
-  flex-grow: 1;
-  max-width: 400px;
-}
-
-.searchIcon {
-  position: absolute;
-  right: var(--spacing-3);
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--muted-foreground);
-  pointer-events: none;
+  margin-bottom: var(--spacing-6);
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .searchInput {
-  padding-right: calc(var(--spacing-3) * 2 + 20px);
+  flex: 1;
+  min-width: 300px;
 }
 
-.categoryFilters {
-  display: flex;
-  gap: var(--spacing-2);
+.categoryFilter {
+  min-width: 200px;
 }
 
 .methodsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: var(--spacing-6);
 }
 
@@ -153,76 +154,109 @@
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3);
-  transition: box-shadow var(--animation-duration-normal), border-color var(--animation-duration-normal);
+  padding: var(--spacing-6);
+  transition: box-shadow var(--animation-duration-normal), transform var(--animation-duration-normal);
+  box-shadow: var(--shadow);
 }
 
 .methodCard:hover {
   box-shadow: var(--shadow-md);
-  border-color: var(--primary);
-}
-
-.methodHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  transform: translateY(-2px);
 }
 
 .methodTitle {
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: var(--foreground);
-  margin: 0;
+  margin: 0 0 var(--spacing-2) 0;
 }
 
 .methodDescription {
   color: var(--muted-foreground);
-  font-size: 0.9rem;
+  margin: 0 0 var(--spacing-4) 0;
   line-height: 1.6;
-  flex-grow: 1;
 }
 
-.methodTags {
+.methodCategories {
   display: flex;
+  gap: var(--spacing-2);
   flex-wrap: wrap;
+  margin-bottom: var(--spacing-4);
+}
+
+.methodFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--border);
+}
+
+.methodComplexity {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.methodActions {
+  display: flex;
   gap: var(--spacing-2);
 }
 
+/* Responsive design */
 @media (max-width: 768px) {
   .container {
     padding: var(--spacing-4);
+    min-height: calc(100vh - 160px);
   }
-
+  
   .header {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-4);
+    margin-bottom: var(--spacing-6);
   }
-
+  
   .title {
     font-size: 2rem;
   }
-
-  .filters {
+  
+  .searchSection {
     flex-direction: column;
-    align-items: stretch;
+    gap: var(--spacing-3);
   }
-
-  .categoryFilters {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+  
+  .searchInput {
+    min-width: 100%;
   }
-
+  
+  .categoryFilter {
+    min-width: 100%;
+  }
+  
+  .methodsGrid {
+    grid-template-columns: 1fr;
+  }
+  
   .assessmentCard {
     flex-direction: column;
-    align-items: flex-start;
     gap: var(--spacing-4);
+    text-align: center;
   }
-
+  
+  .assessmentInfo {
+    text-align: center;
+  }
+  
+  .assessmentMeta {
+    justify-content: center;
+  }
+  
   .assessmentActions {
-    align-self: flex-end;
+    justify-content: center;
+  }
+  
+  .emptyState {
+    padding: var(--spacing-8) var(--spacing-4);
   }
 }
