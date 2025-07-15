@@ -1,7 +1,22 @@
 // Use import.meta.env for environment variables (type declarations should be in vite-env.d.ts)
+import { buildCourseContext, formatSyllabusData, generateInstructionsPrompt } from './promptUtils';
+
 const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY;
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
-const OPENAI_MODEL = import.meta.env.VITE_OPENAI_MODEL || "gpt-4o";
+const OPENAI_MODEL = import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o';
+
+export interface PromptInput {
+  courseName?: string;
+  faculty?: string;
+  department?: string;
+  courseDescription: string;
+  selectedPedagogicalComponents: string[];
+}
+
+export interface PromptOutput {
+  html: string;
+  modelUsed: string;
+}
 
 export async function generateIntegratedAssignment({
   courseName,
@@ -9,13 +24,7 @@ export async function generateIntegratedAssignment({
   department,
   courseDescription,
   selectedPedagogicalComponents
-}: {
-  courseName?: string,
-  faculty?: string,
-  department?: string,
-  courseDescription: string,
-  selectedPedagogicalComponents: string[]
-}): Promise<{ html: string; modelUsed: string }> {
+}: PromptInput): Promise<PromptOutput> {
   console.log('🎯 generateIntegratedAssignment נקראה עם הפרמטרים:', {
     courseName,
     faculty,
@@ -32,11 +41,7 @@ export async function generateIntegratedAssignment({
     openaiKeyLength: OPENAI_API_KEY?.length || 0
   });
 
-  const courseContext = courseName && faculty && department 
-    ? `שם הקורס: "${courseName}"
-       פקולטה: "${faculty}"
-       מחלקה: "${department}"`
-    : '';
+  const courseContext = buildCourseContext(courseName, faculty, department);
 
   // אם אין תוכן מפורט, ה-AI יחפש תוכן רלוונטי בעצמו
   const hasMinimalContent = !courseDescription || courseDescription.trim().length < 5;
@@ -51,63 +56,16 @@ export async function generateIntegratedAssignment({
 
   const prompt = `
     ${courseContext}
-    
-    תכני הקורס המפורטים: 
-    "${courseDescription}"
-    
-    **הוראות מתקדמות לניתוח התוכן:**
-    - אם רואה קטע "--- תוכן הסילבוס ---" - החלק לפני הקטע הוא הוראות ספציפיות מהמרצה, והחלק אחרי הוא תכנים אקדמיים מהסילבוס
-    - אם רואה קטע "--- תוכן המאמר ---" - החלק לפני הקטע הוא הוראות ספציפיות מהמרצה, והחלק אחרי הוא תוכן המאמר שיש לנתח
-    - אם אין הפרדה כזו - כל התוכן הוא מקור אחד (סילבוס, מאמר, או הוראות)
-    - **תן עדיפות מוחלטת להוראות הספציפיות של המרצה** על פני בחירה אקראית מתוך התוכן
-    - **נתח את רמת המורכבות:** זהה אם התוכן מתאים לקורס מבוא, מתקדם, או תואר שני
-    - **זהה מילות מפתח מקצועיות:** חפש מושגים, תיאוריות, וחוקרים ספציפיים המוזכרים בטקסט
-    - **בדוק עקביות אקדמית:** ודא שהנושאים שתבחר תואמים לפקולטה והמחלקה
-    
-    הרכיבים הפדגוגיים שנבחרו: [${selectedPedagogicalComponents.join(", ")}]
-
-    **הוראות חובה:**
-    
-    1. **נתח בקפידה את כל תכני הקורס** שסופקו לעיל. 
-       - אם יש קטע של "תוכן הסילבוס" - התייחס אליו כמקור עיקרי לתכנים האקדמיים
-       - אם יש טקסט נוסף לפני או אחרי הסילבוס - התייחס אליו כהוראות ספציפיות מהמרצה
-       - שלב בין שני המקורות: השתמש בתכנים האקדמיים מהסילבוס והתמקד בנושאים הספציפיים שהמרצה ביקש
-       - זהה נושאים ספציפיים, תיאוריות, חוקרים, ומושגים המוזכרים בכל החלקים
-    
-    2. **אם התכנים מפורטים:** בחר נושא ספציפי אחד או יותר מתוך תכני הקורס שסופקו (לדוגמה: תיאוריות למידה של פבלוב וסקינר, גישות תיאורטיות בפסיכולוגיה, שיטות מחקר, פסיכולוגיה ביולוגית, וכו').
-    
-    ${hasMinimalContent || hasPlaceholderContent ? 
-    `**הוראות מיוחדות - תוכן הקורס לא הועלה או מינימלי:**
-    
-    מכיוון שהמרצה לא העלה תוכן ספציפי, **עליך לחפש ולבנות תוכן מתאים** על בסיס הפרטים הבאים:
-    
-    1. **חפש תוכן אקדמי רלוונטי** מתוך הידע שלך על:
-       - קורסים דומים באוניברסיטאות בישראל  
-       - סילבוסים טיפוסיים לתחום זה ברמת תואר ראשון/שני
-       - ספרות אקדמית מקובלת בתחום
-       - חוקרים ותיאוריות מרכזיות בתחום
-    
-    2. **התאם את התוכן לפרטי הקורס:**
-       - שם הקורס: "${courseName || 'לא צוין'}"
-       - פקולטה: "${faculty || 'לא צוין'}"  
-       - מחלקה: "${department || 'לא צוין'}"
-    
-    3. **דוגמאות לחיפוש תוכן מתאים:**
-       - עבור "מבוא לפסיכולוגיה": חפש נושאים כמו תיאוריות למידה, פסיכולוגיה התפתחותית, פסיכופתולוגיה
-       - עבור "מזרח תיכון": חפש נושאים כמו הסכסוך הערבי-ישראלי, גיאופוליטיקה אזורית, דמוקרטיזציה  
-       - עבור "כלכלה מקרו": חפש נושאים כמו מדיניות מוניטרית, צמיחה כלכלית, משברים פיננסיים
-    
-    4. **בחר 2-3 נושאים ספציפיים** מתוך התוכן שמצאת ובנה עליהם את המטלה
-    
-    5. **הזכר במטלה** שהמרצה יכול להתאים את הנושאים הספציפיים לפי הסילבוס הפרקטי` 
-    : 
-    `**אם התכנים כלליים או לא מפורטים:** השתמש בידע שלך על הקורס הספציפי (בהתבסס על שם הקורס, פקולטה ומחלקה) ובחר נושא או תיאוריה ספציפית שמתאימה לרמת הקורס ולמוסד האקדמי. לדוגמה:`}
-    - עבור "מבוא לפסיכולוגיה" תואר ראשון: בחר תיאוריה ספציפית כמו תיאוריית ההתקשרות של בולבי, תיאוריות למידה של פבלוב או סקינר, או גישת הפסיכואנליזה של פרויד.
-    - עבור קורסים מתקדמים: בחר תיאוריות או מחקרים עכשוויים ברמה מתאימה.
-    
-    3. **צור משימה שמתמקדת בנושאים הספציפיים** שזיהית או בחרת, ולא בנושאים כלליים או דמיוניים.
-    
-    4. **השתמש במושגים, תיאוריות וחוקרים** שמוזכרים בתכני הקורס, או אם התכנים כלליים - במושגים מתאימים לרמת הקורס (לדוגמה: פבלוב, סקינר, פרויד, בולבי, גישות פסיכואנליטית/התנהגותית/קוגניטיבית).
+    ${formatSyllabusData(courseDescription)}
+    ${buildSystemPrompt()}
+    ${generateInstructionsPrompt({
+      selectedComponents: selectedPedagogicalComponents,
+      hasMinimalContent,
+      hasPlaceholderContent,
+      courseName,
+      faculty,
+      department,
+    })}
     
     5. **שלב את כל הרכיבים הפדגוגיים שנבחרו באופן ספציפי ומשמעותי:**
     
