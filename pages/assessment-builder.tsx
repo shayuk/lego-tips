@@ -105,15 +105,45 @@ export default function AssessmentBuilderPage() {
             isSubmitting={isSubmitting}
           />
         );
-      case 2:
+      case 2: {
         if (!courseParameters) return null;
+        
+        // Map faculty to subject_area for better compatibility calculation
+        const facultyToSubjectMap: Record<string, "humanities" | "social-sciences" | "natural-sciences" | "engineering" | "arts" | "business" | "law" | "medicine" | "education" | "multidisciplinary"> = {
+          'humanities': 'humanities',
+          'social-sciences': 'social-sciences',
+          'natural-sciences': 'natural-sciences',
+          'engineering': 'engineering',
+          'medicine': 'medicine',
+          'arts': 'arts',
+          'business': 'business',
+          'law': 'law',
+          'education': 'education',
+          'multidisciplinary': 'multidisciplinary'
+        };
+        
+        // Map course type to instructor experience (heuristic)
+        const courseTypeToExperience: Record<string, 1 | 2 | 3 | 4 | 5> = {
+          'introduction': 3, // Introduction courses need experienced instructors
+          'large': 4,       // Large courses need very experienced instructors
+          'advanced': 5     // Advanced courses need expert instructors
+        };
+        
+        // Map class size to available time (heuristic)
+        const classSizeToTime: Record<string, "minimal" | "moderate" | "substantial" | "extensive"> = {
+          'small': 'extensive',      // Small classes allow more time per student
+          'medium': 'substantial',   // Medium classes need substantial time
+          'large': 'moderate',       // Large classes have moderate time per student
+          'very-large': 'minimal'    // Very large classes have minimal time per student
+        };
+        
         courseParams = {
           course_type: courseParameters.courseType as "introduction" | "large" | "advanced",
           teaching_method: courseParameters.teachingMethod as "lecture" | "seminar" | "workshop" | "lab" | "fieldwork" | "online" | "hybrid",
           class_size: courseParameters.classSize as "small" | "medium" | "large" | "very-large",
-          subject_area: "multidisciplinary" as "humanities" | "social-sciences" | "natural-sciences" | "engineering" | "arts" | "business" | "law" | "medicine" | "education" | "multidisciplinary",
-          instructor_experience: 3 as 1 | 2 | 3 | 4 | 5,
-          available_time: "moderate" as "minimal" | "moderate" | "substantial" | "extensive",
+          subject_area: facultyToSubjectMap[courseParameters.faculty] || "multidisciplinary",
+          instructor_experience: courseTypeToExperience[courseParameters.courseType] || 3,
+          available_time: classSizeToTime[courseParameters.classSize] || "moderate",
           technology_access: true,
         };
         return (
@@ -123,6 +153,7 @@ export default function AssessmentBuilderPage() {
             onSelectMethods={handleMethodsSelect}
           />
         );
+      }
       case 3:
         if (!courseParameters || selectedMethods.length === 0) return null;
         finalCourseParams = {

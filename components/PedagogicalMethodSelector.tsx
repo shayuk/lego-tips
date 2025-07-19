@@ -7,7 +7,7 @@ import { Checkbox } from './Checkbox';
 import { Input } from './Input';
 import { Textarea } from './Textarea';
 import { Dialog } from './Dialog';
-import { Star, Sparkles, ThumbsUp, ThumbsDown, Wrench, Plus, X } from 'lucide-react';
+import { Star, Sparkles, Wrench, Plus, X, Info, ChevronDown } from 'lucide-react';
 import styles from './PedagogicalMethodSelector.module.css';
 
 interface PedagogicalMethodSelectorProps {
@@ -27,29 +27,263 @@ const DifficultyStars = ({ level }: { level: number }) => {
   );
 };
 
+// Modal component for displaying detailed method information
+const MethodDetailsModal = ({ 
+  method, 
+  isOpen, 
+  onClose 
+}: { 
+  method: AssessmentMethod | null; 
+  isOpen: boolean; 
+  onClose: () => void;
+}) => {
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  
+  if (!method) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <div className={styles.modalContent} dir="rtl">
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>{method.title}</h2>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onClose}
+            className={styles.closeButton}
+          >
+            <X size={20} />
+          </Button>
+        </div>
+
+        <div className={styles.modalBody}>
+          <div className={styles.modalSection}>
+            <h3 className={styles.sectionTitle}>תיאור</h3>
+            <p className={styles.description}>{method.description}</p>
+            
+            {/* תיאור מלא בפורמט דרופ-דאון */}
+            {method.fullDescription && (
+              <div className={styles.fullDescriptionSection}>
+                <button
+                  className={styles.expandButton}
+                  onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                >
+                  <span>תיאור מלא</span>
+                  <ChevronDown 
+                    size={20} 
+                    className={`${styles.chevron} ${isDescriptionExpanded ? styles.chevronExpanded : ''}`}
+                  />
+                </button>
+                
+                {isDescriptionExpanded && (
+                  <div className={styles.expandedContent}>
+                    <div className={styles.fullDescriptionText}>
+                      {method.fullDescription.split('\n').map((paragraph, index) => (
+                        <p key={index} className={styles.fullDescriptionParagraph}>
+                          {paragraph}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className={styles.modalSection}>
+            <h3 className={styles.sectionTitle}>יתרונות</h3>
+            <div className={styles.advantagesGrid}>
+              <div className={styles.advantageCategory}>
+                <h4 className={styles.categoryTitle}>יתרונות פדגוגיים:</h4>
+                <ul className={styles.modalList}>
+                  {method.advantages.pedagogical.map((adv, index) => (
+                    <li key={index}>{adv}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className={styles.advantageCategory}>
+                <h4 className={styles.categoryTitle}>יתרונות מעשיים:</h4>
+                <ul className={styles.modalList}>
+                  {method.advantages.practical.map((adv, index) => (
+                    <li key={index}>{adv}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className={styles.advantageCategory}>
+                <h4 className={styles.categoryTitle}>עידוד מעורבות:</h4>
+                <ul className={styles.modalList}>
+                  {method.advantages.student_engagement.map((adv, index) => (
+                    <li key={index}>{adv}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.modalSection}>
+            <h3 className={styles.sectionTitle}>חסרונות ואתגרים</h3>
+            <div className={styles.disadvantagesGrid}>
+              <div className={styles.disadvantageCategory}>
+                <h4 className={styles.categoryTitle}>אתגרים:</h4>
+                <ul className={styles.modalList}>
+                  {method.disadvantages.challenges.map((dis, index) => (
+                    <li key={index}>{dis}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className={styles.disadvantageCategory}>
+                <h4 className={styles.categoryTitle}>מגבלות:</h4>
+                <ul className={styles.modalList}>
+                  {method.disadvantages.limitations.map((dis, index) => (
+                    <li key={index}>{dis}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className={styles.disadvantageCategory}>
+                <h4 className={styles.categoryTitle}>דרישות משאבים:</h4>
+                <ul className={styles.modalList}>
+                  {method.disadvantages.resource_requirements.map((dis, index) => (
+                    <li key={index}>{dis}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.modalSection}>
+            <h3 className={styles.sectionTitle}>מאפיינים טכניים</h3>
+            <div className={styles.technicalInfo}>
+              <div className={styles.techItem}>
+                <span className={styles.techLabel}>רמת קושי ביישום:</span>
+                <DifficultyStars level={method.implementation_difficulty} />
+              </div>
+              <div className={styles.techItem}>
+                <span className={styles.techLabel}>השקעת זמן:</span>
+                <Badge variant="secondary">
+                  {method.time_investment === 'minimal' ? 'מינימלי' :
+                   method.time_investment === 'moderate' ? 'בינוני' :
+                   method.time_investment === 'substantial' ? 'רב' : 'נרחב'}
+                </Badge>
+              </div>
+              <div className={styles.techItem}>
+                <span className={styles.techLabel}>מתאים לכיתות:</span>
+                <div className={styles.badgeGroup}>
+                  {method.class_size_suitability.map((size, index) => (
+                    <Badge key={index} variant="outline">
+                      {size === 'small' ? 'קטנות' :
+                       size === 'medium' ? 'בינוניות' :
+                       size === 'large' ? 'גדולות' : 'גדולות מאוד'}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.modalSection}>
+            <h3 className={styles.sectionTitle}>הנחיות יישום</h3>
+            <ul className={styles.modalList}>
+              {method.implementation_guidelines.map((guideline, index) => (
+                <li key={index}>{guideline}</li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Tools Section */}
+          {(method.toolsWithLinks || method.suggested_tools.length > 0) && (
+            <div className={styles.modalSection}>
+              <h3 className={styles.sectionTitle}>כלים מומלצים</h3>
+              {method.toolsWithLinks ? (
+                <div className={styles.toolsList}>
+                  {method.toolsWithLinks.map((tool, index) => (
+                    <div key={index} className={styles.toolItem}>
+                      <div className={styles.toolName}>
+                        <a 
+                          href={tool.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className={styles.toolLink}
+                        >
+                          {tool.name}
+                        </a>
+                      </div>
+                      <div className={styles.toolDescription}>
+                        {tool.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.toolsGrid}>
+                  {method.suggested_tools.map((tool, index) => (
+                    <Badge key={index} variant="secondary">{tool}</Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className={styles.modalSection}>
+            <h3 className={styles.sectionTitle}>מתאים לשיטות הוראה</h3>
+            <div className={styles.badgeGroup}>
+              {method.teaching_methods.map((method_type, index) => (
+                <Badge key={index} variant="outline">
+                  {method_type === 'lecture' ? 'הרצאה' :
+                   method_type === 'seminar' ? 'סמינר' :
+                   method_type === 'workshop' ? 'סדנה' :
+                   method_type === 'lab' ? 'מעבדה' :
+                   method_type === 'fieldwork' ? 'עבודת שטח' :
+                   method_type === 'online' ? 'מקוון' : 'היברידי'}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          {/* Further Reading */}
+          {method.furtherReading && method.furtherReading.length > 0 && (
+            <div className={styles.modalSection}>
+              <h3 className={styles.sectionTitle}>מקורות להעמקה</h3>
+              <ul className={styles.modalList}>
+                {method.furtherReading.map((item, index) => (
+                  <li key={index} className={styles.readingItem}>
+                    <a 
+                      href={item.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className={styles.readingLink}
+                    >
+                      {item.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    </Dialog>
+  );
+};
+
 export const PedagogicalMethodSelector = ({
   courseParameters,
   courseContent,
   onSelectMethods,
   className,
 }: PedagogicalMethodSelectorProps) => {
-  // פונקציה לחישוב התאמה אמיתית על בסיס תוכן הקורס
-  const calculateContentCompatibility = (method: AssessmentMethod): number => {
-    console.log('📋 בדיקת תוכן הקורס:', {
-      hasContent: !!courseContent,
-      contentLength: courseContent?.length || 0,
-      contentPreview: courseContent?.substring(0, 100) || 'ללא תוכן',
-      isPlaceholder: courseContent?.includes('לא הועלה תוכן קורס ספציפי')
-    });
-    
+  // State for modal management
+  const [selectedMethodForModal, setSelectedMethodForModal] = useState<AssessmentMethod | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // פונקציה לחישוב בונוס על בסיס תוכן הקורס
+  const calculateContentBonus = (method: AssessmentMethod): number => {
     if (!courseContent || 
         courseContent.trim().length < 50 || 
         courseContent.includes('לא הועלה תוכן קורס ספציפי')) {
-      console.log('🔶 נמצא בלי תוכן ספציפי - מחזיר ציון 80%');
-      return 80; // אם אין תוכן ספציפי, נתן ציון כללי טוב
+      return 0; // אין בונוס אם אין תוכן ספציפי
     }
 
-    let score = 70; // ציון בסיס
+    let bonus = 0; // בונוס נוסף על הציון הבסיסי
     const content = courseContent.toLowerCase();
     
     // ניתוח מילות מפתח
@@ -67,57 +301,55 @@ export const PedagogicalMethodSelector = ({
     // בדיקת התאמה ספציפית לכל שיטה
     switch (method.id) {
       case 'am_11': // עבודה בקבוצות
-        if (keywords.group_work.some(word => content.includes(word))) score += 20;
-        if (content.includes('פרויקט') || content.includes('מטלה גדולה')) score += 10;
+        if (keywords.group_work.some(word => content.includes(word))) bonus += 20;
+        if (content.includes('פרויקט') || content.includes('מטלה גדולה')) bonus += 10;
         break;
         
       case 'am_14': // אירועים אקטואליים
-        if (keywords.current_events.some(word => content.includes(word))) score += 25;
-        if (content.includes('חדשות') || content.includes('עכשיו')) score += 10;
+        if (keywords.current_events.some(word => content.includes(word))) bonus += 25;
+        if (content.includes('חדשות') || content.includes('עכשיו')) bonus += 10;
         break;
         
       case 'am_05': // ניתוח AI
       case 'am_03': // ניתוח פרומפטים
       case 'am_12': // אתגרים ביקורתיים על AI
-        if (keywords.ai_analysis.some(word => content.includes(word))) score += 25;
-        if (content.includes('chatgpt') || content.includes('claude')) score += 15;
+        if (keywords.ai_analysis.some(word => content.includes(word))) bonus += 25;
+        if (content.includes('chatgpt') || content.includes('claude')) bonus += 15;
         break;
         
       case 'am_04': // רפלקציה
       case 'am_10': // יומני למידה
-        if (keywords.reflection.some(word => content.includes(word))) score += 20;
-        if (content.includes('אישי') || content.includes('חוויה')) score += 10;
+        if (keywords.reflection.some(word => content.includes(word))) bonus += 20;
+        if (content.includes('אישי') || content.includes('חוויה')) bonus += 10;
         break;
         
       case 'am_02': // מטלות התחכמות
-        if (keywords.obfuscation.some(word => content.includes(word))) score += 30;
-        if (content.includes('הקלטה') || content.includes('ייחודי')) score += 15;
+        if (keywords.obfuscation.some(word => content.includes(word))) bonus += 30;
+        if (content.includes('הקלטה') || content.includes('ייחודי')) bonus += 15;
         break;
         
       case 'am_18': // משימות 8200
-        if (keywords.method_8200.some(word => content.includes(word))) score += 25;
-        if (content.includes('תיאוריה') && content.includes('שימוש')) score += 15;
+        if (keywords.method_8200.some(word => content.includes(word))) bonus += 25;
+        if (content.includes('תיאוריה') && content.includes('שימוש')) bonus += 15;
         break;
         
       default:
         // בדיקה כללית למאמרים וניתוח טקסט
-        if (keywords.article_analysis.some(word => content.includes(word))) score += 10;
+        if (keywords.article_analysis.some(word => content.includes(word))) bonus += 10;
     }
 
-         // הגבלת הציון למקסימום
-     const finalScore = Math.min(score, 100);
+     // הגבלת הבונוס למקסימום
+     const finalBonus = Math.min(bonus, 30);
      
      // דיבוג - הצגת החישוב
-     console.log(`🎯 ניתוח התאמה עבור ${method.title}:`, {
+     console.log(`🎯 ניתוח בונוס עבור ${method.title}:`, {
        methodId: method.id,
-       initialScore: 70,
-       contentBonus: score - 70,
-       finalScore,
+       calculatedBonus: finalBonus,
        hasContent: !!courseContent && courseContent.trim().length >= 50,
        contentLength: courseContent?.length || 0
      });
      
-     return finalScore;
+     return finalBonus;
    };
 
   const [selectedMethodIds, setSelectedMethodIds] = useState<Set<string>>(new Set());
@@ -130,11 +362,20 @@ export const PedagogicalMethodSelector = ({
   });
 
   const recommendedMethods = useMemo(() => {
-    // נקבל את השיטות הבסיסיות ונחליף את הציון בחישוב החדש
+    // נקבל את השיטות הבסיסיות עם החישוב הבסיסי המתוקן
     const baseMethods = getTopCompatibleMethods(courseParameters, 6);
+    
+    // אם אין תוכן ספציפי, נחזיר את הציון הבסיסי
+    if (!courseContent || 
+        courseContent.trim().length < 50 || 
+        courseContent.includes('לא הועלה תוכן קורס ספציפי')) {
+      return baseMethods; // החזר את הציון הבסיסי שמחושב נכון
+    }
+    
+    // אם יש תוכן, נוסיף בונוס על הציון הבסיסי
     return baseMethods.map(method => ({
       ...method,
-      compatibilityScore: calculateContentCompatibility(method)
+      compatibilityScore: Math.min(100, method.compatibilityScore + calculateContentBonus(method))
     })).sort((a, b) => b.compatibilityScore - a.compatibilityScore);
   }, [courseParameters, courseContent]);
 
@@ -257,7 +498,7 @@ export const PedagogicalMethodSelector = ({
                   method.id.startsWith('custom-') 
                     ? styles.compatibilityHigh
                     : (() => {
-                        const score = calculateContentCompatibility(method);
+                        const score = (method as any).compatibilityScore || 0;
                         if (score >= 85) return styles.compatibilityHigh;
                         if (score >= 70) return styles.compatibilityMedium;
                         return styles.compatibilityLow;
@@ -267,28 +508,31 @@ export const PedagogicalMethodSelector = ({
                   <span>
                     {method.id.startsWith('custom-') 
                       ? '100' 
-                      : calculateContentCompatibility(method)
+                      : (method as any).compatibilityScore || 0
                     }% התאמה
                   </span>
                 </div>
               </div>
-              <p className={styles.description}>{method.description}</p>
+              <p className={styles.description}>
+                {method.description.length > 150 
+                  ? `${method.description.substring(0, 150)}...` 
+                  : method.description}
+              </p>
 
-              <div className={styles.detailsGrid}>
-                <div className={styles.detailItem}>
-                  <h4 className={styles.detailTitle}><ThumbsUp size={16} /> יתרונות</h4>
-                  <ul className={styles.list}>
-                    {method.advantages.pedagogical.slice(0, 1).map(adv => <li key={adv}>{adv}</li>)}
-                    {method.advantages.practical.slice(0, 1).map(adv => <li key={adv}>{adv}</li>)}
-                  </ul>
-                </div>
-                <div className={styles.detailItem}>
-                  <h4 className={styles.detailTitle}><ThumbsDown size={16} /> חסרונות</h4>
-                  <ul className={styles.list}>
-                    {method.disadvantages.challenges.slice(0, 1).map(dis => <li key={dis}>{dis}</li>)}
-                    {method.disadvantages.limitations.slice(0, 1).map(dis => <li key={dis}>{dis}</li>)}
-                  </ul>
-                </div>
+              <div className={styles.cardActions}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedMethodForModal(method);
+                    setIsModalOpen(true);
+                  }}
+                  className={styles.moreInfoButton}
+                >
+                  <Info size={16} />
+                  מידע נוסף
+                </Button>
               </div>
 
               <div className={styles.cardFooter}>
@@ -456,6 +700,15 @@ export const PedagogicalMethodSelector = ({
           </div>
         </div>
       </Dialog>
+
+      <MethodDetailsModal
+        method={selectedMethodForModal}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedMethodForModal(null);
+        }}
+      />
     </div>
   );
 };
