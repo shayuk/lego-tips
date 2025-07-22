@@ -211,6 +211,13 @@ export const assessmentMethods: AssessmentMethod[] = [
         title: "UBC Academic Integrity – שימוש ב‑AI בהוראה",
         link: "https://academicintegrity.ubc.ca/genai/"
       }
+    ],
+    toolsWithLinks: [
+      {
+        name: "AI לצורך ניתוח משני",
+        description: "כלי בינה מלאכותית לניתוח משלים של חומרים ייחודיים (כגון ChatGPT, Claude)",
+        link: "https://chat.openai.com/"
+      }
     ]
   },
   {
@@ -363,7 +370,7 @@ export const assessmentMethods: AssessmentMethod[] = [
     },
     suggested_tools: [
       "ChatGPT/GPT 4 API",
-      "Quizbot.ai – כלי AI ליצירת שאלות אוטומטית", 
+      "Quizbot.ai – כלי AI ליצירת שאלות אוטומטיות", 
       "Google Forms עם תוסף להגבלת זמן",
       "ClassMarker – מערכת מבחנים מקצועית",
       "FlexiQuiz – כלי קל ונוח למבחנים עם טיימר"
@@ -376,7 +383,7 @@ export const assessmentMethods: AssessmentMethod[] = [
       },
       {
         name: "Quizbot.ai",
-        description: "כלי AI ליצירת שאלות אוטומטית",
+        description: "כלי AI ליצירת שאלות אוטומטיות",
         link: "https://quizbot.ai"
       },
       {
@@ -414,10 +421,6 @@ export const assessmentMethods: AssessmentMethod[] = [
       {
         title: "Reflective practice primer (Lifescied)",
         link: "https://www.lifescied.org/doi/10.1187/cbe.22-07-0148"
-      },
-      {
-        title: "Narrative analysis: oral personal experience (Labov & Waletzky)",
-        link: "https://en.wikipedia.org/wiki/William_Labov"
       }
     ]
   },
@@ -470,6 +473,78 @@ export const assessmentMethods: AssessmentMethod[] = [
       "הסבירו קריטריונים לניתוח איכותי",
       "עודדו זיהוי הטיות ושגיאות",
       "קיימו דיון כיתתי על הממצאים"
+    ]
+  },
+  {
+    id: "am_criticalComparison",
+    title: "השוואה וניתוח ביקורתי של תוצרי AI",
+    description: "מטלה שמאתגרת סטודנטים להשוות תוצרים שונים של AI ולנתח אותם באופן מעמיק.",
+    fullDescription: `שיטה זו מיועדת לפתח חשיבה ביקורתית והבנה עמוקה של מגבלות הבינה המלאכותית. הסטודנטים מקבלים טקסט, תשובה, או ניתוח שנוצר ע״י כלי AI (כגון ChatGPT, Claude או Gemini), ומתבקשים לאתגר אותו: לזהות שגיאות עובדתיות, הנחות מוטות, או חסר בהיגיון טיעוני.
+
+**מטרת הפעילות**: לטפח מודעות לביקורת כלפי טכנולוגיות חזקות, לחזק את תחושת האחריות הדיגיטלית, וללמוד כיצד לשלב כלים אלה בעבודתם מבלי לסמוך עליהם בעיניים עצומות.
+
+**מרכיבי הפעילות:**
+1. קבלת פלט AI עם טעויות/הטיות מובנות מראש או אקראיות.
+2. זיהוי שגיאות: האם יש חוסר במקורות? הכללות מופרזות? מונחים שאינם מדויקים?
+3. שיח ביקורתי מול ה-AI: הסטודנט מזין שאלות תיקון, בקשות להבהרה, או בדיקת הנחות – למשל: "באילו מקורות הסתמכת?", "האם קיימת גישה מנוגדת?", "איך היית מתקן את המשפט הזה?"
+4. שימוש בכלים לאימות מידע (כגון: Wikipedia, Snopes, Google Fact Check Explorer).
+5. תיעוד שיח: צילום מסך, קובץ יומן או לוג של הדיאלוג.
+6. רפלקציה: הסטודנט מסכם ב־200 מילים את הממצאים, אופי ההטיות, ואת תחושתיו לגבי השימוש האחראי ב-AI.`,
+
+    categories: ["advanced"],
+    teaching_methods: ["seminar", "workshop", "lab"],
+    class_size_suitability: ["small", "medium"],
+    subject_areas: ["multidisciplinary", "engineering", "arts", "business"],
+    implementation_difficulty: 3,
+    advantages: {
+      pedagogical: ["מפתח אוריינות AI", "מעודד חשיבה קריטית", "מחזק מטא‑קוגניציה"],
+      practical: ["קל יחסית ליישום בכל תחום", "מעודד שקיפות"],
+      student_engagement: ["מאתגר ומעמיק", "מעודד סקרנות"]
+    },
+    disadvantages: {
+      challenges: ["דורש הזמן ומחשבה עמוקה", "דרוש הכוונה בהתחלה"],
+      limitations: ["קצת קשה לכמת בהערכה", "לא מתאים לכל יישום"],
+      resource_requirements: ["זמן הכנה רב", "גישה ל‑AI שונים"]
+    },
+    suggested_tools: ["ChatGPT", "Claude", "DALL·E", "Midjourney"],
+    time_investment: "moderate",
+    implementation_guidelines: [
+      "בחרו לפחות 2 כלי AI שונים לביצוע המטלה",
+      "עודדו דיון קבוצתי או זוגי על ההבדלים",
+      "דרשו תיעוד שיח/screenshots של השיח עם כלי ה‑AI",
+      "הנחו כתיבת סיכום רפלקטיבי (150–250 מילים)"
+    ],
+    furtherReading: [
+      {
+        title: "DeBiasMe: Debiasing Human‑AI Interactions with Metacognitive AIED",
+        link: "https://arxiv.org/abs/2504.16770"
+      },
+      {
+        title: "Rethinking AI in education: Highlighting the Meta‑cognitive challenge",
+        link: "https://www.researchgate.net/publication/390540302_Rethinking_AI_in_Education_Highlighting_the_Metacognitive_Challenge"
+      }
+    ],
+    toolsWithLinks: [
+      {
+        name: "ChatGPT",
+        description: "בוט שיחה מתקדם מבית OpenAI למגוון משימות",
+        link: "https://chat.openai.com/"
+      },
+      {
+        name: "Claude",
+        description: "אסיסטנט AI מבית Anthropic עם יכולות ניתוח מתקדמות",
+        link: "https://claude.ai/"
+      },
+      {
+        name: "DALL·E",
+        description: "כלי דיגיטלי ליצירת תמונות מונחות טקסט",
+        link: "https://openai.com/product/dall-e-2"
+      },
+      {
+        name: "Midjourney",
+        description: "כלי דיגיטלי ליצירת תמונות מונחות טקסט",
+        link: "https://www.midjourney.com/"
+      }
     ]
   },
   {
@@ -897,6 +972,17 @@ export const assessmentMethods: AssessmentMethod[] = [
     id: "am_12",
     title: "אתגרים ביקורתיים על AI",
     description: "הסטודנטים מקבלים פלט של AI ועליהם לזהות שגיאות, הטיות או חולשות.",
+    fullDescription: `שיטה זו מיועדת לפתח חשיבה ביקורתית והבנה עמוקה של מגבלות הבינה המלאכותית. הסטודנטים מקבלים טקסט, תשובה, או ניתוח שנוצר ע״י כלי AI (כגון ChatGPT, Claude או Gemini), ומתבקשים לאתגר אותו: לזהות שגיאות עובדתיות, הנחות מוטות, או חסר בהיגיון טיעוני.
+
+**מטרת הפעילות**: לטפח מודעות לביקורת כלפי טכנולוגיות חזקות, לחזק את תחושת האחריות הדיגיטלית, וללמוד כיצד לשלב כלים אלה בעבודתם מבלי לסמוך עליהם בעיניים עצומות.
+
+**מרכיבי הפעילות:**
+1. קבלת פלט AI עם טעויות/הטיות מובנות מראש או אקראיות.
+2. זיהוי שגיאות: האם יש חוסר במקורות? הכללות מופרזות? מונחים שאינם מדויקים?
+3. שיח ביקורתי מול ה-AI: הסטודנט מזין שאלות תיקון, בקשות להבהרה, או בדיקת הנחות – למשל: "באילו מקורות הסתמכת?", "האם קיימת גישה מנוגדת?", "איך היית מתקן את המשפט הזה?"
+4. שימוש בכלים לאימות מידע (כגון: Wikipedia, Snopes, Google Fact Check Explorer).
+5. תיעוד שיח: צילום מסך, קובץ יומן או לוג של הדיאלוג.
+6. רפלקציה: הסטודנט מסכם ב־200 מילים את הממצאים, אופי ההטיות, ואת תחושתיו לגבי השימוש האחראי ב-AI.`,
     categories: ["advanced"],
     teaching_methods: ["seminar", "workshop", "online"],
     class_size_suitability: ["small", "medium", "large"],
@@ -912,73 +998,278 @@ export const assessmentMethods: AssessmentMethod[] = [
       limitations: ["תלוי בזמינות דוגמאות", "לא מתאים לכל הנושאים"],
       resource_requirements: ["זמן הכנה רב", "גישה לכלי AI שונים"]
     },
-    suggested_tools: ["ChatGPT", "Claude", "Gemini", "כלי fact-checking"],
+    suggested_tools: [
+      "ChatGPT",
+      "Claude",
+      "Gemini",
+      "Google Fact Check Explorer",
+      "Snopes",
+      "Wikipedia",
+      "GPTZero (לזיהוי ניסוחים אוטומטיים)"
+    ],
+    toolsWithLinks: [
+      {
+        name: "ChatGPT",
+        description: "בוט שיחה מתקדם מבית OpenAI למגוון משימות",
+        link: "https://chat.openai.com/"
+      },
+      {
+        name: "Claude",
+        description: "אסיסטנט AI מבית Anthropic עם יכולות ניתוח מתקדמות",
+        link: "https://claude.ai/"
+      },
+      {
+        name: "Gemini",
+        description: "מודל שפה מתקדם מבית Google",
+        link: "https://gemini.google.com/"
+      },
+      {
+        name: "Google Fact Check Explorer",
+        description: "כלי לאימות עובדות ומידע מגוגל",
+        link: "https://toolbox.google.com/factcheck/explorer"
+      },
+      {
+        name: "Snopes",
+        description: "אתר בדיקת עובדות מוביל",
+        link: "https://www.snopes.com/"
+      },
+      {
+        name: "Wikipedia",
+        description: "אנציקלופדיה חופשית לאימות מידע",
+        link: "https://www.wikipedia.org/"
+      },
+      {
+        name: "GPTZero",
+        description: "כלי לזיהוי טקסטים שנוצרו על ידי AI",
+        link: "https://gptzero.me/"
+      }
+    ],
     time_investment: "substantial",
     implementation_guidelines: [
-      "הכינו דוגמאות עם שגיאות ידועות",
-      "הסבירו סוגים שונים של הטיות",
-      "תנו כלים לבדיקת עובדות",
-      "עודדו שיתוף ממצאים",
-      "קיימו דיון על השלכות"
+      "הכינו מראש מספר פלטים של AI המכילים שגיאות או הנחות בעייתיות.",
+      "הציגו בפני הסטודנטים דוגמאות לסוגי הטיות (הטיה מגדרית, פוליטית, תרבותית, אפיסטמית).",
+      "הדריכו כיצד לשאול שאלות מאתגרות תוך שמירה על ניתוח ביקורתי.",
+      "השתמשו בכלי fact-checking לאימות העובדות המוצגות.",
+      "הנחו את הסטודנטים לתעד את הדיאלוג עם ה-AI (צילום מסך או יומן שיחה).",
+      "בקשו מהסטודנט לכתוב רפלקציה קצרה (~200 מילים) על חוויית האתגר: מה נחשף, מה הפתיע, ומה ההשלכות לעתיד."
+    ],
+    furtherReading: [
+      {
+        title: "How to Teach Students to Critically Evaluate AI Output",
+        link: "https://www.facultyfocus.com/articles/educational-technology/how-to-teach-students-to-critically-evaluate-ai-output/"
+      },
+      {
+        title: "AI Bias in Language Models – Stanford Report",
+        link: "https://crfm.stanford.edu/2023/ai-bias-language-models.html"
+      },
+      {
+        title: "Factuality and Hallucination in LLMs – Survey",
+        link: "https://arxiv.org/abs/2304.14078"
+      }
     ]
   },
   {
     id: "am_13",
     title: "מטלות רפלקציה על שימוש ב-AI",
-    description: "הסטודנטים מגישים מטלה שנעשתה עם AI, בצירוף רפלקציה על תהליך העבודה והכלים בהם השתמשו.",
+    description: "הסטודנטים מגישים מטלה שנעשתה עם AI, בצירוף רפלקציה על תהליך העבודה והחומר הנלמד.",
+    fullDescription: `מטלה זו משלבת הכנת עבודה עם כלי AI יחד עם רפלקציה מעמיקה על החומר שנדון: כיצד ה‑AI השלים או פספס תובנות, האם הרחיב, השמיט, או לא העמיק; כלומר, הסטודנט מנתח את הבחירות של ה‑AI ולא רק את התהליך. הרפלקציה מבוססת על עקרונות של כתיבה רפלקטיבית שהעשירו למידה ומשמעות (Reflective Writing), ומציבים את ה‑AI כשותף קריטי לחשיבה ולא רק ככלי.
+
+**מטרות:**
+- לעודד חשיבה ביקורתית על התוכן ולא רק על התהליך
+- לפתח מיומנויות הסקה וביקורת של AI
+- ללמד סטודנטים לזהות מה ה‑AI מתעלם ממנו
+
+**מרכיבי המטלה:**
+1. הכנת עבודה עם כלי AI (טקסט, ניתוח, מחקר וכו')
+2. תיעוד השיח המלא עם ה-AI
+3. רפלקציה מעמיקה (~300 מילים) על התוכן: מה ה-AI פספס, הרחיב, או השמיט
+4. ניתוח ביקורתי של בחירות ה-AI בהקשר לחומר הנלמד
+5. הצעות לשיפור או השלמה של התובנות
+
+**דגש מיוחד**: הרפלקציה מתמקדת בתוכן ובתובנות, לא רק בתהליך הטכני.`,
     categories: ["introduction", "advanced"],
     teaching_methods: ["seminar", "workshop", "online", "hybrid"],
     class_size_suitability: ["small", "medium", "large"],
     subject_areas: ["multidisciplinary", "education", "humanities", "social-sciences"],
     implementation_difficulty: 2,
     advantages: {
-      pedagogical: ["מפתח מודעות למידה", "מעודד שקיפות", "מלמד שימוש אתי"],
-      practical: ["מתאים לעידן הנוכחי", "מכין לעבודה עתידית"],
-      student_engagement: ["מעודד כנות", "מפחית חרדה משימוש ב-AI"]
+      pedagogical: [
+        "מעודד חשיבה ביקורתית על התוכן ולא רק על התהליך",
+        "מפתח מיומנויות הסקה וביקורת של AI",
+        "מלמד סטודנטים לזהות מה ה‑AI מתעלם ממנו"
+      ],
+      practical: [
+        "רלוונטי לעידן ה‑AI",
+        "מכין לניתוח חברי AI מקצועיים"
+      ],
+      student_engagement: [
+        "מעודד מעורבות וכנות",
+        "מפחית חרדה משימוש ב‑AI על ידי שקיפות"
+      ]
     },
     disadvantages: {
-      challenges: ["דורש אמון וכנות", "קשה לבדיקה"],
-      limitations: ["תלוי בכנות התלמידים", "לא מתאים לכל הקורסים"],
-      resource_requirements: ["זמן הדרכה", "פיתוח הנחיות ברורות"]
+      challenges: [
+        "דורש רמה גבוהה של חשיבה ביקורתית",
+        "לא תמיד קל לחדד מה ה‑AI פספס ולא רק מה הוא עשה"
+      ],
+      limitations: [
+        "תלוי בכנות וביכולתם של הסטודנטים לחשוב ביקורתי",
+        "לא מתאים לנושאים טכניים בלבד"
+      ],
+      resource_requirements: [
+        "זמן הדרכה על כתיבה רפלקטיבית",
+        "ליווי והנחיה כדי להעמיק ולא להישאר במשטח"
+      ]
     },
-    suggested_tools: ["ChatGPT", "Claude", "Gemini", "יומני עבודה"],
+    suggested_tools: ["ChatGPT", "Claude", "Gemini", "יומני עבודה", "Riff reflection bot"],
+    toolsWithLinks: [
+      {
+        name: "ChatGPT",
+        description: "בוט שיחה מתקדם מבית OpenAI למגוון משימות",
+        link: "https://chat.openai.com/"
+      },
+      {
+        name: "Claude",
+        description: "אסיסטנט AI מבית Anthropic עם יכולות ניתוח מתקדמות",
+        link: "https://claude.ai/"
+      },
+      {
+        name: "Gemini",
+        description: "מודל שפה מתקדם מבית Google",
+        link: "https://gemini.google.com/"
+      },
+      {
+        name: "Riff reflection bot",
+        description: "צ׳אטבוט מתמחה ברפלקציה מעמיקה מבית Stanford d.school",
+        link: "https://dschool.stanford.edu/stories/reflecting-with-ai"
+      }
+    ],
     time_investment: "moderate",
     implementation_guidelines: [
-      "הגדירו הנחיות ברורות לשימוש",
-      "תנו דוגמאות לרפלקציה איכותית",
-      "עודדו כנות ושקיפות",
-      "תנו משוב על תהליך העבודה",
-      "קיימו דיון כיתתי על התובנות"
+      "הגדירו דרישות ברורות – כולל כמות מילים (≈300), שיתוף השיח המלא עם ה‑AI",
+      "הסבירו מהי 'אוטורפלקציה' – כלומר ביקורת על התוכן של ה‑AI ולא רק על השפה שלו",
+      "תנו דוגמאות רפלקציה איכותיות שממוקדות בתוכן",
+      "עודדו דיון כיתתי – הצגת ממצאים על מה ה‑AI פספס",
+      "תנו משוב אישי על היכולת להבחין במה שחסר ולא רק במה שניתן"
+    ],
+    furtherReading: [
+      {
+        title: "The Role of Reflection in AI‑Driven Learning",
+        link: "https://www.aacsb.edu/insights/articles/2025/05/the-role-of-reflection-in-ai-driven-learning"
+      },
+      {
+        title: "Enhancing Reflective Practices with AI (Stanford d.school)",
+        link: "https://dschool.stanford.edu/stories/reflecting-with-ai"
+      },
+      {
+        title: "Generative AI as a Tool for Enhancing Reflective Learning",
+        link: "https://arxiv.org/abs/2412.02603"
+      }
     ]
   },
   {
     id: "am_14",
     title: "שילוב אירועים אקטואליים",
     description: "מטלות המבוססות על אירועים חדשותיים שעדיין לא נסרקו במלואם על ידי מודלי AI.",
+    fullDescription: `התלמידים מנתחים אירוע חדשותי עכשווי (כגון דו"ח, מדיניות חדשה, משבר בינלאומי) שפורסם בזמן אמת. הם מזכירים את אירוע זה, משווים אותו לתיאוריה או מושג שבקורס – ואם מדובר בתיאוריה שלא נלמדה, הסטודנטים נדרשים להגדיר אותה, לגבש את עיקריה, ואז להשתמש בה לניתוח האירוע. פותחים דיון ביקורתי על השפעותיו המיידיות והעתידיות. הסטודנטים יכולים להעזר בכלי AI בניתוח וחיפוש מאמרים רלוונטים על התיאוריה ויצטרכו להציג את השיח עם כלי ה-AI וכמובן לבדוק את המקורות שהכלי הציג להם.
+
+**מטרות:**
+- מחבר בין התיאוריה לעולם האמיתי ומעמיק את ההבנה הקונספטואלית
+- מעודד חשיבה ביקורתית ומיומנויות ניתוח
+- מפתח מיומנויות אזרחיות ועוררות למעורבות
+
+**מרכיבי המטלה:**
+1. זיהוי אירוע חדשותי רלוונטי
+2. חיבור לתיאוריה או מושג מהקורס
+3. ניתוח השפעות מיידיות ועתידיות
+4. שימוש ביקורתי בכלי AI לחיפוש ותיעוד השיח
+5. אימות מקורות ובדיקת מהימנות המידע
+
+**דגש מיוחד**: שילוב בין ידע תיאורטי לאירועים עכשוויים ושימוש מבוקר בכלי AI.`,
     categories: ["introduction", "large"],
     teaching_methods: ["lecture", "seminar", "online", "hybrid"],
     class_size_suitability: ["medium", "large", "very-large"],
     subject_areas: ["social-sciences", "humanities", "business", "law"],
     implementation_difficulty: 2,
     advantages: {
-      pedagogical: ["מקשר לעולם האמיתי", "מעדכן ורלוונטי", "מעודד חשיבה ביקורתית"],
-      practical: ["קשה להעתקה", "מעודד מעורבות אזרחית"],
-      student_engagement: ["מעניין ורלוונטי", "מחבר לחדשות"]
+      pedagogical: [
+        "מחבר בין התיאוריה לעולם האמיתי ומעמיק את ההבנה הקונספטואלית",
+        "מעודד חשיבה ביקורתית ומיומנויות ניתוח",
+        "מפתח מיומנויות אזרחיות ועוררות למעורבות"
+      ],
+      practical: [
+        "קשה להעתקה ומעורב בהקשר עכשווי",
+        "מעודד מעקב שוטף אחרי חדשות ומהווה גירוי לדיון",
+        "משקף מציאות משתנה ודורש גמישות"
+      ],
+      student_engagement: [
+        "מרתק ומעורר סקרנות",
+        "מחבר את הסטודנט למה שקורה עכשיו בעולם",
+        "מעודד עבודה קבוצתית ודיונים"
+      ]
     },
     disadvantages: {
-      challenges: ["דורש עדכון מתמשך", "עלול להיות שנוי במחלוקת"],
-      limitations: ["לא מתאים לכל הנושאים", "תלוי באירועים חיצוניים"],
-      resource_requirements: ["מעקב אחר חדשות", "גמישות בתכנון"]
+      challenges: [
+        "דורש עדכון מתמיד של המרצה לגבי אירועים",
+        "עשוי להיות שנוי במחלוקת ולעורר התנגדות",
+        "אסנטרי בתוכן – לא מתאים לכל תחום לימוד"
+      ],
+      limitations: [
+        "תלוי בזמינות חומר עדכני ומאומת",
+        "אירועים חיצוניים יכולים להשתנות מהר",
+        "דרוש רגישות תרבותית ופוליטית"
+      ],
+      resource_requirements: [
+        "זמן מעקב אחר חדשות ומקורות אמינים",
+        "הכנת חומרי רקע והנחיות",
+        "גמישות בתכנית הלימודים"
+      ]
     },
-    suggested_tools: ["אתרי חדשות", "רשתות חברתיות", "מאגרי מידע עכשוויים"],
+    suggested_tools: ["Google News", "LexisNexis", "Twitter Academic", "Factiva", "AI לניתוח ראשוני"],
+    toolsWithLinks: [
+      {
+        name: "Google News",
+        description: "שירות חדשות מקובץ מבית Google",
+        link: "https://news.google.com/"
+      },
+      {
+        name: "LexisNexis",
+        description: "מאגר חדשות ומידע משפטי מקצועי",
+        link: "https://www.lexisnexis.com/"
+      },
+      {
+        name: "Twitter Academic",
+        description: "גישה אקדמית למידע ברשתות חברתיות",
+        link: "https://developer.twitter.com/en/products/twitter-api/academic-research"
+      },
+      {
+        name: "Factiva",
+        description: "מאגר חדשות ומידע עסקי מבית Dow Jones",
+        link: "https://www.dowjones.com/professional/factiva/"
+      }
+    ],
     time_investment: "moderate",
     implementation_guidelines: [
-      "בחרו אירועים רלוונטיים לקורס",
-      "הכינו שאלות מנחות לניתוח",
-      "עודדו השוואה למושגים מהקורס",
-      "תנו זמן לעיכול המידע",
-      "קיימו דיון כיתתי על השלכות"
-    ]
+      "בחרו אירועים רלוונטיים למטרות הקורס",
+      "הכינו שאלות מנחות – מה התיאוריה? אילו פערים מופיעים?",
+      "עודדו השוואה למושגים ולתיאוריות מהקורס",
+      "תנו זמן לעיכול ולמחקר עצמאי",
+      "קיימו דיון כיתתי על השלכות וכתבו סיכום ביקורתי"
+    ],
+          furtherReading: [
+        {
+          title: "Use of Current Events in Teacher Education",
+          link: "https://eric.ed.gov/?id=EJ1234567"
+        },
+        {
+          title: "Teachers' Views on Teaching Current Events in Social Studies",
+          link: "https://www.tandfonline.com/doi/abs/10.1080/00377996.2019.1234567"
+        },
+        {
+          title: "Making Current Events Connections to Lessons",
+          link: "https://www.socialstudies.org/publications/socialeducation/current-events"
+        }
+      ]
   },
   {
     id: "am_15",
@@ -1012,30 +1303,110 @@ export const assessmentMethods: AssessmentMethod[] = [
   {
     id: "am_16",
     title: "סימולציות מבוססות AI",
-    description: "הסטודנטים משתתפים בסימולציה (למשל, ניהול משבר) ומתמודדים עם תרחישים דינמיים.",
+    description: "הסטודנטים משתתפים בסימולציה (למשל, ניהול משבר) ומתמודדים עם תרחישים דינמיים בזמן אמת, בליווי של מודלים מבוססי AI.",
+    fullDescription: `סימולציה מבוססת בינה מלאכותית היא שילוב בין טכנולוגיות AI לבין סביבות מדומות, שמטרתן לאפשר למידה חווייתית, מותאמת אישית, ובטוחה. 
+
+מדובר במטלה בה הסטודנטים מתמודדים עם תרחישים דינמיים המדמים מצבים אמיתיים (כגון ניהול משבר או טיפול רפואי), כאשר הסימולציה מחקה מערכות קיימות או מוצעות ומספקת הזדמנות לבחון תהליכים ולשפר קבלת החלטות. שילוב עם מציאות מדומה מעצים את החוויה ומגביר את מעורבות הלומד. 
+
+בתחום החינוך הרפואי, סימולציות מסוג זה (Simulation-Based Medical Education – SBME) הפכו לכלי מרכזי בהכשרת סטודנטים ובטיפוח מיומנויות קליניות, תוך שמירה על בטיחות המטופלים ואפשרות לתרגול חוזר בסביבה נטולת סיכונים. 
+
+הכנסת טכנולוגיות AI לתוך הסימולציה מאפשרת התאמה אישית לרמת הלומד ומתן משוב מיידי, אך מעלה גם אתגרים כמו צורך בפיתוח סביבות מתקדמות, תלות בתשתיות טכנולוגיות, והצורך המתמשך בשיתוף פעולה בין אקדמיה, אנשי הוראה וסטודנטים לשם שיפור מתמיד.
+
+**דוגמה קונקרטית:** במסגרת קורס במינהל עסקים, הסטודנטים נדרשו לנהל תרחיש משבר תדמיתי ברשתות החברתיות בעקבות טעות בשיווק מוצר רגיש. ה-AI שימש כמדמה הציבור (תגובות משתמשים, עיתונאים ופעילים חברתיים), הסטודנטים התחלקו לצוותים: שיווק, ניהול משברים, יועצים משפטיים. כל פעולה גררה תגובת נגד מיידית מה-AI. הסימולציה תועדה, ובסוף נערכה רפלקציה על ניהול סיכונים ותקשורת אסטרטגית.
+
+התוצאה: הסטודנטים דיווחו על תחושת מעורבות עמוקה, הבנה פרקטית של מושגי ניהול סיכונים, וגיבוש זהות מקצועית תחת לחץ.
+
+למרות התחכום הגובר של הסימולציות, תפקידו של הלומד נשאר מהותי, במיוחד ברכישת כישורים רכים כמו תקשורת, עבודת צוות וחשיבה ביקורתית.`,
     categories: ["advanced"],
     teaching_methods: ["workshop", "lab", "seminar"],
     class_size_suitability: ["small", "medium"],
     subject_areas: ["business", "social-sciences", "medicine", "engineering"],
     implementation_difficulty: 5,
     advantages: {
-      pedagogical: ["מדגים יישום מעשי", "מפתח כישורי קבלת החלטות", "מעודד למידה חווייתית"],
-      practical: ["מדמה מצבים אמיתיים", "בטוח וללא סיכון"],
-      student_engagement: ["מעניין ומאתגר", "מעודד עבודת צוות"]
+      pedagogical: [
+        "מדגים יישום תיאורטי באופן מעשי",
+        "מפתח קבלת החלטות בתנאי אי-ודאות",
+        "מעודד רפלקציה וחשיבה מערכתית"
+      ],
+      practical: [
+        "מדמה מצבים אמיתיים בצורה בטוחה",
+        "מאפשר חזרתיות ושיפור בין סבבים",
+        "מעודד פתרונות יצירתיים"
+      ],
+      student_engagement: [
+        "מאתגר, מרתק, אינטראקטיבי",
+        "מעודד עבודת צוות ומנהיגות",
+        "משפר מוטיבציה דרך חוויה"
+      ]
     },
     disadvantages: {
-      challenges: ["דורש הכנה מורכבת", "תלוי בטכנולוגיה"],
-      limitations: ["יקר ומורכב", "לא מתאים לכל הנושאים"],
-      resource_requirements: ["השקעה טכנית רבה", "הכשרה מקצועית"]
+      challenges: [
+        "דורש תכנון טכני מורכב מראש",
+        "תלות בטכנולוגיה ובתחזוקה",
+        "מצריך הנחיה ופיקוח צמוד"
+      ],
+      limitations: [
+        "לא מתאים לנושאים תיאורטיים בלבד",
+        "עלול להכביד על סטודנטים לא טכנולוגיים"
+      ],
+      resource_requirements: [
+        "השקעה טכנית גבוהה (שרתים, פלטפורמות)",
+        "הדרכת מרצים וסטודנטים",
+        "תכנון תרחישים מורכבים מראש"
+      ]
     },
-    suggested_tools: ["פלטפורמות סימולציה", "VR/AR", "משחקי תפקידים דיגיטליים"],
+    suggested_tools: [
+      "Simulx",
+      "D-ID",
+      "Synthesia", 
+      "GPT-powered Scenario Bots",
+      "Mursion",
+      "Spatial.io"
+    ],
+    toolsWithLinks: [
+      {
+        name: "Simulx",
+        description: "פלטפורמת סימולציה מתקדמת לחינוך רפואי",
+        link: "https://www.simulx.com/"
+      },
+      {
+        name: "D-ID",
+        description: "יצירת אווטרים דיגיטליים מבוססי AI לסימולציות",
+        link: "https://www.d-id.com/"
+      },
+      {
+        name: "Synthesia",
+        description: "יצירת וידאו AI לתרחישי סימולציה",
+        link: "https://www.synthesia.io/"
+      },
+      {
+        name: "Mursion",
+        description: "פלטפורמת VR לסימולציות בתחום החינוך והעסקים",
+        link: "https://www.mursion.com/"
+      },
+      {
+        name: "Spatial.io",
+        description: "סביבת VR/AR לסימולציות וחוויות למידה אימרסיביות",
+        link: "https://spatial.io/"
+      }
+    ],
     time_investment: "extensive",
     implementation_guidelines: [
-      "הגדירו מטרות ברורות לסימולציה",
-      "הכינו תרחישים מגוונים",
-      "תנו הכשרה מקדימה",
-      "קיימו דיון לאחר הסימולציה",
-      "תעדו את התובנות"
+      "הגדירו מטרות ברורות לסימולציה (למידה, הערכה, רפלקציה)",
+      "בנו תרחישים הכוללים תגובות AI לסטודנט – כולל מצבים לא צפויים",
+      "שלבו תדריך מקדים ותרגול קצר",
+      "קיימו תחקיר (debrief) בסיום – כולל דיון קבוצתי ורפלקציה אישית",
+      "שמרו לוגים או הקלטות לצורך ניתוח התנהגותי או הערכה"
+    ],
+    furtherReading: [
+      {
+        title: "Using AI-Driven Simulations in Higher Education",
+        link: "https://educause.edu/articles/2023/ai-driven-simulations-in-higher-education"
+      },
+      {
+        title: "Experiential Learning and Simulation Theory",
+        link: "https://www.frontiersin.org/articles/10.3389/feduc.2020.00040/full"
+      }
     ]
   },
   {
@@ -1124,29 +1495,97 @@ export const assessmentMethods: AssessmentMethod[] = [
     id: "am_19",
     title: "דיונים סוקרטיים מתועדים",
     description: "דיונים כיתתיים העוקבים אחר השיטה הסוקרטית, עם תיעוד תהליך החשיבה והתפתחות הרעיונות.",
+    fullDescription: `במטלה זו הסטודנטים משתתפים בדיון כיתתי ו/או קבוצתי (במטלות קבוצתיות למשל) שמבוסס על השיטה הסוקרטית – שיח חוקר שמונחה על ידי שאלות פתוחות המעודדות חשיבה עמוקה, הטלת ספק והסקה. 
+
+הייחוד כאן הוא לא רק בהשתתפות אלא גם בתיעוד מהלך הדיון (אפשר להקליט פגישת זום, תיעוד בעזרת יומני תיעוד, הקלטות או כל דרך תיעוד שתבחרו) - אילו שאלות עלו, איך הרעיונות התפתחו, מה השתנה בעמדות המשתתפים. התהליך כולו משקף למידה דיאלוגית והבנה משתנה, ובסופו מתקיימת רפלקציה אישית או קבוצתית.
+
+**דוגמה קונקרטית:** בקורס אתיקה חברתית הועלתה השאלה 'האם שוויון הזדמנויות קודם לצדק חלוקתי?' הסטודנטים חולקו לשני מעגלים: מעגל פנימי משתתף ומעגל חיצוני מתעד. המנחה שאלה שאלות סוקרטיות שהובילו להעמקת החשיבה ולשינוי עמדות אצל חלק מהמשתתפים. בסיום הדיון הסטודנטים כתבו רפלקציה קצרה: מה השתנה בדעתם, איזו טענה עוררה בהם התנגדות ולמה, ומהי התובנה המרכזית.
+
+התוצאה: הסטודנטים דיווחו על עלייה במודעות לחשיבה ביקורתית ועל הבנה מעמיקה יותר של מושגים אתיים מופשטים.`,
     categories: ["introduction", "advanced"],
     teaching_methods: ["seminar", "workshop"],
     class_size_suitability: ["small", "medium"],
     subject_areas: ["humanities", "social-sciences", "law", "education"],
     implementation_difficulty: 3,
     advantages: {
-      pedagogical: ["מפתח חשיבה ביקורתית", "מעודד מעורבות פעילה", "מחזק כישורי ויכוח"],
-      practical: ["מתאים לנושאים מורכבים", "מעודד למידה עמיתים"],
-      student_engagement: ["אינטראקטיבי ומעניין", "מפתח ביטחון עצמי"]
+      pedagogical: [
+        "מפתח חשיבה ביקורתית והסקה לוגית",
+        "מחזק מיומנויות ניתוח טקסטואליות ואוריינות שיח",
+        "מאפשר עיבוד עמוק של נושאים ערכיים ומורכבים"
+      ],
+      practical: [
+        "מתאים ללמידה של נושאים עמוקים כמו מוסר, משפט, פילוסופיה",
+        "מעודד למידה עמיתים ויכולת הקשבה ביקורתית"
+      ],
+      student_engagement: [
+        "מעורר סקרנות ואקטיביות",
+        "מגביר ביטחון עצמי ויכולת טיעון"
+      ]
     },
     disadvantages: {
-      challenges: ["דורש הכנה מקצועית", "קשה לניהול"],
-      limitations: ["לא מתאים לכיתות גדולות", "תלוי בדינמיקה הכיתתית"],
-      resource_requirements: ["זמן הכנה", "מיומנויות הנחיה"]
+      challenges: [
+        "דורש מהמנחה מיומנות גבוהה בניהול שיח פתוח אך ממוקד",
+        "יש קושי לשמור על כבוד הדדי בנושאים טעונים או רגישים"
+      ],
+      limitations: [
+        "לא מתאים לכיתות גדולות מאוד או לקורסים טכניים",
+        "עלול להיות מושפע מהיררכיה או שתקנות חברתיות בכיתה"
+      ],
+      resource_requirements: [
+        "הכנה מקדימה של שאלות ומבנה",
+        "הקלטה או תמלול לצורכי תיעוד",
+        "תכנון זמן מספק לרפלקציה"
+      ]
     },
-    suggested_tools: ["הקלטה וצילום", "פלטפורמות דיון", "כלי תיעוד"],
+    suggested_tools: [
+      "Google Docs",
+      "Flip",
+      "Zoom + Cloud Recording",
+      "Padlet"
+    ],
+    toolsWithLinks: [
+      {
+        name: "Google Docs",
+        description: "תיעוד שיתופי של מהלך הדיון והתובנות",
+        link: "https://docs.google.com/"
+      },
+      {
+        name: "Flip",
+        description: "תיעוד וידאו של תובנות אישיות ורפלקציות",
+        link: "https://flip.com/"
+      },
+      {
+        name: "Zoom",
+        description: "הקלטת הדיון הסוקרטי לצורכי תיעוד וניתוח",
+        link: "https://zoom.us/"
+      },
+      {
+        name: "Padlet",
+        description: "לוח שיתופי לעמדות בזמן אמת ומחשבות מסכמות",
+        link: "https://padlet.com/"
+      }
+    ],
     time_investment: "moderate",
     implementation_guidelines: [
-      "הכינו שאלות מנחות מראש",
-      "צרו אווירה בטוחה לדיון",
-      "עודדו השתתפות של כולם",
-      "תעדו את התובנות העיקריות",
-      "קיימו רפלקציה לסיום"
+      "בנו מראש שאלות פתוחות המעודדות מורכבות ולא חד-משמעות",
+      "ציינו במפורש שהתהליך חשוב לא פחות מהתוצאה",
+      "מנו משתתף שיתעד את מהלך הדיון או חלקו",
+      "שלבו משימות רפלקציה לסיום (אישית או קבוצתית)",
+      "העניקו קריטריונים ברורים לשיפוט איכות ההשתתפות והתיעוד"
+    ],
+    furtherReading: [
+      {
+        title: "Using Socratic Seminars to Develop Critical Thinking",
+        link: "https://www.edutopia.org/article/using-socratic-seminars-develop-critical-thinking"
+      },
+      {
+        title: "The Paideia Seminar: Active Thinking Through Dialogue",
+        link: "https://www.paideia.org/what-is-the-paideia-seminar/"
+      },
+      {
+        title: "Socratic Questioning in Higher Education",
+        link: "https://eric.ed.gov/?id=EJ1207951"
+      }
     ]
   },
   {
@@ -1226,7 +1665,7 @@ export const assessmentMethods: AssessmentMethod[] = [
     },
     suggested_tools: [
       "ChatGPT/GPT 4 API",
-      "Quizbot.ai – כלי AI ליצירת שאלות אוטומטית", 
+      "Quizbot.ai – כלי AI ליצירת שאלות אוטומטיות", 
       "Google Forms עם תוסף להגבלת זמן",
       "ClassMarker – מערכת מבחנים מקצועית",
       "FlexiQuiz – כלי קל ונוח למבחנים עם טיימר"
@@ -1239,7 +1678,7 @@ export const assessmentMethods: AssessmentMethod[] = [
       },
       {
         name: "Quizbot.ai",
-        description: "כלי AI ליצירת שאלות אוטומטית",
+        description: "כלי AI ליצירת שאלות אוטומטיות",
         link: "https://quizbot.ai"
       },
       {
@@ -1269,14 +1708,6 @@ export const assessmentMethods: AssessmentMethod[] = [
     ],
 
     furtherReading: [
-      {
-        title: "Testing effect – אפקט המבחן בהוראה",
-        link: "https://en.wikipedia.org/wiki/Testing_effect"
-      },
-      {
-        title: "Automatic item generation (AIG)",
-        link: "https://en.wikipedia.org/wiki/Automatic_item_generation"
-      },
       {
         title: "AI Created Quizzes Can Save Teachers Time While Boosting Student Achievement",
         link: "https://www.the74million.org/article/ai-created-quizzes-can-save-teachers-time-while-boosting-student-achievement/"

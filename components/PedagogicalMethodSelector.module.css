@@ -440,6 +440,20 @@
 }
 
 /* Modal styles for method details */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: var(--spacing-4);
+}
+
 .modalContent {
   background: var(--background);
   border-radius: var(--radius-lg);
@@ -661,6 +675,66 @@
   color: var(--primary-foreground);
 }
 
+/* Rubric Template Styles */
+.rubricContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.rubricCriteria {
+  background: var(--secondary);
+  border-radius: var(--radius);
+  padding: var(--spacing-4);
+  border: 1px solid var(--border);
+}
+
+.criteriaTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0 0 var(--spacing-2) 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.criteriaDescription {
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  margin: 0 0 var(--spacing-4) 0;
+  line-height: 1.5;
+}
+
+.rubricLevels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.rubricLevel {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2);
+  background: var(--background);
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid var(--border);
+}
+
+.levelName {
+  font-weight: 600;
+  color: var(--primary);
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.levelDescription {
+  color: var(--foreground);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
 /* Responsive design for modal */
 @media (max-width: 768px) {
   .modalContent {
@@ -679,6 +753,15 @@
   }
   
   .techLabel {
+    min-width: unset;
+  }
+  
+  .rubricLevel {
+    flex-direction: column;
+    gap: var(--spacing-1);
+  }
+  
+  .levelName {
     min-width: unset;
   }
 }

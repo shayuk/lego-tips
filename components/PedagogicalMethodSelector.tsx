@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CourseParameters, AssessmentMethod, assessmentMethods } from '../helpers/assessmentTypes';
 import { getTopCompatibleMethods } from '../helpers/compatibilityCalculator';
 import { Button } from './Button';
@@ -39,18 +39,49 @@ const MethodDetailsModal = ({
 }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   
+  // Handle escape key press
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!method) return null;
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <div 
+      className={styles.modalOverlay}
+      onClick={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="method-modal-title"
+      style={{ display: isOpen ? 'flex' : 'none' }}
+    >
       <div className={styles.modalContent} dir="rtl">
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>{method.title}</h2>
+          <h2 id="method-modal-title" className={styles.modalTitle}>{method.title}</h2>
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={onClose}
             className={styles.closeButton}
+            aria-label="סגור"
           >
             <X size={20} />
           </Button>
@@ -177,6 +208,35 @@ const MethodDetailsModal = ({
                   ))}
                 </div>
               </div>
+              <div className={styles.techItem}>
+                <span className={styles.techLabel}>קטגוריות:</span>
+                <div className={styles.badgeGroup}>
+                  {method.categories.map((category, index) => (
+                    <Badge key={index} variant="outline">
+                      {category === 'introduction' ? 'מבוא' :
+                       category === 'large' ? 'קורס גדול' : 'מתקדם'}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.techItem}>
+                <span className={styles.techLabel}>תחומי לימוד מתאימים:</span>
+                <div className={styles.badgeGroup}>
+                  {method.subject_areas.map((area, index) => (
+                    <Badge key={index} variant="outline">
+                      {area === 'humanities' ? 'מדעי הרוח' :
+                       area === 'social-sciences' ? 'מדעי החברה' :
+                       area === 'natural-sciences' ? 'מדעי הטבע' :
+                       area === 'engineering' ? 'הנדסה' :
+                       area === 'arts' ? 'אמנויות' :
+                       area === 'business' ? 'עסקים' :
+                       area === 'law' ? 'משפטים' :
+                       area === 'medicine' ? 'רפואה' :
+                       area === 'education' ? 'חינוך' : 'בין-תחומי'}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -188,6 +248,41 @@ const MethodDetailsModal = ({
               ))}
             </ul>
           </div>
+
+          {/* Rubric Template */}
+          {method.rubric_template && method.rubric_template.length > 0 && (
+            <div className={styles.modalSection}>
+              <h3 className={styles.sectionTitle}>מחוון הערכה מוצע</h3>
+              <div className={styles.rubricContainer}>
+                {method.rubric_template.map((criteria, index) => (
+                  <div key={index} className={styles.rubricCriteria}>
+                    <h4 className={styles.criteriaTitle}>
+                      {criteria.name} ({criteria.weight}%)
+                    </h4>
+                    <p className={styles.criteriaDescription}>{criteria.description}</p>
+                    <div className={styles.rubricLevels}>
+                      <div className={styles.rubricLevel}>
+                        <span className={styles.levelName}>מצוין:</span>
+                        <span className={styles.levelDescription}>{criteria.levels.excellent}</span>
+                      </div>
+                      <div className={styles.rubricLevel}>
+                        <span className={styles.levelName}>טוב:</span>
+                        <span className={styles.levelDescription}>{criteria.levels.good}</span>
+                      </div>
+                      <div className={styles.rubricLevel}>
+                        <span className={styles.levelName}>מספק:</span>
+                        <span className={styles.levelDescription}>{criteria.levels.satisfactory}</span>
+                      </div>
+                      <div className={styles.rubricLevel}>
+                        <span className={styles.levelName}>דורש שיפור:</span>
+                        <span className={styles.levelDescription}>{criteria.levels.needs_improvement}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Tools Section */}
           {(method.toolsWithLinks || method.suggested_tools.length > 0) && (
@@ -261,7 +356,7 @@ const MethodDetailsModal = ({
           )}
         </div>
       </div>
-    </Dialog>
+    </div>
   );
 };
 
