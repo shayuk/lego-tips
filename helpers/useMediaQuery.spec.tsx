@@ -1,7 +1,6 @@
-/* global jest */
+/* eslint-env jest */
 import { renderHook } from "@testing-library/react";
 import { useMediaQuery } from "./useMediaQuery";
-import { describe, it, beforeEach, expect } from '@jest/globals';
 
 
 describe("useMediaQuery", () => {

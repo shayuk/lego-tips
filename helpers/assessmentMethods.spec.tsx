@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+/* eslint-env jest */
 import { 
   calculateCompatibilityScore, 
   getTopCompatibleMethods, 
