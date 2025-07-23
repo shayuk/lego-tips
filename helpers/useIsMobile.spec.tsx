@@ -1,5 +1,5 @@
+/* eslint-env jest */
 import { renderHook } from "@testing-library/react";
-import { describe, it, beforeEach, expect } from "@jest/globals";
 import { useIsMobile } from "./useIsMobile";
 
 describe("useIsMobile", () => {

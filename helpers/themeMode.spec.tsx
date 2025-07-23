@@ -1,5 +1,5 @@
+/* eslint-env jest */
 import { switchToDarkMode, switchToLightMode, switchToAutoMode, getCurrentThemeMode } from "./themeMode";
-import { describe, it, beforeAll, afterAll, beforeEach, expect } from '@jest/globals';
 
 // Helper function to create a mutable MediaQueryList mock.
 function createMediaQueryList(initialMatches: boolean, query = "(prefers-color-scheme: dark)") {

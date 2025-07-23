@@ -1,5 +1,5 @@
+/* eslint-env jest */
 import { renderHook, act } from "@testing-library/react";
-import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { useDebounce } from "./useDebounce";
 
 // Using fake timers to control the debounce delay
