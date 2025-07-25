@@ -4,9 +4,9 @@ import { useMediaQuery } from "./useMediaQuery";
 
 
 describe("useMediaQuery", () => {
-  let matchMedia: any;
-  let addListener: any;
-  let removeListener: any;
+  let matchMedia: jest.Mock;
+  let addListener: jest.Mock;
+  let removeListener: jest.Mock;
 
   beforeEach(() => {
     addListener = jest.fn();

@@ -400,7 +400,10 @@ function getValueByPath(obj: any, path: string): any {
 
 function setValueByPath(obj: any, path: string, value: any): any {
   const keys = path.split(".");
-  const lastKey = keys.pop()!;
+  const lastKey = keys.pop();
+  if (!lastKey) {
+    return { ...obj };
+  }
   const newObj = { ...obj };
   let pointer = newObj;
 
@@ -434,7 +437,10 @@ function deleteValueByPath(
   options?: { shallow?: boolean },
 ): any {
   const keys = path.split(".");
-  const last = keys.pop()!;
+  const last = keys.pop();
+  if (!last) {
+    return obj;
+  }
   let pointer = obj;
   const parents: Array<{ parent: any; key: string }> = [];
 

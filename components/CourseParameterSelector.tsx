@@ -635,7 +635,7 @@ export const CourseParameterSelector: React.FC<CourseParameterSelectorProps> = (
         )}
 
         {/* כפתור חירום אם יש בעיה עם העריכה */}
-        {watch('courseContent') && watch('courseContent')!.length > 0 && (
+        {(watch('courseContent')?.length ?? 0) > 0 && (
           <div style={{ marginBottom: '16px', textAlign: 'center' }}>
             <Button
               type="button"
