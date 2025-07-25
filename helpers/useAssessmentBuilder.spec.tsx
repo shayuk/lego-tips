@@ -1,5 +1,5 @@
+/* eslint-env jest */
 import { renderHook, act } from "@testing-library/react";
-import { describe, it, expect } from '@jest/globals';
 import { useAssessmentBuilder, AssessmentComponentType } from "./useAssessmentBuilder";
 
 describe("connectComponents", () => {

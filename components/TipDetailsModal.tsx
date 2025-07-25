@@ -3,33 +3,43 @@ import { X } from 'lucide-react';
 import { Button } from './Button';
 import styles from './TipDetailsModal.module.css';
 
-interface TipDetailsModalProps {
-  tip: {
-    id: string;
-    title: string;
-    description: string;
-    example: string;
-    bloomExplanation: string;
-    bloomLevel: 'remember' | 'understand' | 'apply' | 'analyze' | 'evaluate' | 'create';
-    courseProfile?: {
-      level: string;
-      size: string;
-      delivery: string;
-    };
-    recommendedTools?: {
-      name: string;
-      description: string;
-      link: string;
-    }[];
-    furtherReading?: {
-      title: string;
-      link: string;
-    }[];
-  };
-  onClose: () => void;
+type BloomLevel =
+  | 'remember'
+  | 'understand'
+  | 'apply'
+  | 'analyze'
+  | 'evaluate'
+  | 'create'
+
+interface Tip {
+  id: string
+  title: string
+  description: string
+  example: string
+  bloomExplanation: string
+  bloomLevel: BloomLevel
+  courseProfile?: {
+    level: string
+    size: string
+    delivery: string
+  }
+  recommendedTools?: {
+    name: string
+    description: string
+    link: string
+  }[]
+  furtherReading?: {
+    title: string
+    link: string
+  }[]
 }
 
-const bloomLevelNames = {
+interface TipDetailsModalProps {
+  tip: Tip
+  onClose: () => void
+}
+
+const bloomLevelNames: Record<BloomLevel, string> = {
   remember: 'זכירה',
   understand: 'הבנה',
   apply: 'יישום',
@@ -38,7 +48,13 @@ const bloomLevelNames = {
   create: 'יצירה'
 };
 
-const bloomConnections = {
+interface BloomConnectionInfo {
+  buildsFrom?: BloomLevel[]
+  buildsTo?: BloomLevel[]
+  description: string
+}
+
+const bloomConnections: Record<BloomLevel, BloomConnectionInfo> = {
   remember: {
     buildsTo: ['understand'],
     description: 'זכירה מהווה את הבסיס לכל למידה מתקדמת יותר'
@@ -69,7 +85,7 @@ const bloomConnections = {
   }
 };
 
-const bloomLevelColors = {
+const bloomLevelColors: Record<BloomLevel, string> = {
   remember: 'bg-blue-100 text-blue-800',
   understand: 'bg-green-100 text-green-800',
   apply: 'bg-yellow-100 text-yellow-800',
@@ -141,13 +157,13 @@ export const TipDetailsModal: React.FC<TipDetailsModalProps> = ({ tip, onClose }
           <div className={styles.section}>
             <h3 className={styles.sectionTitle}>קשרים ברמות בלום:</h3>
             <div className={styles.bloomConnections}>
-              {(bloomConnections[tip.bloomLevel] as any).buildsFrom && (
+              {bloomConnections[tip.bloomLevel].buildsFrom && (
                 <div className={styles.connectionItem}>
                   <span className={styles.connectionLabel}>בונה על:</span>
                   <div className={styles.connectionTags}>
-                    {(bloomConnections[tip.bloomLevel] as any).buildsFrom.map((level: string) => (
-                      <span key={level} className={`${styles.connectionTag} ${(bloomLevelColors as any)[level]}`}>
-                        {(bloomLevelNames as any)[level]}
+                    {bloomConnections[tip.bloomLevel].buildsFrom!.map((level: BloomLevel) => (
+                      <span key={level} className={`${styles.connectionTag} ${bloomLevelColors[level]}`}>
+                        {bloomLevelNames[level]}
                       </span>
                     ))}
                   </div>
@@ -161,13 +177,13 @@ export const TipDetailsModal: React.FC<TipDetailsModalProps> = ({ tip, onClose }
                 </span>
               </div>
               
-              {(bloomConnections[tip.bloomLevel] as any).buildsTo && (
+              {bloomConnections[tip.bloomLevel].buildsTo && (
                 <div className={styles.connectionItem}>
                   <span className={styles.connectionLabel}>מכין ל:</span>
                   <div className={styles.connectionTags}>
-                    {(bloomConnections[tip.bloomLevel] as any).buildsTo.map((level: string) => (
-                      <span key={level} className={`${styles.connectionTag} ${(bloomLevelColors as any)[level]}`}>
-                        {(bloomLevelNames as any)[level]}
+                    {bloomConnections[tip.bloomLevel].buildsTo!.map((level: BloomLevel) => (
+                      <span key={level} className={`${styles.connectionTag} ${bloomLevelColors[level]}`}> 
+                        {bloomLevelNames[level]}
                       </span>
                     ))}
                   </div>
