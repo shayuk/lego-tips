@@ -384,94 +384,123 @@ function useFormField() {
 
 // Internal helpers. Should not be used externally since these aren't typed.
 
-function getValueByPath(obj: any, path: string): any {
+function getValueByPath(obj: unknown, path: string): unknown {
   const keys = path.split(".");
-  let current = obj;
+  let current: unknown = obj;
   for (const key of keys) {
     if (current == null) return undefined;
     if (/^\d+$/.test(key) && Array.isArray(current)) {
       current = current[+key];
+    } else if (typeof current === "object" && current !== null) {
+      current = (current as Record<string, unknown>)[key];
     } else {
-      current = current[key];
+      return undefined;
     }
   }
   return current;
 }
 
-function setValueByPath(obj: any, path: string, value: any): any {
+function setValueByPath<T extends Record<string, unknown> | unknown[]>(
+  obj: T,
+  path: string,
+  value: unknown,
+): T {
   const keys = path.split(".");
   const lastKey = keys.pop();
   if (!lastKey) {
-    return { ...obj };
+    return Array.isArray(obj)
+      ? ([...(obj as unknown[])] as T)
+      : ({ ...(obj as Record<string, unknown>) } as T);
   }
-  const newObj = { ...obj };
-  let pointer = newObj;
+  const newObj: Record<string, unknown> | unknown[] = Array.isArray(obj)
+    ? [...(obj as unknown[])]
+    : { ...(obj as Record<string, unknown>) };
+  let pointer: Record<string, unknown> | unknown[] = newObj;
 
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
-    const nextKey = keys[i + 1];
-    if (pointer[key] == null) {
-      pointer[key] = /^\d+$/.test(nextKey) ? [] : {};
-    } else if (Array.isArray(pointer[key])) {
-      pointer[key] = [...pointer[key]];
-    } else if (typeof pointer[key] === "object") {
-      pointer[key] = { ...pointer[key] };
+
+    if (
+      !(key in (pointer as Record<string, unknown>)) ||
+      (pointer as Record<string, unknown>)[key] == null ||
+      typeof (pointer as Record<string, unknown>)[key] !== "object"
+    ) {
+      (pointer as Record<string, unknown>)[key] = {};
+    } else if (Array.isArray((pointer as Record<string, unknown>)[key])) {
+      (pointer as Record<string, unknown>)[key] = [
+        ...((pointer as Record<string, unknown>)[key] as unknown[]),
+      ];
+    } else if (
+      typeof (pointer as Record<string, unknown>)[key] === "object" &&
+      (pointer as Record<string, unknown>)[key] !== null
+    ) {
+      (pointer as Record<string, unknown>)[key] = {
+        ...((pointer as Record<string, unknown>)[key] as Record<string, unknown>),
+      };
     }
-    pointer = pointer[key];
+    pointer = (pointer as Record<string, unknown>)[key] as any;
   }
 
-  // set final
-  if (/^\d+$/.test(lastKey) && Array.isArray(pointer)) {
-    pointer[+lastKey] = value;
-  } else {
-    pointer[lastKey] = value;
+  if (Array.isArray(pointer)) {
+    (pointer as unknown[])[+lastKey] = value;
+  } else if (pointer && typeof pointer === "object") {
+    (pointer as Record<string, unknown>)[lastKey] = value;
   }
 
-  return newObj;
+  return newObj as T;
 }
 
 // DELETE helper — remove a path (and clean up empty containers)
-function deleteValueByPath(
-  obj: any,
+function deleteValueByPath<T extends Record<string, unknown> | unknown[]>(
+  obj: T,
   path: string,
   options?: { shallow?: boolean },
-): any {
+): T {
+  if (typeof obj !== "object" || obj === null) return obj;
   const keys = path.split(".");
   const last = keys.pop();
   if (!last) {
     return obj;
   }
-  let pointer = obj;
-  const parents: Array<{ parent: any; key: string }> = [];
+  let pointer: Record<string, unknown> | unknown[] = obj as any;
+  const parents: Array<{ parent: Record<string, unknown> | unknown[]; key: string }> = [];
 
   for (const key of keys) {
-    if (pointer[key] == null) {
+    if (
+      typeof pointer !== "object" ||
+      pointer === null ||
+      !(key in pointer)
+    ) {
       return obj; // nothing to remove
     }
     parents.push({ parent: pointer, key });
-    pointer = pointer[key];
+    pointer = Array.isArray(pointer)
+      ? ((pointer as unknown[])[Number(key)] as Record<string, unknown> | unknown[])
+      : ((pointer as Record<string, unknown>)[key] as Record<string, unknown> | unknown[]);
   }
 
   // remove the leaf
   if (pointer && typeof pointer === "object" && last in pointer) {
+    const container = pointer as Record<string, unknown>;
     if (options?.shallow) {
       // For shallow deletion, just remove the specific error message
       // but preserve any nested errors
-      if (typeof pointer[last] === "string") {
-        delete pointer[last];
+      if (typeof container[last] === "string") {
+        delete container[last];
       } else if (
-        typeof pointer[last] === "object" &&
-        !Array.isArray(pointer[last])
+        typeof container[last] === "object" &&
+        !Array.isArray(container[last])
       ) {
         // If it's an object but not an array, we need to keep its children
         // but remove any direct error on this path
-        if ("message" in pointer[last]) {
-          delete pointer[last].message;
+        const objChild = container[last] as Record<string, unknown>;
+        if ("message" in objChild) {
+          delete (objChild as { message?: unknown }).message;
         }
       }
     } else {
       // For deep deletion, remove the entire path and its children
-      delete pointer[last];
+      delete container[last];
     }
   }
 
@@ -480,12 +509,13 @@ function deleteValueByPath(
     // climb back and prune empty objects/arrays
     for (let i = parents.length - 1; i >= 0; i--) {
       const { parent, key } = parents[i];
-      const val = parent[key];
+      const container = parent as Record<string, unknown> | unknown[];
+      const val = (container as any)[key];
       const isEmptyObj =
         val && !Array.isArray(val) && Object.keys(val).length === 0;
       const isEmptyArr = Array.isArray(val) && val.length === 0;
       if (isEmptyObj || isEmptyArr) {
-        delete parent[key];
+        delete (container as any)[key];
       }
     }
   }

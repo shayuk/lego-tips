@@ -17,6 +17,15 @@ interface PedagogicalMethodSelectorProps {
   className?: string;
 }
 
+interface MethodWithScore extends AssessmentMethod {
+  compatibilityScore: number;
+}
+
+const hasCompatibilityScore = (
+  method: AssessmentMethod | MethodWithScore
+): method is MethodWithScore =>
+  typeof (method as { compatibilityScore?: unknown }).compatibilityScore === 'number';
+
 const DifficultyStars = ({ level }: { level: number }) => {
   return (
     <div className={styles.stars}>
@@ -593,7 +602,9 @@ export const PedagogicalMethodSelector = ({
                   method.id.startsWith('custom-') 
                     ? styles.compatibilityHigh
                     : (() => {
-                        const score = (method as any).compatibilityScore || 0;
+                        const score = hasCompatibilityScore(method)
+                          ? method.compatibilityScore
+                          : 0;
                         if (score >= 85) return styles.compatibilityHigh;
                         if (score >= 70) return styles.compatibilityMedium;
                         return styles.compatibilityLow;
@@ -602,8 +613,10 @@ export const PedagogicalMethodSelector = ({
                   <Sparkles size={16} />
                   <span>
                     {method.id.startsWith('custom-') 
-                      ? '100' 
-                      : (method as any).compatibilityScore || 0
+                      ? '100'
+                      : hasCompatibilityScore(method)
+                        ? method.compatibilityScore
+                        : 0
                     }% התאמה
                   </span>
                 </div>
