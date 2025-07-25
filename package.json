@@ -4,14 +4,16 @@
   "description": "Alternative Assessment Platform - Building assessments like Lego blocks",
   "main": "index.js",
   "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "lint": "eslint . --report-unused-disable-directives --max-warnings 9999",
-    "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit",
-    "clean:unused": "ts-node scripts/clean-unused-vars.ts"
+ "scripts": {
+  "dev": "vite",
+  "build": "tsc && vite build",
+  "preview": "vite preview",
+  "lint": "eslint . --report-unused-disable-directives --max-warnings 9999",
+  "lint:fix": "eslint . --fix",
+  "type-check": "tsc --noEmit",
+  "clean:unused": "ts-node scripts/clean-unused-vars.ts",
+  "fix:any": "node scripts/replace-any.mjs"
+}
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
