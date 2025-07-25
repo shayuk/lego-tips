@@ -57,4 +57,20 @@ export default [
       '@typescript-eslint/explicit-module-boundary-types': 'off',
     },
   },
-] 
+  {
+    files: ['**/*.spec.{js,jsx,ts,tsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.jest,
+      },
+    },
+  },
+  {
+    files: ['**/*.config.js', 'jest.config.cjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+]

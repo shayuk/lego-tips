@@ -31,7 +31,7 @@ export const Toast: React.FC<ToastProps> = ({
     const showTimer = setTimeout(() => setIsVisible(true), 10);
     
     // Auto close timer
-    let closeTimer: any;
+    let closeTimer: ReturnType<typeof setTimeout> | undefined;
     if (!persistent && duration > 0) {
       closeTimer = setTimeout(() => {
         handleClose();

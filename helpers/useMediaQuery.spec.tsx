@@ -1,13 +1,12 @@
-/* global jest */
+/* eslint-env jest */
 import { renderHook } from "@testing-library/react";
 import { useMediaQuery } from "./useMediaQuery";
-import { describe, it, beforeEach, expect } from '@jest/globals';
 
 
 describe("useMediaQuery", () => {
-  let matchMedia: any;
-  let addListener: any;
-  let removeListener: any;
+  let matchMedia: jest.Mock;
+  let addListener: jest.Mock;
+  let removeListener: jest.Mock;
 
   beforeEach(() => {
     addListener = jest.fn();

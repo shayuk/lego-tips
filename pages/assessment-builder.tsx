@@ -8,7 +8,7 @@ import { PedagogicalTips } from "../components/PedagogicalTips";
 import { Button } from "../components/Button";
 
 import { CourseParameterSchema } from "../helpers/courseParameterSchemas";
-import { AssessmentMethod } from "../helpers/assessmentTypes";
+import { AssessmentMethod, type CourseParameters } from "../helpers/assessmentTypes";
 import styles from "./assessment-builder.module.css";
 
 type MainTab = "builder" | "tips";
@@ -95,8 +95,8 @@ export default function AssessmentBuilderPage() {
   );
 
   const renderGuidedStep = () => {
-    let courseParams: any = undefined;
-    let finalCourseParams: any = undefined;
+    let courseParams: CourseParameters | undefined;
+    let finalCourseParams: CourseParameters | undefined;
     switch (currentStep) {
       case 1:
         return (
