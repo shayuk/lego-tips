@@ -440,7 +440,7 @@ function setValueByPath<T extends Record<string, unknown> | unknown[]>(
         ...((pointer as Record<string, unknown>)[key] as Record<string, unknown>),
       };
     }
-    pointer = (pointer as Record<string, unknown>)[key] as any;
+    pointer = (pointer as Record<string, unknown>)[key];
   }
 
 
