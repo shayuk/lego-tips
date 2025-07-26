@@ -384,21 +384,26 @@ function useFormField() {
 
 // Internal helpers. Should not be used externally since these aren't typed.
 
+
 function getValueByPath(obj: unknown, path: string): unknown {
   const keys = path.split(".");
   let current: unknown = obj;
+
   for (const key of keys) {
     if (current == null) return undefined;
     if (/^\d+$/.test(key) && Array.isArray(current)) {
       current = current[+key];
+
     } else if (typeof current === "object" && current !== null) {
       current = (current as Record<string, unknown>)[key];
     } else {
       return undefined;
+
     }
   }
   return current;
 }
+
 
 function setValueByPath<T extends Record<string, unknown> | unknown[]>(
   obj: T,
@@ -417,9 +422,11 @@ function setValueByPath<T extends Record<string, unknown> | unknown[]>(
     : { ...(obj as Record<string, unknown>) };
   let pointer: Record<string, unknown> | unknown[] = newObj;
 
+
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
     const nextKey = keys[i + 1];
+
     if (
       pointer &&
       typeof pointer === "object" &&
@@ -459,11 +466,13 @@ function deleteValueByPath<T extends Record<string, unknown> | unknown[]>(
   options?: { shallow?: boolean },
 ): T {
   if (typeof obj !== "object" || obj === null) return obj;
+
   const keys = path.split(".");
   const last = keys.pop();
   if (!last) {
     return obj;
   }
+
   let pointer: Record<string, unknown> | unknown[] = obj as any;
   const parents: Array<{ parent: Record<string, unknown> | unknown[]; key: string }> = [];
 
@@ -479,10 +488,12 @@ function deleteValueByPath<T extends Record<string, unknown> | unknown[]>(
     pointer = Array.isArray(pointer)
       ? ((pointer as unknown[])[Number(key)] as Record<string, unknown> | unknown[])
       : ((pointer as Record<string, unknown>)[key] as Record<string, unknown> | unknown[]);
+
   }
 
   // remove the leaf
   if (pointer && typeof pointer === "object" && last in pointer) {
+
     const container = pointer as Record<string, unknown>;
     if (options?.shallow) {
       // For shallow deletion, just remove the specific error message
@@ -498,11 +509,14 @@ function deleteValueByPath<T extends Record<string, unknown> | unknown[]>(
         const objChild = container[last] as Record<string, unknown>;
         if ("message" in objChild) {
           delete (objChild as { message?: unknown }).message;
+
         }
       }
     } else {
       // For deep deletion, remove the entire path and its children
+
       delete container[last];
+
     }
   }
 
@@ -511,13 +525,17 @@ function deleteValueByPath<T extends Record<string, unknown> | unknown[]>(
     // climb back and prune empty objects/arrays
     for (let i = parents.length - 1; i >= 0; i--) {
       const { parent, key } = parents[i];
+
       const container = parent as Record<string, unknown> | unknown[];
       const val = (container as any)[key];
+
       const isEmptyObj =
         val && !Array.isArray(val) && Object.keys(val).length === 0;
       const isEmptyArr = Array.isArray(val) && val.length === 0;
       if (isEmptyObj || isEmptyArr) {
+
         delete (container as any)[key];
+
       }
     }
   }

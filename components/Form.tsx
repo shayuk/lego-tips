@@ -420,6 +420,7 @@ function setValueByPath<T extends Record<string, unknown> | unknown[]>(
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
 
+
     if (
       !(key in (pointer as Record<string, unknown>)) ||
       (pointer as Record<string, unknown>)[key] == null ||
@@ -429,6 +430,7 @@ function setValueByPath<T extends Record<string, unknown> | unknown[]>(
     } else if (Array.isArray((pointer as Record<string, unknown>)[key])) {
       (pointer as Record<string, unknown>)[key] = [
         ...((pointer as Record<string, unknown>)[key] as unknown[]),
+
       ];
     } else if (
       typeof (pointer as Record<string, unknown>)[key] === "object" &&
@@ -441,7 +443,9 @@ function setValueByPath<T extends Record<string, unknown> | unknown[]>(
     pointer = (pointer as Record<string, unknown>)[key] as any;
   }
 
+
   if (Array.isArray(pointer)) {
+
     (pointer as unknown[])[+lastKey] = value;
   } else if (pointer && typeof pointer === "object") {
     (pointer as Record<string, unknown>)[lastKey] = value;
@@ -474,9 +478,11 @@ function deleteValueByPath<T extends Record<string, unknown> | unknown[]>(
       return obj; // nothing to remove
     }
     parents.push({ parent: pointer, key });
+
     pointer = Array.isArray(pointer)
       ? ((pointer as unknown[])[Number(key)] as Record<string, unknown> | unknown[])
       : ((pointer as Record<string, unknown>)[key] as Record<string, unknown> | unknown[]);
+
   }
 
   // remove the leaf
