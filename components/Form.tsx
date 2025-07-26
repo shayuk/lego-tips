@@ -426,7 +426,9 @@ function setValueByPath<T extends Record<string, unknown> | unknown[]>(
       (pointer as Record<string, unknown>)[key] == null ||
       typeof (pointer as Record<string, unknown>)[key] !== "object"
     ) {
-      (pointer as Record<string, unknown>)[key] = {};
+       (pointer as Record<string, unknown>)[key] = /^\d+$/.test(nextKey ?? "")
+        ? []
+        : {};
     } else if (Array.isArray((pointer as Record<string, unknown>)[key])) {
       (pointer as Record<string, unknown>)[key] = [
         ...((pointer as Record<string, unknown>)[key] as unknown[]),
