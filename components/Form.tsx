@@ -444,7 +444,7 @@ function setValueByPath<T extends Record<string, unknown> | unknown[]>(
   }
 
 
-  if (Array.isArray(pointer)) {
+  if (/^\d+$/.test(lastKey) && Array.isArray(pointer)) {
 
     (pointer as unknown[])[+lastKey] = value;
   } else if (pointer && typeof pointer === "object") {
