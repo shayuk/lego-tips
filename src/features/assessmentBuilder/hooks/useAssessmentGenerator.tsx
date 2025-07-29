@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useAppToast } from '../components/AppLayout';
-import { generateAssignmentWithRetry, checkAvailableProviders, handleAPIError, APIUsageTracker } from './secureApiClient';
+import { useAppToast } from '../../../hooks/useToast'; // נתיב מתוקן
+import { generateAssignmentWithRetry, checkAvailableProviders, handleAPIError, APIUsageTracker } from '../../../helpers/secureApiClient'; // נתיב מתוקן
+import { generateIntegratedAssignment } from '../../../helpers/claudeAssignmentGenerator'; // נתיב מתוקן
 
 // 📝 Assessment Types - מתואמים עם תגובת השרת
 interface GeneratedAssessment {
@@ -143,7 +144,6 @@ const useAssessmentGenerator = (params: {
         }
 
         if (step.index === 5) { // The actual AI call
-          const { generateIntegratedAssignment } = await import('./claudeAssignmentGenerator');
           const result = await generateIntegratedAssignment({
             courseName: actualCourseName,
             faculty: actualFaculty,

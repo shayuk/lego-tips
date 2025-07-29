@@ -19,7 +19,7 @@ import {
   getMethodsByCategory,
   getMethodsByDifficulty,
   getMethodsByTimeInvestment
-} from "./compatibilityCalculator";
+} from "../../../helpers/compatibilityCalculator";
 
 import {
   genericRubricTemplates,

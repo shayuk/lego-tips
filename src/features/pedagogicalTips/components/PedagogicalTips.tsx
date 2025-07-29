@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ChevronDown, ChevronUp, Lightbulb, Eye } from 'lucide-react';
-import { Button } from './Button';
+import { Button } from '../../../components/Button';
 import { TipDetailsModal } from './TipDetailsModal';
 import styles from './PedagogicalTips.module.css';
 
@@ -255,7 +255,7 @@ const pedagogicalTips: PedagogicalTip[] = [
     courseProfile: {
       level: 'מתאים לקורסי ביניים ומתקדמים',
       size: 'יעיל בכיתות קטנות עד בינוניות',
-      delivery: 'סדנאות, למידה פעילה, למידה מעורבת'
+      delivery: 'סמינר, למידה פעילה, דיון קבוצתי'
     },
     recommendedTools: [
       {

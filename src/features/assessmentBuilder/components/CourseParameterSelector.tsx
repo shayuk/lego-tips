@@ -3,18 +3,19 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Upload, FileText, BookOpen, Users, School, Monitor, TestTube, Briefcase, X, Wand2, File, Trash2, Save, CheckCircle } from 'lucide-react';
 
-import { parseFileContent } from '../../helpers/fileParsers';
+import { parseFileContent } from '../../../helpers/fileParsers'; // נתיב מתוקן
 import { Button } from '../../../components/Button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/Select';
 import { Textarea } from '../../../components/Textarea';
 import { FileDropzone } from '../../../components/FileDropzone';
-import { useAppToast } from '../../../components/AppLayout';
-import { TOAST_MESSAGES } from '../../helpers/useToast';
-import { cleanFileText, quickClean, aggressiveClean, isTextGarbled } from '../../helpers/textCleaner';
+import { useAppToast } from '../../../hooks/useToast'; // נתיב מתוקן
+import { TOAST_MESSAGES } from '../../../lib/toastMessages'; // נתיב מתוקן
+import { cleanFileText, quickClean, aggressiveClean, isTextGarbled } from '../../../helpers/textCleaner'; // נתיב מתוקן
 import { courseParameterSchema, CourseParameterSchema, courseTypeOptions, teachingMethodOptions, classSizeOptions, facultyOptions, departmentOptions } from '../lib/courseParameterSchemas';
 import styles from './CourseParameterSelector.module.css';
 import { useAssessmentBuilder } from '../hooks/useAssessmentBuilder';
 import { GeneratedAssessment } from '../types/Assessment';
+import { generateAssessment } from '../api'; // ייבוא הפונקציה החדשה
 
 export interface CourseParameterSelectorProps {
   className?: string;

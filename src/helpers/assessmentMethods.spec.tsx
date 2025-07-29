@@ -8,7 +8,7 @@ import {
   assessmentMethods,
   CourseParameters,
   AssessmentMethodCategory,
-} from './assessmentMethods';
+} from '../features/assessmentBuilder/lib/assessmentMethods'; // נתיב מתוקן
 
 describe('assessmentMethods', () => {
   const mockCourseParams: CourseParameters = {

@@ -1,7 +1,7 @@
 // src/helpers/fileParsers.ts
 
 import mammoth from 'mammoth';
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf';
+import * as pdfjs from 'pdfjs-dist'; // נתיב מתוקן
 
 if (typeof window !== 'undefined') {
     pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;

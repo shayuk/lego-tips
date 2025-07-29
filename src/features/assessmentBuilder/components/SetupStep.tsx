@@ -1,9 +1,9 @@
 import React, { memo } from 'react';
-import { Button } from './Button';
-import { Input } from './Input';
-import { Textarea } from './Textarea';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './Select';
-import { FileDropzone } from './FileDropzone';
+import { Button } from '../../../components/Button';
+import { Input } from '../../../components/Input';
+import { Textarea } from '../../../components/Textarea';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/Select';
+import { FileDropzone } from '../../../components/FileDropzone';
 
 // 📝 Types for setup step
 interface CourseDetails {

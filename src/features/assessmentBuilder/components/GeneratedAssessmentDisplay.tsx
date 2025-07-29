@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import DOMPurify from 'dompurify';
 import { AlertTriangle, Download, Printer, RefreshCw, Save, Archive, FileText } from 'lucide-react';
-import { Button } from './Button';
-import { exportToWord, saveToPersonalLibrary, saveToSharedArchive, ExportOptions } from '../helpers/documentExport';
+import { Button } from '../../../components/Button'; // נתיב מתוקן
+import { exportToWord, saveToPersonalLibrary, saveToSharedArchive, ExportOptions } from '../../../helpers/documentExport'; // נתיב מתוקן
 import styles from './AssessmentGenerator.module.css';
 
 // הגדרת ה-props שהרכיב יקבל

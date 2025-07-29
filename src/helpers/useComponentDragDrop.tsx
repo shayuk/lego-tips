@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from "react";
-import { AssessmentComponent, AssessmentComponentType } from "../../features/assessmentBuilder/hooks/useAssessmentBuilder";
+import { AssessmentComponent, AssessmentComponentType } from "../features/assessmentBuilder/hooks/useAssessmentBuilder"; // נתיב מתוקן
 
 // Temporary placeholder - PIXI.js implementation removed
 export const useComponentDragDrop = () => {

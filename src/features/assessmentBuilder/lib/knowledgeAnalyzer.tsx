@@ -1,4 +1,4 @@
-import knowledgeBase from './knowledgeBase.json';
+import knowledgeBase from '../../../helpers/knowledgeBase.json'; // נתיב מתוקן
 
 export interface DomainMatch {
   domain: string;

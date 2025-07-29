@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { AssessmentMethod } from '../features/assessmentBuilder/lib/assessmentTypes';
+import { AssessmentMethod } from '../../assessmentBuilder/lib/assessmentTypes'; // נתיב מתוקן
 
 const PRIVATE_TIPS_STORAGE_KEY = 'pedagogical-lego-private-tips';
 const PUBLIC_TIPS_STORAGE_KEY = 'pedagogical-lego-public-tips';
