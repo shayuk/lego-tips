@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useAppToast } from '../../../hooks/useToast'; // נתיב מתוקן
-import { generateAssignmentWithRetry, checkAvailableProviders, handleAPIError, APIUsageTracker } from '../../../helpers/secureApiClient'; // נתיב מתוקן
-import { generateIntegratedAssignment } from '../../../helpers/claudeAssignmentGenerator'; // נתיב מתוקן
+import { useAppToast } from '../../../helpers/useToast';
+import { generateAssignmentWithRetry, checkAvailableProviders, handleAPIError, APIUsageTracker } from '../../../helpers/secureApiClient';
+import { generateIntegratedAssignment } from '../../../helpers/claudeAssignmentGenerator';
 
 // 📝 Assessment Types - מתואמים עם תגובת השרת
 interface GeneratedAssessment {

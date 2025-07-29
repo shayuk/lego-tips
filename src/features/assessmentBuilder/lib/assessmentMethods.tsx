@@ -24,7 +24,7 @@ import {
 import {
   genericRubricTemplates,
   implementationGuidelines
-} from "./rubricTemplates";
+} from "../../../helpers/rubricTemplates"; // נתיב מתוקן
 
 // Export types
 export type {

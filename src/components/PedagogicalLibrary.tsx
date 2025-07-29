@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { assessmentMethods, AssessmentMethod } from '../features/assessmentBuilder/lib/assessmentTypes';
-import { getPrivateTips, savePrivateTip, deletePrivateTip, NewTipData } from '../features/pedagogicalTips/lib/pedagogicalTipStorage';
+import { assessmentMethods, AssessmentMethod } from '../../features/assessmentBuilder/lib/assessmentTypes';
+import { getPrivateTips, savePrivateTip, deletePrivateTip, NewTipData } from '../../features/pedagogicalTips/lib/pedagogicalTipStorage';
 import { Badge } from './Badge';
 import { Button } from './Button';
 import { Input } from './Input';

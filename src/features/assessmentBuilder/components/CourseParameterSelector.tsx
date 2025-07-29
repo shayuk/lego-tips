@@ -8,7 +8,7 @@ import { Button } from '../../../components/Button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/Select';
 import { Textarea } from '../../../components/Textarea';
 import { FileDropzone } from '../../../components/FileDropzone';
-import { useAppToast } from '../../../hooks/useToast'; // נתיב מתוקן
+import { useAppToast } from '../../../helpers/useToast'; // נתיב מתוקן
 import { TOAST_MESSAGES } from '../../../lib/toastMessages'; // נתיב מתוקן
 import { cleanFileText, quickClean, aggressiveClean, isTextGarbled } from '../../../helpers/textCleaner'; // נתיב מתוקן
 import { courseParameterSchema, CourseParameterSchema, courseTypeOptions, teachingMethodOptions, classSizeOptions, facultyOptions, departmentOptions } from '../lib/courseParameterSchemas';

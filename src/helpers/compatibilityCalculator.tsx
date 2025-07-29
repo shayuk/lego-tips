@@ -4,7 +4,7 @@ import {
   TimeInvestment, 
   assessmentMethods,
   AssessmentMethodCategory
-} from "../features/assessmentBuilder/lib/assessmentTypes";
+} from "../../features/assessmentBuilder/lib/assessmentTypes"; // נתיב מתוקן
 
 /**
  * Enhanced TypeScript interfaces for better type safety
