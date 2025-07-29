@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import type { AssessmentMethod, CourseParameters } from '../features/assessmentBuilder/lib/assessmentTypes.tsx';
+import type { AssessmentMethod, CourseParameters } from '../features/assessmentBuilder/lib/assessmentTypes';
 import { PedagogicalMethodSelector } from '../features/assessmentBuilder/components/PedagogicalMethodSelector';
 import { FileDropzone } from '../components/FileDropzone';
 import { Button } from '../components/Button';
@@ -717,9 +717,9 @@ ${generatedAssessment.requirements.map((requirement, index) => `${index + 1}. ${
               </div>
               
               <PedagogicalMethodSelector 
-                courseParameters={courseParameters}
-                courseContent={courseDetails.focusAreas}
-                onSelectMethods={handleSelectMethods}
+                courseParams={courseParameters}
+                onMethodsSelect={setSelectedMethods}
+                selectedMethods={selectedMethods}
               />
 
               {/* Generate Task Button - מיד אחרי הטיפים */}

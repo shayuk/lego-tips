@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { assessmentMethods, AssessmentMethod } from '../features/assessmentBuilder/lib/assessmentTypes.tsx';
+import { assessmentMethods, AssessmentMethod } from '../features/assessmentBuilder/lib/assessmentTypes';
 import { getPrivateTips, savePrivateTip, deletePrivateTip, NewTipData } from '../features/pedagogicalTips/lib/pedagogicalTipStorage';
 import { Badge } from './Badge';
 import { Button } from './Button';
@@ -84,7 +84,15 @@ export const PedagogicalLibrary: React.FC<PedagogicalLibraryProps> = ({ classNam
     });
   }, [searchQuery, categoryFilter, difficultyFilter, allMethods]);
 
-  const handleViewDetails = (method: any) => {
+  const filteredAndSortedMethods = useMemo(() => {
+    return filteredMethods.sort((a, b) => {
+      if (a.isPrivate && !b.isPrivate) return -1;
+      if (!a.isPrivate && b.isPrivate) return 1;
+      return a.title.localeCompare(b.title);
+    });
+  }, [filteredMethods]);
+
+  const handleViewDetails = (method: AssessmentMethod) => {
     setSelectedMethod(method);
     setIsModalOpen(true);
   };
@@ -137,6 +145,24 @@ export const PedagogicalLibrary: React.FC<PedagogicalLibraryProps> = ({ classNam
     });
   };
 
+  const handleDeletePrivateTip = (tipId: string) => {
+    deletePrivateTip(tipId);
+    const privateTips = getPrivateTips().map(tip => ({ ...tip, isPrivate: true }));
+    setAllMethods([...assessmentMethods, ...privateTips]);
+    setIsModalOpen(false);
+  };
+
+  const uniqueCategories = useMemo(() => {
+    const categories = new Set(allMethods.flatMap(method => method.categories));
+    return ['all', ...Array.from(categories)];
+  }, [allMethods]);
+
+  const uniqueDifficulties = useMemo(() => {
+    const difficulties = new Set(allMethods.map(method => method.implementation_difficulty.toString()));
+    return ['all', ...Array.from(difficulties)];
+  }, [allMethods]);
+
+
   return (
     <div className={`${styles.container} ${className || ''}`}>
       {/* Add new tip button */}
@@ -178,10 +204,11 @@ export const PedagogicalLibrary: React.FC<PedagogicalLibraryProps> = ({ classNam
             <SelectValue placeholder="סוג קורס" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">כל הסוגים</SelectItem>
-            <SelectItem value="introduction">קורסי מבוא</SelectItem>
-            <SelectItem value="large">קורסים רב משתתפים</SelectItem>
-            <SelectItem value="advanced">קורסים מתקדמים</SelectItem>
+            {uniqueCategories.map((category: string) => (
+              <SelectItem key={category} value={category}>
+                {category === 'all' ? 'כל הסוגים' : category}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         
@@ -190,12 +217,11 @@ export const PedagogicalLibrary: React.FC<PedagogicalLibraryProps> = ({ classNam
             <SelectValue placeholder="רמת קושי" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">כל הרמות</SelectItem>
-            <SelectItem value="1">קל (1 כוכב)</SelectItem>
-            <SelectItem value="2">קל-בינוני (2 כוכבים)</SelectItem>
-            <SelectItem value="3">בינוני (3 כוכבים)</SelectItem>
-            <SelectItem value="4">מאתגר (4 כוכבים)</SelectItem>
-            <SelectItem value="5">קשה (5 כוכבים)</SelectItem>
+            {uniqueDifficulties.map((difficulty) => (
+              <SelectItem key={difficulty} value={difficulty}>
+                {difficulty === 'all' ? 'כל הרמות' : `רמה ${difficulty}`}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -205,21 +231,10 @@ export const PedagogicalLibrary: React.FC<PedagogicalLibraryProps> = ({ classNam
         gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', 
         gap: 'var(--spacing-4)' 
       }}>
-        {filteredMethods.map((method) => (
-          <div
-            key={method.id}
-            style={{
-              backgroundColor: 'var(--card)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius)',
-              padding: 'var(--spacing-4)',
-              transition: 'transform var(--animation-duration-normal), box-shadow var(--animation-duration-normal)',
-              cursor: 'pointer'
-            }}
-            className={styles.methodCard}
-            onClick={() => handleViewDetails(method)}
-          >
-            <div style={{ marginBottom: 'var(--spacing-3)' }}>
+        {filteredAndSortedMethods.map((method, index) => (
+          <div key={method.id || index} className={`${styles.methodCard} ${method.isPrivate ? styles.privateTipCard : ''}`}>
+            {method.isPrivate && <div className={styles.privateBadge}><User size={14} /> טיפ פרטי</div>}
+            <div className={styles.cardContent}>
               <h4 style={{ 
                 fontSize: '1.125rem', 
                 fontWeight: '600', 
@@ -288,7 +303,7 @@ export const PedagogicalLibrary: React.FC<PedagogicalLibraryProps> = ({ classNam
         ))}
       </div>
 
-      {filteredMethods.length === 0 && (
+      {filteredAndSortedMethods.length === 0 && (
         <div style={{ 
           textAlign: 'center', 
           padding: 'var(--spacing-8)',

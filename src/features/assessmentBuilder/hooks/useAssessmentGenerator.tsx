@@ -19,6 +19,8 @@ interface LoadingState {
   message: string;
   estimatedTime?: number;
   currentStepIndex: number;
+  progress: number;
+  stage: 'init' | 'checking' | 'generating' | 'processing' | 'complete' | 'error';
 }
 
 interface RubricCriteria {
@@ -62,6 +64,8 @@ const useAssessmentGenerator = (params: {
     message: 'מוכן ליצירה...',
     estimatedTime: 0,
     currentStepIndex: -1,
+    progress: 0,
+    stage: 'init',
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -133,10 +137,10 @@ const useAssessmentGenerator = (params: {
       
       const totalTime = generationSteps.reduce((sum, step) => sum + step.time, 0);
 
-      setLoadingState({ isLoading: true, message: 'מתחיל...', estimatedTime: totalTime, currentStepIndex: -1 });
+      setLoadingState({ isLoading: true, message: 'מתחיל...', estimatedTime: totalTime, currentStepIndex: -1, progress: 0, stage: 'init' });
 
       for (const step of generationSteps) {
-        setLoadingState(prev => ({ ...prev, message: step.message, currentStepIndex: step.index, estimatedTime: totalTime - generationSteps.slice(0, step.index).reduce((s, t) => s + t.time, 0) }));
+        setLoadingState(prev => ({ ...prev, message: step.message, currentStepIndex: step.index, estimatedTime: totalTime - generationSteps.slice(0, step.index).reduce((s, t) => s + t.time, 0), progress: (step.index + 1) / generationSteps.length * 100, stage: 'generating' }));
         
         // For actual generation, we only need a delay on non-API steps
         if (step.index !== 5) { 
@@ -167,7 +171,7 @@ const useAssessmentGenerator = (params: {
         
       setGeneratedRubric(buildFallbackRubric(actualTips));
       
-      setLoadingState({ isLoading: false, message: 'המטלה נוצרה בהצלחה!', estimatedTime: 0, currentStepIndex: 7 });
+      setLoadingState({ isLoading: false, message: 'המטלה נוצרה בהצלחה!', estimatedTime: 0, currentStepIndex: 7, progress: 100, stage: 'complete' });
       
       console.log('🎉 Assignment generation completed successfully!');
          
@@ -177,7 +181,7 @@ const useAssessmentGenerator = (params: {
 
     } catch (error) {
       console.error('❌ AI generation error:', error);
-      setLoadingState({ isLoading: false, message: 'שגיאה ביצירת המטלה', currentStepIndex: -1 });
+      setLoadingState({ isLoading: false, message: 'שגיאה ביצירת המטלה', currentStepIndex: -1, progress: 0, stage: 'error' });
       setError(error instanceof Error ? error.message : 'שגיאה לא ידועה');
 
       const fallbackAssessment = generateStructuredFallback(actualTips, actualCourseName, actualDescription);
@@ -187,7 +191,7 @@ const useAssessmentGenerator = (params: {
       setRubricHtml(generateFallbackRubricHtml(buildFallbackRubric(actualTips)));
       setModelUsed('מערכת גיבוי מקומית');
       
-      setLoadingState({ isLoading: false, message: '✅ המטלה מוכנה!', estimatedTime: 0, currentStepIndex: -1 });
+      setLoadingState({ isLoading: false, message: '✅ המטלה מוכנה!', estimatedTime: 0, currentStepIndex: -1, progress: 100, stage: 'complete' });
       
       try {
         if (safeToast) {

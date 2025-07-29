@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { AssessmentMethodCategory, TeachingMethodCompatibility, ClassSize } from '../../features/assessmentBuilder/lib/assessmentTypes.tsx'; // נתיב מתוקן
+import { AssessmentMethodCategory, TeachingMethodCompatibility, ClassSize } from '../features/assessmentBuilder/lib/assessmentTypes';
 
 export const courseParameterSchema = z.object({
-  courseName: z.string().min(1, { message: 'יש להזין את שם הקורס.' }),
+  courseName: z.string().min(3, 'שם הקורס חייב להכיל לפחות 3 תווים'),
   faculty: z.string().min(1, { message: 'יש לבחור את הפקולטה.' }),
   department: z.string().min(1, { message: 'יש לבחור את המחלקה.' }),
   courseContent: z.string().optional(),

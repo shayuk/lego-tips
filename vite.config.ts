@@ -19,6 +19,9 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      external: ['jspdf-autotable'],
+    },
   },
   define: {
     'process.env': {},

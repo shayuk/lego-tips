@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "lego-tips"
-  }
+    "default": "lego-tips",
+    "production": "lego-tips"
+  },
+  "targets": {},
+  "etags": {}
 }

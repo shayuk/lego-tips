@@ -11,7 +11,7 @@ import {
   AssessmentDisadvantages,
   RubricCriteria,
   assessmentMethods
-} from "./assessmentTypes.tsx";
+} from "./assessmentTypes";
 
 import {
   calculateCompatibilityScore,
@@ -24,7 +24,7 @@ import {
 import {
   genericRubricTemplates,
   implementationGuidelines
-} from "../../../helpers/rubricTemplates"; // נתיב מתוקן
+} from "../lib/rubricTemplates"; // נתיב מתוקן
 
 // Export types
 export type {

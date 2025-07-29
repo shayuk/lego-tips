@@ -4,6 +4,9 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './global.css';
 
+// 🆕 ייבוא של UserProvider
+import { UserProvider } from './contexts/UserContext';
+
 console.log('🚀 Main.tsx loaded');
 
 // Check if root element exists
@@ -20,20 +23,22 @@ console.log('🎯 Creating React root...');
 try {
   const root = ReactDOM.createRoot(rootElement);
   console.log('✅ React root created successfully');
-  
+
   console.log('🔄 Rendering App...');
   root.render(
     <React.StrictMode>
       <BrowserRouter>
-        <App />
+        <UserProvider> {/* ⬅️ כאן אנחנו שומרים את המשתמש המחובר */}
+          <App />
+        </UserProvider>
       </BrowserRouter>
-    </React.StrictMode>,
+    </React.StrictMode>
   );
-  
+
   console.log('🎉 App rendered successfully');
 } catch (error) {
   console.error('💥 Error during React rendering:', error);
-  
+
   // Fallback: render a simple error message
   const errorMessage = error instanceof Error ? error.message : 'Unknown error';
   rootElement.innerHTML = `
@@ -43,4 +48,4 @@ try {
       <p>Error: ${errorMessage}</p>
     </div>
   `;
-} 
+}

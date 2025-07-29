@@ -1,10 +1,10 @@
-import {
-  AssessmentMethod,
-  CourseParameters,
-  TimeInvestment,
+import { 
+  AssessmentMethod, 
+  CourseParameters, 
+  TimeInvestment, 
   assessmentMethods,
   AssessmentMethodCategory
-} from "../features/assessmentBuilder/lib/assessmentTypes.tsx"; // fixed relative path
+} from "../features/assessmentBuilder/lib/assessmentTypes";
 
 /**
  * Enhanced TypeScript interfaces for better type safety
@@ -49,19 +49,19 @@ const COMPATIBILITY_WEIGHTS: CompatibilityWeights = {
  * @returns Compatibility score between 0 and 1
  */
 function calculateTimeCompatibilityScore(
-  methodTime: TimeInvestment,
+  methodTime: TimeInvestment, 
   availableTime: TimeInvestment
 ): number {
-  const timeValues = {
-    minimal: 1,
-    moderate: 2,
-    substantial: 3,
-    extensive: 4
+  const timeValues: Record<TimeInvestment, number> = { 
+    minimal: 1, 
+    moderate: 2, 
+    substantial: 3, 
+    extensive: 4 
   };
-
+  
   const methodValue = timeValues[methodTime];
   const availableValue = timeValues[availableTime];
-
+  
   if (methodValue <= availableValue) {
     // Perfect match or method requires less time than available
     return 1.0;
@@ -143,7 +143,7 @@ function calculateBaseScore(
   } else {
     // Partial match for related categories
     const relatedCategories = getRelatedCategories(courseParams.course_type);
-    if (method.categories.some(cat => relatedCategories.includes(cat))) {
+    if (method.categories.some((cat: AssessmentMethodCategory) => relatedCategories.includes(cat))) {
       courseTypeScore = COMPATIBILITY_WEIGHTS.course_type * 0.5;
     }
   }
@@ -154,7 +154,7 @@ function calculateBaseScore(
   } else {
     // Check for compatible teaching methods
     const compatibleMethods = getCompatibleTeachingMethods(courseParams.teaching_method);
-    if (method.teaching_methods.some(method => compatibleMethods.includes(method))) {
+    if (method.teaching_methods.some((method: string) => compatibleMethods.includes(method))) {
       teachingMethodScore = COMPATIBILITY_WEIGHTS.teaching_method * 0.7;
     }
   }
@@ -177,7 +177,7 @@ function calculateBaseScore(
   } else {
     // Check for related subject areas
     const relatedSubjects = getRelatedSubjects(courseParams.subject_area);
-    if (method.subject_areas.some(subject => relatedSubjects.includes(subject))) {
+    if (method.subject_areas.some((subject: string) => relatedSubjects.includes(subject))) {
       subjectAreaScore = COMPATIBILITY_WEIGHTS.subject_area * 0.6;
     }
   }
@@ -387,20 +387,20 @@ export function getTopCompatibleMethods(
   }
 
   const scoredMethods = assessmentMethods
-    .map(method => {
+    .map((method: AssessmentMethod) => {
       const compatibilityScore = calculateCompatibilityScore(method, courseParams);
       return {
         ...method,
         compatibilityScore
       };
     })
-    .filter(method => method.compatibilityScore > 0) // Filter out completely incompatible methods
-    .sort((a, b) => b.compatibilityScore - a.compatibilityScore)
+    .filter((method: AssessmentMethod & { compatibilityScore: number }) => method.compatibilityScore > 0) // Filter out completely incompatible methods
+    .sort((a: AssessmentMethod & { compatibilityScore: number }, b: AssessmentMethod & { compatibilityScore: number }) => b.compatibilityScore - a.compatibilityScore)
     .slice(0, limit);
 
   // Log results for debugging
   if (typeof window !== 'undefined' && window.localStorage?.getItem('debug') === 'true') {
-    console.log('Top Compatible Methods:', scoredMethods.map(m => ({
+    console.log('Top Compatible Methods:', scoredMethods.map((m: AssessmentMethod & { compatibilityScore: number }) => ({
       title: m.title,
       score: m.compatibilityScore
     })));
@@ -415,7 +415,7 @@ export function getTopCompatibleMethods(
  * @returns Array of methods in the category
  */
 export function getMethodsByCategory(category: AssessmentMethodCategory): AssessmentMethod[] {
-  return assessmentMethods.filter(method =>
+  return assessmentMethods.filter((method: AssessmentMethod) => 
     method.categories.includes(category)
   );
 }
@@ -427,10 +427,10 @@ export function getMethodsByCategory(category: AssessmentMethodCategory): Assess
  * @returns Array of methods matching difficulty criteria
  */
 export function getMethodsByDifficulty(
-  difficulty: number,
+  difficulty: number, 
   tolerance: number = 0
 ): AssessmentMethod[] {
-  return assessmentMethods.filter(method =>
+  return assessmentMethods.filter((method: AssessmentMethod) => 
     Math.abs(method.implementation_difficulty - difficulty) <= tolerance
   );
 }
@@ -446,7 +446,7 @@ export function getMethodsByTimeInvestment(
   includeRelated: boolean = false
 ): AssessmentMethod[] {
   if (!includeRelated) {
-    return assessmentMethods.filter(method =>
+    return assessmentMethods.filter((method: AssessmentMethod) => 
       method.time_investment === timeInvestment
     );
   }
@@ -458,7 +458,7 @@ export function getMethodsByTimeInvestment(
     Math.min(timeHierarchy.length, currentIndex + 2)
   );
 
-  return assessmentMethods.filter(method =>
+  return assessmentMethods.filter((method: AssessmentMethod) => 
     relatedLevels.includes(method.time_investment)
   );
 }
