@@ -1,0 +1,845 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  width: 100%;
+  font-family: var(--font-family-base);
+}
+
+.header {
+  text-align: center;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: var(--spacing-2);
+}
+
+.subtitle {
+  font-size: 1.125rem;
+  color: var(--muted-foreground);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--spacing-6);
+}
+
+.card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  transition: all var(--animation-duration-normal) ease;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.card.selected {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.cardTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--surface-foreground);
+  flex-grow: 1;
+  cursor: pointer;
+}
+
+.compatibilityBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  background-color: color-mix(in srgb, var(--primary) 15%, transparent);
+  color: var(--primary);
+  padding: var(--spacing-1) var(--spacing-3);
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+/* צבעים שונים לפי רמת התאמה */
+.compatibilityHigh {
+  background-color: color-mix(in srgb, green 15%, transparent);
+  color: #22c55e;
+  border-color: color-mix(in srgb, green 20%, transparent);
+}
+
+.compatibilityMedium {
+  background-color: color-mix(in srgb, orange 15%, transparent);
+  color: #f59e0b;
+  border-color: color-mix(in srgb, orange 20%, transparent);
+}
+
+.compatibilityLow {
+  background-color: color-mix(in srgb, red 15%, transparent);
+  color: #ef4444;
+  border-color: color-mix(in srgb, red 20%, transparent);
+}
+
+.description {
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  flex-grow: 1;
+}
+
+/* Full description collapsible section */
+.fullDescriptionSection {
+  margin-top: var(--spacing-4);
+}
+
+.expandButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--spacing-3);
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--foreground);
+  transition: all var(--animation-duration-normal);
+}
+
+.expandButton:hover {
+  background: var(--muted-foreground);
+  color: var(--background);
+}
+
+.chevron {
+  transition: transform var(--animation-duration-normal);
+}
+
+.chevronExpanded {
+  transform: rotate(180deg);
+}
+
+.expandedContent {
+  margin-top: var(--spacing-3);
+  padding: var(--spacing-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  border-top: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.fullDescriptionText {
+  line-height: 1.7;
+  color: var(--foreground);
+}
+
+.fullDescriptionParagraph {
+  margin: 0 0 var(--spacing-3) 0;
+  text-align: justify;
+}
+
+.fullDescriptionParagraph:last-child {
+  margin-bottom: 0;
+}
+
+.fullDescription {
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--border);
+}
+
+.subsectionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: var(--spacing-3);
+}
+
+.descriptionContent {
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
+.paragraph {
+  margin-bottom: var(--spacing-3);
+  text-align: justify;
+}
+
+.paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.closeButton {
+  color: var(--muted-foreground);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: var(--spacing-2);
+  border-radius: var(--radius);
+  transition: color var(--animation-duration-normal);
+}
+
+.closeButton:hover {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+  border-top: 1px solid var(--border);
+  padding-top: var(--spacing-4);
+}
+
+.detailItem .detailTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--surface-foreground);
+  margin-bottom: var(--spacing-2);
+}
+
+.detailItem .detailTitle svg {
+  color: var(--muted-foreground);
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.list li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+}
+
+.list li::before {
+  content: '•';
+  color: var(--primary);
+  font-weight: bold;
+  display: inline-block;
+  margin-top: -2px;
+}
+
+.cardFooter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  border-top: 1px solid var(--border);
+  padding-top: var(--spacing-4);
+  margin-top: auto;
+}
+
+.difficulty, .tools {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.difficulty span, .tools svg {
+  flex-shrink: 0;
+}
+
+.stars {
+  display: flex;
+  direction: ltr;
+}
+
+.filledStar {
+  color: #ffc107;
+}
+
+.emptyStar {
+  color: var(--border);
+}
+
+.toolBadges {
+  display: flex;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--spacing-4);
+}
+
+.customMethodSection {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4) 0;
+  border-top: 1px solid var(--border);
+  margin-top: var(--spacing-4);
+}
+
+.addCustomButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.removeButton {
+  margin-top: var(--spacing-2);
+  color: var(--destructive);
+  border-color: var(--destructive);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.removeButton:hover {
+  background-color: var(--destructive);
+  color: var(--destructive-foreground);
+}
+
+.dialogContent {
+  background-color: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  max-width: 500px;
+  width: 100%;
+}
+
+.dialogTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--surface-foreground);
+  margin-bottom: var(--spacing-6);
+  text-align: center;
+}
+
+.dialogForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--surface-foreground);
+}
+
+.input, .textarea {
+  width: 100%;
+  padding: var(--spacing-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.input:focus, .textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--border);
+}
+
+.browseDialogContent {
+  background-color: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  max-width: 800px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.browseSubtitle {
+  font-size: 0.9375rem;
+  color: var(--muted-foreground);
+  text-align: center;
+  margin-bottom: var(--spacing-6);
+}
+
+.browseGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+}
+
+.browseCard {
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing-4);
+  transition: all var(--animation-duration-normal) ease;
+}
+
+.browseCard:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.browseCard.selected {
+  border-color: var(--primary);
+  background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+}
+
+.browseCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+}
+
+.browseCardTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--surface-foreground);
+  line-height: 1.4;
+  flex-grow: 1;
+}
+
+.browseCardDescription {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: var(--spacing-3);
+}
+
+.browseCardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--border);
+}
+
+/* Modal styles for method details */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: var(--spacing-4);
+}
+
+.modalContent {
+  background: var(--background);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  max-width: 900px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-6);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.modalTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
+}
+
+/* Reading links section */
+.readingItem {
+  margin-bottom: var(--spacing-2);
+}
+
+.readingLink {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--animation-duration-normal);
+}
+
+.readingLink:hover {
+  color: var(--primary-foreground);
+  text-decoration: underline;
+}
+
+/* Tools section styles */
+.toolsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.toolItem {
+  padding: var(--spacing-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: all var(--animation-duration-normal);
+}
+
+.toolItem:hover {
+  background: var(--muted);
+  border-color: var(--primary);
+}
+
+.toolName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: var(--spacing-2);
+}
+
+.toolLink {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color var(--animation-duration-normal);
+}
+
+.toolLink:hover {
+  color: var(--primary-foreground);
+  text-decoration: underline;
+}
+
+.toolDescription {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+
+.closeButton {
+  color: var(--muted-foreground);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: var(--spacing-2);
+  border-radius: var(--radius);
+  transition: color var(--animation-duration-normal);
+}
+
+.closeButton:hover {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.modalSection {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--spacing-4);
+}
+
+.modalSection:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0 0 var(--spacing-4) 0;
+}
+
+.advantagesGrid, .disadvantagesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-4);
+}
+
+.advantageCategory, .disadvantageCategory {
+  padding: var(--spacing-4);
+  background: var(--muted);
+  border-radius: var(--radius);
+}
+
+.categoryTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0 0 var(--spacing-3) 0;
+}
+
+.modalList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.modalList li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.modalList li::before {
+  content: '•';
+  color: var(--primary);
+  font-weight: bold;
+  display: inline-block;
+  margin-top: 2px;
+}
+
+.technicalInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.techItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.techLabel {
+  font-weight: 600;
+  color: var(--foreground);
+  min-width: 140px;
+}
+
+.badgeGroup {
+  display: flex;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+.toolsGrid {
+  display: flex;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+/* Updated card styles */
+.cardActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--border);
+}
+
+.moreInfoButton {
+  min-width: 120px;
+  font-weight: 500;
+}
+
+.moreInfoButton:hover {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Rubric Template Styles */
+.rubricContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.rubricCriteria {
+  background: var(--secondary);
+  border-radius: var(--radius);
+  padding: var(--spacing-2);
+  border: 1px solid var(--border);
+}
+
+.criteriaTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0 0 var(--spacing-2) 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.criteriaDescription {
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  margin: 0 0 var(--spacing-4) 0;
+  line-height: 1.5;
+}
+
+.rubricLevels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.rubricLevel {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2);
+  background: var(--background);
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid var(--border);
+}
+
+.levelName {
+  font-weight: 600;
+  color: var(--primary);
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.levelDescription {
+  color: var(--foreground);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+/* Responsive design for modal */
+@media (max-width: 768px) {
+  .modalContent {
+    max-width: 95vw;
+    max-height: 90vh;
+    padding: var(--spacing-4);
+  }
+  
+  .advantagesGrid, .disadvantagesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .techItem {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .techLabel {
+    min-width: unset;
+  }
+  
+  .rubricLevel {
+    flex-direction: column;
+    gap: var(--spacing-1);
+  }
+  
+  .levelName {
+    min-width: unset;
+  }
+}
+
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  background-color: var(--card);
+  padding: var(--spacing-1);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-3);
+  border: 5px solid var(--border);
+}
+
+.searchContainer {
+  position: relative;
+  flex-grow: 2; /* Allow search to take available space */
+}
+
+.searchIcon {
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  transform: translateY(-100%);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.searchInput {
+  padding-right: 1px; /* Reverted to original padding */
+  padding-left: var(--spacing-10);
+  width: 100%;
+  text-align: right;
+}
+
+/* New selector to target the Select components directly */
+.filterBar > [role="combobox"] {
+  flex-shrink: 0; /* Prevent the dropdowns from shrinking */
+  width: 190px;   /* Give them a fixed width */
+}
+
+.filterControls {
+  display: flex;
+  gap: var(--spacing-20);
+  flex: 0 0 auto;
+}
+
+.addTipModalContent {
+  max-width: 900px !important;
+  width: 90vw !important;
+  background-color: var(--background);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+}

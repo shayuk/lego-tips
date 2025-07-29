@@ -1,0 +1,36 @@
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+  color: var(--foreground);
+  text-align: center;
+}
+
+.container h1 {
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--primary);
+  padding-bottom: 0.5rem;
+  display: inline-block;
+}
+
+.placeholder {
+  margin-top: 4rem;
+}
+
+.placeholder svg {
+  color: var(--muted-foreground);
+  margin-bottom: 1.5rem;
+}
+
+.placeholder h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.placeholder p {
+  font-size: 1.1rem;
+  color: var(--muted-foreground);
+  max-width: 500px;
+  margin: 0 auto;
+} 

@@ -1,0 +1,34 @@
+# Files to delete after refactoring to feature-sliced design
+
+## assessmentBuilder feature
+
+### Components
+src/components/AssessmentCanvas.tsx
+src/components/AssessmentCanvas.module.css
+src/components/AssessmentPreview.tsx
+src/components/AssessmentPreview.module.css
+src/components/GeneratedAssessmentDisplay.tsx
+src/components/PedagogicalMethodSelector.tsx
+src/components/PedagogicalMethodSelector.module.css
+src/components/CourseParameterSelector.tsx
+src/components/CourseParameterSelector.module.css
+src/components/SetupStep.tsx
+
+### Helpers (now hooks and lib)
+src/helpers/useAssessmentBuilder.tsx
+src/helpers/useAssessmentGenerator.tsx
+src/helpers/assessmentMethods.tsx
+src/helpers/assessmentTypes.tsx
+src/helpers/knowledgeAnalyzer.tsx
+src/helpers/rubricTemplates.tsx
+
+## pedagogicalTips feature
+
+### Components
+src/components/PedagogicalTips.tsx
+src/components/PedagogicalTips.module.css
+src/components/TipDetailsModal.tsx
+src/components/TipDetailsModal.module.css
+
+### Lib
+src/helpers/pedagogicalTipStorage.ts 

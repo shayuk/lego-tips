@@ -1,0 +1,139 @@
+.pageWrapper {
+  display: flex;
+  height: calc(100vh - 60px); /* Adjust based on your header height */
+  background-color: var(--background);
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 350px;
+  min-width: 300px;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--surface);
+}
+
+.sidebarHeader {
+  padding: var(--spacing-4);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebarTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: var(--font-family-heading);
+}
+
+.assessmentsList {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding: var(--spacing-2);
+}
+
+.assessmentItem {
+  padding: var(--spacing-4);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border: 1px solid transparent;
+  margin-bottom: var(--spacing-2);
+}
+
+.assessmentItem:hover {
+  background-color: var(--muted);
+}
+
+.assessmentItem.selected {
+  background-color: var(--primary-muted);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.itemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-2);
+}
+
+.itemTitle {
+  font-weight: 600;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.itemCourse {
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+}
+
+.itemDate {
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}
+
+.itemActions {
+  display: none; /* Hidden by default */
+}
+
+.assessmentItem:hover .itemActions,
+.assessmentItem.selected .itemActions {
+  display: flex; /* Show on hover or when selected */
+}
+
+.previewArea {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: var(--spacing-8);
+  position: relative;
+}
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+
+.placeholderIcon {
+  width: 80px;
+  height: 80px;
+  stroke-width: 1;
+  margin-bottom: var(--spacing-6);
+  color: var(--border-hover);
+}
+
+.placeholder h2 {
+  font-size: 1.5rem;
+  font-family: var(--font-family-heading);
+  margin-bottom: var(--spacing-2);
+}
+
+.emptyState {
+  text-align: center;
+  padding: var(--spacing-8);
+}
+
+.dialogContent {
+  direction: rtl;
+}
+
+.dialogHeader {
+  text-align: right;
+}
+
+.dialogFooter {
+  display: flex;
+  gap: var(--spacing-2);
+  justify-content: flex-end;
+}

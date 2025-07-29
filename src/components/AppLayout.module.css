@@ -1,0 +1,159 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--background);
+  color: var(--foreground);
+  direction: rtl;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--spacing-6);
+  height: 64px;
+  background-color: var(--background); /* Changed from gray to background color */
+  border-bottom: 1px solid var(--border);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--foreground);
+  font-weight: 600;
+  gap: var(--spacing-2);
+}
+
+.logoIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: var(--radius);
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.logoText {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.nav {
+  display: flex;
+  gap: var(--spacing-6);
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--muted-foreground);
+  text-decoration: none;
+  font-weight: 500;
+  padding: var(--spacing-2) 0;
+  transition: color var(--animation-duration-normal) ease;
+}
+
+.navLink:hover {
+  color: var(--foreground);
+}
+
+.navLink.active {
+  color: var(--primary);
+  position: relative;
+}
+
+.navLink.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  right: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--primary);
+  border-radius: var(--radius-full);
+}
+
+.userSection {
+  display: flex;
+  align-items: center;
+}
+
+.userProfile {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  cursor: pointer;
+  padding: var(--spacing-2);
+  border-radius: var(--radius);
+  transition: background-color var(--animation-duration-normal) ease;
+}
+
+.userProfile:hover {
+  background-color: var(--muted);
+}
+
+.userName {
+  font-weight: 500;
+}
+
+.menuIcon {
+  margin-left: var(--spacing-2);
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  padding-top: 64px; /* Added padding to offset the fixed header */
+}
+
+.footer {
+  background-color: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: var(--spacing-4) var(--spacing-6);
+}
+
+.footerContent {
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: var(--spacing-3) var(--spacing-4);
+  }
+  
+  .logoText {
+    display: none;
+  }
+  
+  .nav {
+    gap: var(--spacing-3);
+  }
+  
+  .navLink span {
+    display: none;
+  }
+  
+  .userName {
+    display: none;
+  }
+}
