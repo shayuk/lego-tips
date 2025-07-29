@@ -1,10 +1,10 @@
-import { 
-  AssessmentMethod, 
-  CourseParameters, 
-  TimeInvestment, 
+import {
+  AssessmentMethod,
+  CourseParameters,
+  TimeInvestment,
   assessmentMethods,
   AssessmentMethodCategory
-} from "../../features/assessmentBuilder/lib/assessmentTypes"; // נתיב מתוקן
+} from "../features/assessmentBuilder/lib/assessmentTypes.tsx"; // fixed relative path
 
 /**
  * Enhanced TypeScript interfaces for better type safety
@@ -49,19 +49,19 @@ const COMPATIBILITY_WEIGHTS: CompatibilityWeights = {
  * @returns Compatibility score between 0 and 1
  */
 function calculateTimeCompatibilityScore(
-  methodTime: TimeInvestment, 
+  methodTime: TimeInvestment,
   availableTime: TimeInvestment
 ): number {
-  const timeValues = { 
-    minimal: 1, 
-    moderate: 2, 
-    substantial: 3, 
-    extensive: 4 
+  const timeValues = {
+    minimal: 1,
+    moderate: 2,
+    substantial: 3,
+    extensive: 4
   };
-  
+
   const methodValue = timeValues[methodTime];
   const availableValue = timeValues[availableTime];
-  
+
   if (methodValue <= availableValue) {
     // Perfect match or method requires less time than available
     return 1.0;
@@ -84,11 +84,11 @@ function calculateTimeCompatibilityScore(
  * @returns Compatibility score between 0 and 1
  */
 function calculateDifficultyCompatibilityScore(
-  methodDifficulty: number, 
+  methodDifficulty: number,
   instructorExperience: number
 ): number {
   const difference = Math.abs(methodDifficulty - instructorExperience);
-  
+
   if (difference === 0) {
     return 1.0; // Perfect match
   } else if (difference === 1) {
@@ -108,7 +108,7 @@ function calculateDifficultyCompatibilityScore(
  * @returns True if suitable for large classes
  */
 function isSuitableForLargeClass(method: AssessmentMethod): boolean {
-  return method.class_size_suitability.includes('large') || 
+  return method.class_size_suitability.includes('large') ||
          method.class_size_suitability.includes('very-large');
 }
 
@@ -118,7 +118,7 @@ function isSuitableForLargeClass(method: AssessmentMethod): boolean {
  * @returns True if suitable for small classes
  */
 function isSuitableForSmallClass(method: AssessmentMethod): boolean {
-  return method.class_size_suitability.includes('small') || 
+  return method.class_size_suitability.includes('small') ||
          method.class_size_suitability.includes('medium');
 }
 
@@ -129,7 +129,7 @@ function isSuitableForSmallClass(method: AssessmentMethod): boolean {
  * @returns Base score breakdown
  */
 function calculateBaseScore(
-  method: AssessmentMethod, 
+  method: AssessmentMethod,
   courseParams: CourseParameters
 ): ScoreBreakdown {
   let courseTypeScore = 0;
@@ -229,7 +229,7 @@ function applyAdvancedWeighting(
  * @returns Final normalized score (0-100)
  */
 function normalizeFinalScore(scoreBreakdown: ScoreBreakdown): number {
-  const totalScore = 
+  const totalScore =
     scoreBreakdown.course_type +
     scoreBreakdown.teaching_method +
     scoreBreakdown.class_size +
@@ -237,7 +237,7 @@ function normalizeFinalScore(scoreBreakdown: ScoreBreakdown): number {
     scoreBreakdown.difficulty_match +
     scoreBreakdown.time_investment;
 
-  const totalPossibleScore = 
+  const totalPossibleScore =
     COMPATIBILITY_WEIGHTS.course_type +
     COMPATIBILITY_WEIGHTS.teaching_method +
     COMPATIBILITY_WEIGHTS.class_size +
@@ -251,7 +251,7 @@ function normalizeFinalScore(scoreBreakdown: ScoreBreakdown): number {
   }
 
   const percentage = Math.round((totalScore / totalPossibleScore) * 100);
-  
+
   // Ensure score is within valid range
   return Math.max(0, Math.min(100, percentage));
 }
@@ -415,7 +415,7 @@ export function getTopCompatibleMethods(
  * @returns Array of methods in the category
  */
 export function getMethodsByCategory(category: AssessmentMethodCategory): AssessmentMethod[] {
-  return assessmentMethods.filter(method => 
+  return assessmentMethods.filter(method =>
     method.categories.includes(category)
   );
 }
@@ -427,10 +427,10 @@ export function getMethodsByCategory(category: AssessmentMethodCategory): Assess
  * @returns Array of methods matching difficulty criteria
  */
 export function getMethodsByDifficulty(
-  difficulty: number, 
+  difficulty: number,
   tolerance: number = 0
 ): AssessmentMethod[] {
-  return assessmentMethods.filter(method => 
+  return assessmentMethods.filter(method =>
     Math.abs(method.implementation_difficulty - difficulty) <= tolerance
   );
 }
@@ -446,7 +446,7 @@ export function getMethodsByTimeInvestment(
   includeRelated: boolean = false
 ): AssessmentMethod[] {
   if (!includeRelated) {
-    return assessmentMethods.filter(method => 
+    return assessmentMethods.filter(method =>
       method.time_investment === timeInvestment
     );
   }
@@ -458,7 +458,7 @@ export function getMethodsByTimeInvestment(
     Math.min(timeHierarchy.length, currentIndex + 2)
   );
 
-  return assessmentMethods.filter(method => 
+  return assessmentMethods.filter(method =>
     relatedLevels.includes(method.time_investment)
   );
 }
@@ -475,8 +475,8 @@ export function getCompatibilityBreakdown(
 ): ScoreBreakdown {
   let scoreBreakdown = calculateBaseScore(method, courseParams);
   scoreBreakdown = applyAdvancedWeighting(scoreBreakdown, method, courseParams);
-  
-  const totalScore = 
+
+  const totalScore =
     scoreBreakdown.course_type +
     scoreBreakdown.teaching_method +
     scoreBreakdown.class_size +

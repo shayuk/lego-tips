@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import type { AssessmentMethod, CourseParameters } from '../features/assessmentBuilder/lib/assessmentTypes';
+import type { AssessmentMethod, CourseParameters } from '../features/assessmentBuilder/lib/assessmentTypes.tsx';
 import { PedagogicalMethodSelector } from '../features/assessmentBuilder/components/PedagogicalMethodSelector';
 import { FileDropzone } from '../components/FileDropzone';
 import { Button } from '../components/Button';
@@ -8,7 +8,7 @@ import { Input } from '../components/Input';
 import { Textarea } from '../components/Textarea';
 import { SetupStep } from '../features/assessmentBuilder/components/SetupStep';
 import { GeneratedAssessmentDisplay } from '../features/assessmentBuilder/components/GeneratedAssessmentDisplay';
-import { AppLayout, useAppToast } from '../features/AppLayout';
+import { AppLayout, useAppToast } from '../components/AppLayout';
 import useAssessmentGenerator from '../features/assessmentBuilder/hooks/useAssessmentGenerator';
 import styles from './assessment-builder.module.css';
 import { Plus, Trash2 } from 'lucide-react';

@@ -67,6 +67,7 @@ export interface AssessmentMethod {
   rubric_template?: RubricCriteria[];
   implementation_guidelines: string[];
   furtherReading?: { title: string; link: string; }[];
+  isPrivate?: boolean;
 }
 
 export interface CourseParameters {

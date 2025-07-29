@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAppToast } from '../../../helpers/useToast';
+import { useToast } from '../../../helpers/useToast';
 import { generateAssignmentWithRetry, checkAvailableProviders, handleAPIError, APIUsageTracker } from '../../../helpers/secureApiClient';
 import { generateIntegratedAssignment } from '../../../helpers/claudeAssignmentGenerator';
 
@@ -68,7 +68,7 @@ const useAssessmentGenerator = (params: {
   // Toast hook for notifications (with error handling)
   let safeToast: any = null;
   try {
-    safeToast = useAppToast();
+    safeToast = useToast();
     console.log('✅ Toast context זמין');
   } catch (error) {
     console.log('⚠️ Toast context לא זמין עדיין:', error);

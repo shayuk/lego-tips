@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AssessmentMethodCategory, TeachingMethodCompatibility, ClassSize } from '../../features/assessmentBuilder/lib/assessmentTypes'; // נתיב מתוקן
+import { AssessmentMethodCategory, TeachingMethodCompatibility, ClassSize } from '../../features/assessmentBuilder/lib/assessmentTypes.tsx'; // נתיב מתוקן
 
 export const courseParameterSchema = z.object({
   courseName: z.string().min(1, { message: 'יש להזין את שם הקורס.' }),

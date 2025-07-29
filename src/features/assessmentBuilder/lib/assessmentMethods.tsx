@@ -11,7 +11,7 @@ import {
   AssessmentDisadvantages,
   RubricCriteria,
   assessmentMethods
-} from "./assessmentTypes";
+} from "./assessmentTypes.tsx";
 
 import {
   calculateCompatibilityScore,

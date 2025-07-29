@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { CourseParameters, AssessmentMethod, assessmentMethods } from '../../lib/assessmentTypes'; 
-import { getTopCompatibleMethods } from '../../helpers/compatibilityCalculator'; // נתיב מתוקן
+import { CourseParameters, AssessmentMethod, assessmentMethods } from '../lib/assessmentTypes.tsx'; 
+import { getTopCompatibleMethods } from '../../../helpers/compatibilityCalculator'; // נתיב מתוקן
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
 import { Checkbox } from '../../../components/Checkbox';
