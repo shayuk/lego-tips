@@ -3,17 +3,28 @@ import type { AssessmentMethod, CourseParameters } from '../features/assessmentB
 import { PedagogicalMethodSelector } from '../features/assessmentBuilder/components/PedagogicalMethodSelector';
 import { FileDropzone } from '../components/FileDropzone';
 import { Button } from '../components/Button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/Dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../components/Dialog';
 import { Input } from '../components/Input';
 import { Textarea } from '../components/Textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/Select';
 import { SetupStep } from '../features/assessmentBuilder/components/SetupStep';
 import { GeneratedAssessmentDisplay } from '../features/assessmentBuilder/components/GeneratedAssessmentDisplay';
 import { AppLayout, useAppToast } from '../components/AppLayout';
 import useAssessmentGenerator from '../features/assessmentBuilder/hooks/useAssessmentGenerator';
 import styles from './assessment-builder.module.css';
-import { Plus, Trash2 } from 'lucide-react';
+import modalStyles from './AddTipModal.module.css'; // Import modal-specific styles
+import { Plus, Trash2, X } from 'lucide-react';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../components/Collapsible';
 import { performDynamicAnalysis } from "../features/assessmentBuilder/lib/knowledgeAnalyzer";
+import { savePrivateTip, getPrivateTips, deletePrivateTip, NewTipData } from '../features/pedagogicalTips/lib/pedagogicalTipStorage';
+import { assessmentMethods } from '../features/assessmentBuilder/lib/assessmentTypes';
 
 // 🚀 LAZY LOADING - הקובץ הענק יטען רק כשצריך!
 // const PedagogicalMethodSelector = lazy(() => import('../components/PedagogicalMethodSelector').then(module => ({ 
@@ -76,14 +87,14 @@ export default function AssessmentBuilderPage() {
 
   // Add tip modal state
   const [isAddTipModalOpen, setIsAddTipModalOpen] = useState(false);
-  const [newTip, setNewTip] = useState({
+  const [newTip, setNewTip] = useState<NewTipData>({
     title: '',
     shortDescription: '',
     fullDescription: '',
-    categories: [] as string[],
-    classSizes: [] as string[],
-    teachingMethods: [] as string[],
-    subjectAreas: [] as string[],
+    categories: [],
+    classSizes: [],
+    teachingMethods: [],
+    subjectAreas: [],
     difficulty: '',
     timeInvestment: '',
     advantages: {
@@ -177,6 +188,10 @@ export default function AssessmentBuilderPage() {
       setShouldGenerateTask(false);
     }
   }, [currentStep, shouldGenerateTask]);
+
+  const handleAddTip = () => {
+    setIsAddTipModalOpen(true);
+  };
 
   // 🎯 Stable functions with useCallback (חיוני ל-React.memo)
   const handleInputChange = useCallback((field: string, value: string) => {
@@ -284,24 +299,39 @@ export default function AssessmentBuilderPage() {
 
   // Add tip functions
   const handleAddToolLink = () => {
-    setNewTip(prev => ({
-      ...prev,
-      toolsWithLinks: [...prev.toolsWithLinks, { name: '', link: '', description: '' }]
-    }));
+    setNewTip(prev => ({ ...prev, toolsWithLinks: [...prev.toolsWithLinks, { name: '', link: '', description: '' }] }));
+  };
+
+  const handleRemoveToolLink = (index: number) => {
+    setNewTip(prev => ({ ...prev, toolsWithLinks: prev.toolsWithLinks.filter((_, i) => i !== index) }));
   };
 
   const handleAddFurtherReading = () => {
-    setNewTip(prev => ({
-      ...prev,
-      furtherReading: [...prev.furtherReading, { title: '', link: '' }]
-    }));
+    setNewTip(prev => ({ ...prev, furtherReading: [...prev.furtherReading, { title: '', link: '' }] }));
+  };
+    
+  const handleRemoveFurtherReading = (index: number) => {
+    setNewTip(prev => ({ ...prev, furtherReading: prev.furtherReading.filter((_, i) => i !== index) }));
   };
 
   const handleSaveNewTip = (isPublic: boolean) => {
-    console.log('שמירת טיפ חדש:', { ...newTip, isPublic });
-    alert(isPublic ? 'הטיפ נוסף למאגר הציבורי!' : 'הטיפ נשמר במאגר הפרטי שלך!');
+    if (!newTip.title.trim() || !newTip.difficulty) {
+      alert('אנא מלא את שדות החובה: כותרת ורמת קושי.');
+      return;
+    }
+
+    if (isPublic) {
+      console.log('Submitting tip for public review:', newTip);
+      alert('הטיפ הוגש לבדיקה ויופיע במאגר הציבורי לאחר אישור.');
+    } else {
+      const savedTip = savePrivateTip(newTip);
+      setAllMethods(prev => [...prev, { ...savedTip, isPrivate: true }]);
+      setRecommendationsVersion(prev => prev + 1); // Increment to force refresh
+      alert('הטיפ נשמר בהצלחה במאגר הפרטי שלך!');
+    }
+    
     setIsAddTipModalOpen(false);
-    // איפוס הטופס
+    // Reset form
     setNewTip({
       title: '',
       shortDescription: '',
@@ -320,6 +350,22 @@ export default function AssessmentBuilderPage() {
       implementationGuidelines: '',
       rubricTemplate: ''
     });
+  };
+
+  const handleDeletePrivateTip = (tipId: string) => {
+    // Remove from localStorage
+    deletePrivateTip(tipId);
+    
+    // Remove from allMethods state
+    setAllMethods(prev => prev.filter(method => method.id !== tipId));
+    
+    // Remove from selected methods if selected
+    setSelectedMethods(prev => prev.filter(method => method.id !== tipId));
+    
+    // Force refresh of recommendations
+    setRecommendationsVersion(prev => prev + 1);
+    
+    alert('הטיפ נמחק בהצלחה!');
   };
 
   const handleGenerateTask = () => {
@@ -577,6 +623,53 @@ ${generatedAssessment.requirements.map((requirement, index) => `${index + 1}. ${
     }
   };
 
+  const [allMethods, setAllMethods] = useState<AssessmentMethod[]>(() => {
+    const publicTips = assessmentMethods;
+    const privateTips = getPrivateTips();
+    const privateTipsWithFlag = privateTips.map(tip => ({ ...tip, isPrivate: true }));
+    return [...publicTips, ...privateTipsWithFlag];
+  });
+
+  const [recommendationsVersion, setRecommendationsVersion] = useState(0);
+
+  const handleNewTipChange = (field: keyof NewTipData, value: any) => {
+    setNewTip(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleNewTipAdvantagesChange = (field: keyof NewTipData['advantages'], value: string) => {
+    setNewTip(prev => ({ ...prev, advantages: { ...prev.advantages, [field]: value } }));
+  };
+
+  const handleNewTipDisadvantagesChange = (field: keyof NewTipData['disadvantages'], value: string) => {
+    setNewTip(prev => ({ ...prev, disadvantages: { ...prev.disadvantages, [field]: value } }));
+  };
+  
+  const handleToolsWithLinksChange = (index: number, field: string, value: string) => {
+    const updatedTools = [...newTip.toolsWithLinks];
+    updatedTools[index] = { ...updatedTools[index], [field]: value };
+    setNewTip(prev => ({ ...prev, toolsWithLinks: updatedTools }));
+  };
+  
+  const handleFurtherReadingChange = (index: number, field: string, value: string) => {
+    const updatedReading = [...newTip.furtherReading];
+    updatedReading[index] = { ...updatedReading[index], [field]: value };
+    setNewTip(prev => ({ ...prev, furtherReading: updatedReading }));
+  };
+
+  const handleCheckboxChange = (field: keyof NewTipData, value: string) => {
+    const currentValues = newTip[field] as string[];
+    const newValues = currentValues.includes(value)
+        ? currentValues.filter(v => v !== value)
+        : [...currentValues, value];
+    handleNewTipChange(field, newValues);
+  };
+
+  // Add option arrays
+  const COURSE_CATEGORIES = ['קורס מבוא', 'קורס רב משתתפים', 'קורס מתקדם'];
+  const CLASS_SIZES = ['כיתה קטנה (≤30)', 'כיתה בינונית (31-70)', 'כיתה גדולה (71-150)', 'קורס ענק (150+)'];
+  const TEACHING_METHODS = ['הרצאה', 'סמינר', 'סדנה', 'מקוון', 'היברידי'];
+  const SUBJECT_AREAS = ['מדעי הרוח', 'מדעים מדויקים', 'מדעי החברה', 'הנדסה', 'בריאות'];
+
   // 🎯 Setup step - מאופטם עם React.memo
   if (currentStep === 'setup') {
     console.log('🔄 [Performance] Rendering MAIN Component - Setup Step');
@@ -699,7 +792,7 @@ ${generatedAssessment.requirements.map((requirement, index) => `${index + 1}. ${
                 </div>
                 
                 <Button 
-                  onClick={() => setIsAddTipModalOpen(true)}
+                  onClick={handleAddTip}
                   style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
@@ -720,6 +813,8 @@ ${generatedAssessment.requirements.map((requirement, index) => `${index + 1}. ${
                 courseParams={courseParameters}
                 onMethodsSelect={setSelectedMethods}
                 selectedMethods={selectedMethods}
+                allMethods={allMethods}
+                refreshKey={recommendationsVersion}
               />
 
               {/* Generate Task Button - מיד אחרי הטיפים */}
@@ -763,6 +858,129 @@ ${generatedAssessment.requirements.map((requirement, index) => `${index + 1}. ${
 
           </div>
         </div>
+         <Dialog open={isAddTipModalOpen} onOpenChange={setIsAddTipModalOpen}>
+          <DialogContent className={modalStyles.addTipModalContent}>
+            <div className={modalStyles.modalHeader}>
+              <h2>✨ הוסף טיפ פדגוגי חדש</h2>
+              <Button variant="ghost" size="sm" onClick={() => setIsAddTipModalOpen(false)}><X/></Button>
+            </div>
+            
+            <div className={modalStyles.formContainer}>
+              {/* Basic Info */}
+              <div className={modalStyles.formSection}>
+                <h4>📝 מידע בסיסי</h4>
+                <Input required placeholder="כותרת הטיפ *" value={newTip.title} onChange={(e) => handleNewTipChange('title', e.target.value)} />
+                <Textarea placeholder="תיאור קצר" value={newTip.shortDescription} onChange={(e) => handleNewTipChange('shortDescription', e.target.value)} />
+                <Textarea placeholder="תיאור מלא (אופציונלי)" value={newTip.fullDescription} onChange={(e) => handleNewTipChange('fullDescription', e.target.value)} />
+              </div>
+
+              {/* Pedagogical Suitability */}
+              <div className={modalStyles.formSection}>
+                <h4>🎯 התאמות פדגוגיות</h4>
+                <div className={modalStyles.checkboxGroupWrapper}>
+                  <div>
+                    <h5 className={modalStyles.checkboxGroupTitle}>סוג קורס</h5>
+                    <div className={modalStyles.checkboxGroup}>
+                      {COURSE_CATEGORIES.map(opt => (
+                        <label key={opt}><input type="checkbox" checked={newTip.categories.includes(opt)} onChange={() => handleCheckboxChange('categories', opt)} /> {opt}</label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h5 className={modalStyles.checkboxGroupTitle}>גודל כיתה</h5>
+                    <div className={modalStyles.checkboxGroup}>
+                      {CLASS_SIZES.map(opt => (
+                        <label key={opt}><input type="checkbox" checked={newTip.classSizes.includes(opt)} onChange={() => handleCheckboxChange('classSizes', opt)} /> {opt}</label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h5 className={modalStyles.checkboxGroupTitle}>שיטת הוראה</h5>
+                    <div className={modalStyles.checkboxGroup}>
+                      {TEACHING_METHODS.map(opt => (
+                        <label key={opt}><input type="checkbox" checked={newTip.teachingMethods.includes(opt)} onChange={() => handleCheckboxChange('teachingMethods', opt)} /> {opt}</label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h5 className={modalStyles.checkboxGroupTitle}>תחום דעת</h5>
+                    <div className={modalStyles.checkboxGroup}>
+                      {SUBJECT_AREAS.map(opt => (
+                        <label key={opt}><input type="checkbox" checked={newTip.subjectAreas.includes(opt)} onChange={() => handleCheckboxChange('subjectAreas', opt)} /> {opt}</label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Technical Aspects */}
+              <div className={modalStyles.formSection}>
+                <h4>⚙️ מאפיינים טכניים</h4>
+                <Select required onValueChange={(value) => handleNewTipChange('difficulty', value)}>
+                  <SelectTrigger><SelectValue placeholder="רמת קושי *" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">קל מאוד (1/5)</SelectItem>
+                    <SelectItem value="2">קל (2/5)</SelectItem>
+                    <SelectItem value="3">בינוני (3/5)</SelectItem>
+                    <SelectItem value="4">מאתגר (4/5)</SelectItem>
+                    <SelectItem value="5">מורכב מאוד (5/5)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select onValueChange={(value) => handleNewTipChange('timeInvestment', value)}>
+                  <SelectTrigger><SelectValue placeholder="השקעת זמן נדרשת" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="minimal">מינימלית</SelectItem>
+                    <SelectItem value="moderate">בינונית</SelectItem>
+                    <SelectItem value="substantial">משמעותית</SelectItem>
+                    <SelectItem value="extensive">נרחבת</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Advantages/Disadvantages */}
+              <div className={modalStyles.formSection}>
+                <h4>👍👎 יתרונות וחסרונות</h4>
+                <Textarea placeholder="יתרונות פדגוגיים (כל יתרון בשורה חדשה)" value={newTip.advantages.pedagogical} onChange={(e) => handleNewTipAdvantagesChange('pedagogical', e.target.value)} />
+                <Textarea placeholder="חסרונות ואתגרים (כל חיסרון בשורה חדשה)" value={newTip.disadvantages.challenges} onChange={(e) => handleNewTipDisadvantagesChange('challenges', e.target.value)} />
+              </div>
+
+              {/* Tools & Links */}
+              <div className={modalStyles.formSection}>
+                <h4>🔗 כלים וקישורים</h4>
+                {newTip.toolsWithLinks.map((tool, index) => (
+                  <div key={index} className={modalStyles.linkInputGroup}>
+                    <Input placeholder="שם הכלי" value={tool.name} onChange={e => handleToolsWithLinksChange(index, 'name', e.target.value)} />
+                    <Input placeholder="קישור" value={tool.link} onChange={e => handleToolsWithLinksChange(index, 'link', e.target.value)} />
+                    <Textarea placeholder="תיאור" value={tool.description} onChange={e => handleToolsWithLinksChange(index, 'description', e.target.value)} />
+                    <Button variant="destructive" onClick={() => handleRemoveToolLink(index)}><Trash2 size={16}/></Button>
+                  </div>
+                ))}
+                <Button variant="outline" onClick={handleAddToolLink}>+ הוסף כלי</Button>
+              </div>
+
+              {/* Further Reading */}
+              <div className={modalStyles.formSection}>
+                <h4>📚 מקורות להעמקה</h4>
+                {newTip.furtherReading.map((reading, index) => (
+                  <div key={index} className={modalStyles.linkInputGroup}>
+                    <Input placeholder="כותרת המאמר" value={reading.title} onChange={e => handleFurtherReadingChange(index, 'title', e.target.value)} />
+                    <Input placeholder="קישור" value={reading.link} onChange={e => handleFurtherReadingChange(index, 'link', e.target.value)} />
+                    <Button variant="destructive" onClick={() => handleRemoveFurtherReading(index)}><Trash2 size={16}/></Button>
+                  </div>
+                ))}
+                <Button variant="outline" onClick={handleAddFurtherReading}>+ הוסף מקור</Button>
+              </div>
+            </div>
+
+            <DialogFooter className={modalStyles.modalFooter}>
+              <Button variant="outline" onClick={() => setIsAddTipModalOpen(false)}>ביטול</Button>
+              <div className={modalStyles.saveButtons}>
+                <Button onClick={() => handleSaveNewTip(false)} disabled={!newTip.title.trim() || !newTip.difficulty}>💾 שמור למאגר הפרטי</Button>
+                <Button onClick={() => handleSaveNewTip(true)} disabled={!newTip.title.trim() || !newTip.difficulty}>🌟 הוסף למאגר הציבורי</Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </AppLayout>
     );
   }

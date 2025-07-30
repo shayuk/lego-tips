@@ -59,19 +59,19 @@ export const savePrivateTip = (newTipData: NewTipData): AssessmentMethod => {
     implementation_difficulty: parseInt(newTipData.difficulty, 10) as any,
     time_investment: newTipData.timeInvestment as any,
     advantages: {
-      pedagogical: newTipData.advantages.pedagogical.split('\n'),
-      practical: newTipData.advantages.practical.split('\n'),
-      student_engagement: newTipData.advantages.engagement.split('\n'),
+      pedagogical: newTipData.advantages.pedagogical ? newTipData.advantages.pedagogical.split('\n').filter(item => item.trim()) : [],
+      practical: newTipData.advantages.practical ? newTipData.advantages.practical.split('\n').filter(item => item.trim()) : [],
+      student_engagement: newTipData.advantages.engagement ? newTipData.advantages.engagement.split('\n').filter(item => item.trim()) : [],
     },
     disadvantages: {
-      challenges: newTipData.disadvantages.challenges.split('\n'),
-      limitations: newTipData.disadvantages.limitations.split('\n'),
-      resource_requirements: newTipData.disadvantages.resources.split('\n'),
+      challenges: newTipData.disadvantages.challenges ? newTipData.disadvantages.challenges.split('\n').filter(item => item.trim()) : [],
+      limitations: newTipData.disadvantages.limitations ? newTipData.disadvantages.limitations.split('\n').filter(item => item.trim()) : [],
+      resource_requirements: newTipData.disadvantages.resources ? newTipData.disadvantages.resources.split('\n').filter(item => item.trim()) : [],
     },
-    suggested_tools: newTipData.recommendedTools.split(',').map(t => t.trim()),
-    toolsWithLinks: newTipData.toolsWithLinks,
-    furtherReading: newTipData.furtherReading,
-    implementation_guidelines: newTipData.implementationGuidelines.split('\n'),
+    suggested_tools: newTipData.recommendedTools ? newTipData.recommendedTools.split(',').map(t => t.trim()).filter(t => t) : [],
+    toolsWithLinks: newTipData.toolsWithLinks.filter(tool => tool.name && tool.name.trim()),
+    furtherReading: newTipData.furtherReading.filter(item => item.title && item.title.trim()),
+    implementation_guidelines: newTipData.implementationGuidelines ? newTipData.implementationGuidelines.split('\n').filter(item => item.trim()) : [],
   };
 
   const updatedTips = [...privateTips, newTip];

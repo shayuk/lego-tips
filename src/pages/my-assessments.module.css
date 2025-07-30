@@ -18,8 +18,43 @@
   padding: var(--spacing-4);
   border-bottom: 1px solid var(--border);
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.tabButtons {
+  display: flex;
+  gap: var(--spacing-1);
+}
+
+.tabButton {
+  flex: 1;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--border);
+  background: var(--background);
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
   align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.tabButton:hover {
+  background: var(--muted);
+}
+
+.tabButton.active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+.refreshButton {
+  align-self: flex-end;
+  margin-top: var(--spacing-2);
 }
 
 .sidebarTitle {
@@ -28,13 +63,15 @@
   font-family: var(--font-family-heading);
 }
 
-.assessmentsList {
+.assessmentsList,
+.tipsList {
   overflow-y: auto;
   flex-grow: 1;
   padding: var(--spacing-2);
 }
 
-.assessmentItem {
+.assessmentItem,
+.tipItem {
   padding: var(--spacing-4);
   border-radius: var(--radius);
   cursor: pointer;
@@ -43,11 +80,13 @@
   margin-bottom: var(--spacing-2);
 }
 
-.assessmentItem:hover {
+.assessmentItem:hover,
+.tipItem:hover {
   background-color: var(--muted);
 }
 
-.assessmentItem.selected {
+.assessmentItem.selected,
+.tipItem.selected {
   background-color: var(--primary-muted);
   border-color: var(--primary);
   color: var(--primary-foreground);
@@ -69,12 +108,14 @@
   max-width: 220px;
 }
 
-.itemCourse {
+.itemCourse,
+.itemDescription {
   font-size: 0.85rem;
   color: var(--muted-foreground);
 }
 
-.itemDate {
+.itemDate,
+.itemDifficulty {
   font-size: 0.8rem;
   color: var(--muted-foreground);
 }
@@ -84,7 +125,9 @@
 }
 
 .assessmentItem:hover .itemActions,
-.assessmentItem.selected .itemActions {
+.assessmentItem.selected .itemActions,
+.tipItem:hover .itemActions,
+.tipItem.selected .itemActions {
   display: flex; /* Show on hover or when selected */
 }
 
@@ -117,6 +160,70 @@
   font-size: 1.5rem;
   font-family: var(--font-family-heading);
   margin-bottom: var(--spacing-2);
+}
+
+.tipPreview {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: var(--spacing-6);
+  border: 1px solid var(--border);
+}
+
+.tipHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.tipHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.tipActions {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.tipContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.tipDescription {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--foreground);
+}
+
+.tipMetadata {
+  display: flex;
+  gap: var(--spacing-4);
+  font-size: 0.9rem;
+  color: var(--muted-foreground);
+}
+
+.tipDifficulty,
+.tipDate {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.privateBadge {
+  background: var(--warning);
+  color: var(--warning-foreground);
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: var(--spacing-2);
+  font-weight: 500;
 }
 
 .emptyState {

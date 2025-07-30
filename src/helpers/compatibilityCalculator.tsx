@@ -379,14 +379,17 @@ export function calculateCompatibilityScore(
  */
 export function getTopCompatibleMethods(
   courseParams: CourseParameters,
-  limit: number = 5
+  limit: number = 5,
+  methodsToUse?: AssessmentMethod[]
 ): Array<AssessmentMethod & { compatibilityScore: number }> {
   if (!courseParams) {
     console.warn('No course parameters provided to getTopCompatibleMethods');
     return [];
   }
 
-  const scoredMethods = assessmentMethods
+  const methods = methodsToUse || assessmentMethods;
+
+  const scoredMethods = methods
     .map((method: AssessmentMethod) => {
       const compatibilityScore = calculateCompatibilityScore(method, courseParams);
       return {
