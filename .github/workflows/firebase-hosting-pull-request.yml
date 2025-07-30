@@ -2,8 +2,7 @@ name: Deploy to Firebase Hosting on Pull Request
 
 on:
   pull_request:
-    branches:
-      - main
+    types: [opened, synchronize, reopened]
 
 jobs:
   build_and_deploy:
@@ -27,9 +26,15 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Deploy to Firebase preview channel
+      - name: Authenticate with Firebase
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_LEGO_TIPS }}' > "${HOME}/firebase-key.json"
         env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LEGO_TIPS }}
+          FIREBASE_SERVICE_ACCOUNT_LEGO_TIPS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LEGO_TIPS }}
+
+      - name: Deploy to Firebase Preview Channel
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: "${HOME}/firebase-key.json"
         run: |
           firebase hosting:channel:deploy ${{ github.head_ref }} \
             --project lego-tips \
