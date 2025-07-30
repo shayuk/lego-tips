@@ -26,15 +26,13 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Authenticate with Firebase
+      - name: Write Firebase service account to file
         run: |
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_LEGO_TIPS }}' > "${HOME}/firebase-key.json"
-        env:
-          FIREBASE_SERVICE_ACCOUNT_LEGO_TIPS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LEGO_TIPS }}
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_LEGO_TIPS }}" > $HOME/firebase-key.json
 
       - name: Deploy to Firebase Preview Channel
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: "${HOME}/firebase-key.json"
+          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
         run: |
           firebase hosting:channel:deploy ${{ github.head_ref }} \
             --project lego-tips \
