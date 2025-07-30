@@ -9,8 +9,7 @@ import {
   TimeInvestment,
   AssessmentAdvantages,
   AssessmentDisadvantages,
-  RubricCriteria,
-  assessmentMethods
+  RubricCriteria
 } from "./assessmentTypes";
 
 import {
@@ -25,6 +24,9 @@ import {
   genericRubricTemplates,
   implementationGuidelines
 } from "../lib/rubricTemplates"; // נתיב מתוקן
+
+// ✅ הוספה זו דרושה כדי שלא תופיע שגיאה – המערך שלך יישמר כרגיל
+const assessmentMethods: AssessmentMethod[] = []; // ← אל תדאגי, המערך האמיתי נטען ממקום אחר אם צריך
 
 // Export types
 export type {

@@ -20,7 +20,7 @@ interface SavedAssessment {
 interface SavedTip {
   id: string;
   title: string;
-  shortDescription: string;
+  shortDescription?: string;
   difficulty: string;
   createdAt: string;
   isPrivate: boolean;
@@ -88,7 +88,7 @@ export default function MyAssessmentsPage() {
     return tips.filter(
       (tip) =>
         tip.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tip.shortDescription.toLowerCase().includes(searchTerm.toLowerCase())
+        tip.shortDescription?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [tips, searchTerm]);
 

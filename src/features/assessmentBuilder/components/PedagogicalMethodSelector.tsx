@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { CourseParameters, AssessmentMethod, assessmentMethods } from '../lib/assessmentTypes'; 
+import { assessmentMethods } from '../lib/assessmentMethods';
+import { CourseParameters, AssessmentMethod } from '../lib/assessmentTypes';
 import { getTopCompatibleMethods, CompatibilityScore } from '../../../helpers/compatibilityCalculator';
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
@@ -26,53 +27,55 @@ const DifficultyStars = ({ level }: { level: number }) => (
 );
 
 const CompatibilityBadge = ({ score }: { score: number }) => {
-    const getBadgeStyle = () => {
-        if (score > 85) return styles.badgeExcellent;
-        if (score > 70) return styles.badgeGood;
-        if (score > 50) return styles.badgeFair;
-        return styles.badgeLow;
-    };
+  const getBadgeStyle = () => {
+    if (score > 85) return styles.badgeExcellent;
+    if (score > 70) return styles.badgeGood;
+    if (score > 50) return styles.badgeFair;
+    return styles.badgeLow;
+  };
 
-    return (
-        <div className={`${styles.compatibilityBadge} ${getBadgeStyle()}`}>
-            <Zap size={14} />
-            <span>{score}% התאמה</span>
-        </div>
-    );
+  return (
+    <div className={`${styles.compatibilityBadge} ${getBadgeStyle()}`}>
+      <Zap size={14} />
+      <span>{score}% התאמה</span>
+    </div>
+  );
 };
 
-
-export const PedagogicalMethodSelector: React.FC<PedagogicalMethodSelectorProps> = ({ courseParams, onMethodsSelect, selectedMethods, allMethods, refreshKey, onDeletePrivateTip }) => {
+export const PedagogicalMethodSelector: React.FC<PedagogicalMethodSelectorProps> = ({
+  courseParams,
+  onMethodsSelect,
+  selectedMethods,
+  allMethods,
+  refreshKey,
+  onDeletePrivateTip
+}) => {
   const [activeMethod, setActiveMethod] = useState<AssessmentMethod | null>(null);
 
   const recommendedMethods = useMemo(() => {
     const methodsToUse = allMethods || assessmentMethods;
-    // Filter out private tips that don't belong to the current user
-    const filteredMethods = methodsToUse.filter(method => {
-      // If it's a private tip, only include it if it's marked as current user's
+    const filteredMethods = methodsToUse.filter((method: AssessmentMethod) => {
       if ((method as any).isPrivate) {
-        return (method as any).isPrivate === true; // Only show if it's the current user's private tip
+        return (method as any).isPrivate === true;
       }
-      return true; // Include all public methods
+      return true;
     });
     return getTopCompatibleMethods(courseParams, 6, filteredMethods);
   }, [courseParams, allMethods, refreshKey]);
 
-  const recommendedIds = useMemo(() => new Set(recommendedMethods.map(m => m.id)), [recommendedMethods]);
+  const recommendedIds = useMemo(() => new Set(recommendedMethods.map((m: AssessmentMethod) => m.id)), [recommendedMethods]);
 
   const otherMethods = useMemo(() => {
     const methodsToUse = allMethods || assessmentMethods;
-    // Filter out private tips that don't belong to the current user
-    const filteredMethods = methodsToUse.filter(method => {
-      // If it's a private tip, only include it if it's marked as current user's
+    const filteredMethods = methodsToUse.filter((method: AssessmentMethod) => {
       if ((method as any).isPrivate) {
-        return (method as any).isPrivate === true; // Only show if it's the current user's private tip
+        return (method as any).isPrivate === true;
       }
-      return true; // Include all public methods
+      return true;
     });
     return filteredMethods
       .filter((method: AssessmentMethod) => !recommendedIds.has(method.id))
-      .sort((a, b) => a.title.localeCompare(b.title));
+      .sort((a: AssessmentMethod, b: AssessmentMethod) => a.title.localeCompare(b.title));
   }, [recommendedIds, allMethods, refreshKey]);
 
   const handleToggleMethod = (method: AssessmentMethod) => {
@@ -103,22 +106,33 @@ export const PedagogicalMethodSelector: React.FC<PedagogicalMethodSelectorProps>
         )}
 
         <div className={styles.detailSection}>
-            <h4 className={styles.sectionTitle}>מאפיינים טכניים</h4>
-            <div className={styles.technicalInfo}>
-                <div className={styles.techItem}><span>רמת קושי:</span> <DifficultyStars level={method.implementation_difficulty} /></div>
-                <div className={styles.techItem}><span>השקעת זמן:</span> <Badge variant="secondary">{method.time_investment}</Badge></div>
-                <div className={styles.techItem}><span>גודל כיתה:</span> {method.class_size_suitability.map(s => <Badge key={s} variant="outline">{s}</Badge>)}</div>
-                {method.implementation_guidelines && method.implementation_guidelines.length > 0 && (
-                  <div className={styles.techItem}>
-                    <span>הנחיות יישום:</span>
-                    <ul className={styles.guidelinesList}>
-                      {method.implementation_guidelines.map((guideline, index) => (
-                        <li key={index}>{guideline}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+          <h4 className={styles.sectionTitle}>מאפיינים טכניים</h4>
+          <div className={styles.technicalInfo}>
+            <div className={styles.techItem}>
+              <span>רמת קושי:</span>
+              <DifficultyStars level={method.implementation_difficulty} />
             </div>
+            <div className={styles.techItem}>
+              <span>השקעת זמן:</span>
+              <Badge variant="secondary">{method.time_investment}</Badge>
+            </div>
+            <div className={styles.techItem}>
+              <span>גודל כיתה:</span>
+              {method.class_size_suitability.map(s => (
+                <Badge key={s} variant="outline">{s}</Badge>
+              ))}
+            </div>
+            {method.implementation_guidelines?.length > 0 && (
+              <div className={styles.techItem}>
+                <span>הנחיות יישום:</span>
+                <ul className={styles.guidelinesList}>
+                  {method.implementation_guidelines.map((guideline, index) => (
+                    <li key={index}>{guideline}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
 
         {(method.advantages.pedagogical.length > 0 || method.advantages.practical.length > 0 || method.advantages.student_engagement.length > 0) && (
@@ -131,6 +145,7 @@ export const PedagogicalMethodSelector: React.FC<PedagogicalMethodSelectorProps>
             </ul>
           </div>
         )}
+
         {(method.disadvantages.challenges.length > 0 || method.disadvantages.limitations.length > 0 || method.disadvantages.resource_requirements.length > 0) && (
           <div className={styles.detailSection}>
             <h4 className={styles.sectionTitle}>חסרונות ואתגרים</h4>
@@ -142,56 +157,56 @@ export const PedagogicalMethodSelector: React.FC<PedagogicalMethodSelectorProps>
           </div>
         )}
 
-        {method.toolsWithLinks && method.toolsWithLinks.length > 0 && method.toolsWithLinks[0].name && (
-            <div className={styles.detailSection}>
-                <h4 className={styles.sectionTitle}>כלים מומלצים</h4>
-                <div className={styles.toolsGrid}>
-                    {method.toolsWithLinks.map((tool: any, index: number) => (
-                       <a href={tool.link} target="_blank" rel="noopener noreferrer" key={index} className={styles.toolLinkCard}>
-                           <div className={styles.toolLinkHeader}>
-                                <span className={styles.toolName}>{tool.name}</span>
-                                <ExternalLink size={14} />
-                           </div>
-                           <p className={styles.toolDescription}>{tool.description}</p>
-                       </a>
-                    ))}
-                </div>
+        {method.toolsWithLinks?.[0]?.name && (
+          <div className={styles.detailSection}>
+            <h4 className={styles.sectionTitle}>כלים מומלצים</h4>
+            <div className={styles.toolsGrid}>
+              {method.toolsWithLinks.map((tool: any, index: number) => (
+                <a href={tool.link} target="_blank" rel="noopener noreferrer" key={index} className={styles.toolLinkCard}>
+                  <div className={styles.toolLinkHeader}>
+                    <span className={styles.toolName}>{tool.name}</span>
+                    <ExternalLink size={14} />
+                  </div>
+                  <p className={styles.toolDescription}>{tool.description}</p>
+                </a>
+              ))}
             </div>
+          </div>
         )}
-        
-        {method.furtherReading && method.furtherReading.length > 0 && method.furtherReading[0].title && (
-            <div className={styles.detailSection}>
-                <h4 className={styles.sectionTitle}>מקורות להעמקה</h4>
-                <ul className={styles.readingList}>
-                    {method.furtherReading.map((item: {title: string, link: string}, index: number) => (
-                        <li key={index}>
-                            <a href={item.link} target="_blank" rel="noopener noreferrer">
-                                {item.title}
-                                <ExternalLink size={14} className={styles.readingLinkIcon}/>
-                            </a>
-                        </li>
-                    ))}
-                </ul>
-            </div>
+
+        {method.furtherReading?.[0]?.title && (
+          <div className={styles.detailSection}>
+            <h4 className={styles.sectionTitle}>מקורות להעמקה</h4>
+            <ul className={styles.readingList}>
+              {method.furtherReading.map((item: {title: string, link: string}, index: number) => (
+                <li key={index}>
+                  <a href={item.link} target="_blank" rel="noopener noreferrer">
+                    {item.title}
+                    <ExternalLink size={14} className={styles.readingLinkIcon}/>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
-        
-        {method.suggested_tools && method.suggested_tools.length > 0 && (
-            <div className={styles.detailSection}>
-                <h4 className={styles.sectionTitle}>כלים מומלצים</h4>
-                <div className={styles.toolsList}>
-                    {method.suggested_tools.map((tool: string, index: number) => (
-                        <Badge key={index} variant="outline" className={styles.toolBadge}>
-                            {tool}
-                        </Badge>
-                    ))}
-                </div>
+
+        {method.suggested_tools?.length > 0 && (
+          <div className={styles.detailSection}>
+            <h4 className={styles.sectionTitle}>כלים מומלצים</h4>
+            <div className={styles.toolsList}>
+              {method.suggested_tools.map((tool: string, index: number) => (
+                <Badge key={index} variant="outline" className={styles.toolBadge}>
+                  {tool}
+                </Badge>
+              ))}
             </div>
+          </div>
         )}
       </div>
     </DialogContent>
   );
 
-  const renderMethodCard = (method: (AssessmentMethod & { compatibilityScore?: number }), isRecommended: boolean) => {
+  const renderMethodCard = (method: AssessmentMethod & { compatibilityScore?: number }, isRecommended: boolean) => {
     const isSelected = selectedMethods.some(m => m.id === method.id);
     const compatibilityScore = method.compatibilityScore;
 
@@ -204,7 +219,7 @@ export const PedagogicalMethodSelector: React.FC<PedagogicalMethodSelectorProps>
         transition={{ duration: 0.3 }}
         className={`${styles.methodCard} ${isSelected ? styles.selected : ''}`}
         key={method.id}
-        onClick={() => handleToggleMethod(method as AssessmentMethod)}
+        onClick={() => handleToggleMethod(method)}
       >
         {isRecommended && compatibilityScore && compatibilityScore > 0 && (
             <CompatibilityBadge score={compatibilityScore} />
@@ -233,7 +248,7 @@ export const PedagogicalMethodSelector: React.FC<PedagogicalMethodSelectorProps>
                   <Info size={16} /> פרטים נוספים
                 </Button>
               </DialogTrigger>
-              {renderMethodDetails(method as AssessmentMethod)}
+              {renderMethodDetails(method)}
             </Dialog>
             {(method as any).isPrivate && onDeletePrivateTip && (
               <Button 
@@ -257,11 +272,11 @@ export const PedagogicalMethodSelector: React.FC<PedagogicalMethodSelectorProps>
 
   return (
     <div className={styles.selectorContainer}>
-        <div className={styles.grid}>
-            <AnimatePresence>
-                {recommendedMethods.map(method => renderMethodCard(method, true))}
-            </AnimatePresence>
-        </div>
+      <div className={styles.grid}>
+        <AnimatePresence>
+          {recommendedMethods.map((method: AssessmentMethod) => renderMethodCard(method, true))}
+        </AnimatePresence>
+      </div>
 
       <details className={styles.otherMethodsDetails}>
         <summary className={styles.otherMethodsSummary}>
