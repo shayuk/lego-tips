@@ -1,7 +1,7 @@
 // Individual named exports to avoid __namedExportsOrder conflicts
-import { 
-  AssessmentMethod, 
-  CourseParameters, 
+import {
+  AssessmentMethod,
+  CourseParameters,
   AssessmentMethodCategory,
   TeachingMethodCompatibility,
   SubjectArea,
@@ -25,8 +25,8 @@ import {
   implementationGuidelines
 } from "../lib/rubricTemplates"; // נתיב מתוקן
 
-// ✅ הוספה זו דרושה כדי שלא תופיע שגיאה – המערך שלך יישמר כרגיל
-const assessmentMethods: AssessmentMethod[] = []; // ← אל תדאגי, המערך האמיתי נטען ממקום אחר אם צריך
+// Fetch real assessment methods from assessmentTypes
+import { assessmentMethods } from "./assessmentTypes";
 
 // Export types
 export type {
