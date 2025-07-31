@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { assessmentMethods } from '../lib/assessmentMethods';
 import { CourseParameters, AssessmentMethod } from '../lib/assessmentTypes';
+// אחרי
 import { getTopCompatibleMethods } from '../../../helpers/compatibilityCalculator';
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
