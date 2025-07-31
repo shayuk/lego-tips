@@ -53,6 +53,7 @@ export interface AssessmentMethod {
   id: string;
   title: string;
   description: string;
+  shortDescription?: string;
   fullDescription?: string;
   categories: AssessmentMethodCategory[];
   teaching_methods: TeachingMethodCompatibility[];
@@ -63,10 +64,11 @@ export interface AssessmentMethod {
   disadvantages: AssessmentDisadvantages;
   suggested_tools: string[];
   toolsWithLinks?: { name: string; description: string; link: string; }[];
+  furtherReading?: { title: string; link: string }[];
   time_investment: TimeInvestment;
   rubric_template?: RubricCriteria[];
   implementation_guidelines: string[];
-  furtherReading?: { title: string; link: string; }[];
+  createdAt?: string;
   isPrivate?: boolean;
 }
 

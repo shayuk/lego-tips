@@ -24,7 +24,7 @@ import { Plus, Trash2, X } from 'lucide-react';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../components/Collapsible';
 import { performDynamicAnalysis } from "../features/assessmentBuilder/lib/knowledgeAnalyzer";
 import { savePrivateTip, getPrivateTips, deletePrivateTip, NewTipData } from '../features/pedagogicalTips/lib/pedagogicalTipStorage';
-import { assessmentMethods } from '../features/assessmentBuilder/lib/assessmentTypes';
+import { assessmentMethods } from '../features/assessmentBuilder/lib/assessmentMethods';
 
 // 🚀 LAZY LOADING - הקובץ הענק יטען רק כשצריך!
 // const PedagogicalMethodSelector = lazy(() => import('../components/PedagogicalMethodSelector').then(module => ({ 

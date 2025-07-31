@@ -1,4 +1,5 @@
-import { assessmentMethods, AssessmentMethod, AssessmentMethodCategory, CourseParameters, TeachingMethodCompatibility } from '../features/assessmentBuilder/lib/assessmentTypes';
+import { assessmentMethods } from '../features/assessmentBuilder/lib/assessmentMethods';
+import { AssessmentMethod, CourseParameters, AssessmentMethodCategory } from '../features/assessmentBuilder/lib/assessmentTypes';
 import { calculateCompatibilityScore } from './compatibilityCalculator';
 
 

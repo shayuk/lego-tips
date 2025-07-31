@@ -1,7 +1,7 @@
 // Individual named exports to avoid __namedExportsOrder conflicts
-import { 
-  AssessmentMethod, 
-  CourseParameters, 
+import {
+  AssessmentMethod,
+  CourseParameters,
   AssessmentMethodCategory,
   TeachingMethodCompatibility,
   SubjectArea,
@@ -9,8 +9,7 @@ import {
   TimeInvestment,
   AssessmentAdvantages,
   AssessmentDisadvantages,
-  RubricCriteria,
-  assessmentMethods
+  RubricCriteria
 } from "./assessmentTypes";
 
 import {
@@ -25,6 +24,9 @@ import {
   genericRubricTemplates,
   implementationGuidelines
 } from "../lib/rubricTemplates"; // נתיב מתוקן
+
+// Fetch real assessment methods from assessmentTypes
+import { assessmentMethods } from "./assessmentTypes";
 
 // Export types
 export type {
