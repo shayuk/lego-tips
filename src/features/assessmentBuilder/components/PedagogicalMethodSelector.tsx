@@ -1,12 +1,14 @@
+// *** החלף את כל הקובץ שלך בקוד הזה ***
+
 import React, { useState, useMemo } from 'react';
 import { assessmentMethods } from '../lib/assessmentMethods';
 import { CourseParameters, AssessmentMethod } from '../lib/assessmentTypes';
-import { getTopCompatibleMethods, CompatibilityScore } from '../../../helpers/compatibilityCalculator';
+import { getTopCompatibleMethods } from '../../../helpers/compatibilityCalculator';
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/Dialog';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, Info, ChevronDown, Check, Plus, ExternalLink, X, Zap, Trash2 } from 'lucide-react';
+import { Star, Info, ChevronDown, Check, ExternalLink, Zap, Trash2 } from 'lucide-react';
 import styles from './PedagogicalMethodSelector.module.css';
 
 interface PedagogicalMethodSelectorProps {
@@ -50,7 +52,6 @@ export const PedagogicalMethodSelector: React.FC<PedagogicalMethodSelectorProps>
   refreshKey,
   onDeletePrivateTip
 }) => {
-  const [activeMethod, setActiveMethod] = useState<AssessmentMethod | null>(null);
 
   const recommendedMethods = useMemo(() => {
     const methodsToUse = allMethods || assessmentMethods;
@@ -87,8 +88,11 @@ export const PedagogicalMethodSelector: React.FC<PedagogicalMethodSelectorProps>
     }
   };
 
+  // --- הקוד המתוקן מתחיל כאן ---
+
+  // פונקציה שמחזירה רק את התוכן של הפופאפ, עטוף ב-div רגיל
   const renderMethodDetails = (method: AssessmentMethod) => (
-    <DialogContent className={styles.dialogContent} dir="rtl">
+    <div className={styles.dialogContent} dir="rtl">
       <DialogHeader>
         <DialogTitle>{method.title}</DialogTitle>
         <DialogDescription>{method.description}</DialogDescription>
@@ -203,9 +207,10 @@ export const PedagogicalMethodSelector: React.FC<PedagogicalMethodSelectorProps>
           </div>
         )}
       </div>
-    </DialogContent>
+    </div>
   );
 
+  // פונקציה שמציגה כרטיס ויוצרת את הפופאפ, כשהיא עוטפת את התוכן ב-DialogContent
   const renderMethodCard = (method: AssessmentMethod & { compatibilityScore?: number }, isRecommended: boolean) => {
     const isSelected = selectedMethods.some(m => m.id === method.id);
     const compatibilityScore = method.compatibilityScore;
@@ -248,7 +253,9 @@ export const PedagogicalMethodSelector: React.FC<PedagogicalMethodSelectorProps>
                   <Info size={16} /> פרטים נוספים
                 </Button>
               </DialogTrigger>
-              {renderMethodDetails(method)}
+              <DialogContent>
+                {renderMethodDetails(method)}
+              </DialogContent>
             </Dialog>
             {(method as any).isPrivate && onDeletePrivateTip && (
               <Button 
