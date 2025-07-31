@@ -1,4 +1,4 @@
-// *** התחל העתקה: functions/src/index.ts ***
+// *** התחל העתקה: functions/src/index.ts (הגרסה הסופית) ***
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
@@ -13,10 +13,13 @@ const openai = new OpenAI({
   apiKey: openAIKey.value(),
 });
 
-export const callChatGpt = functions.https.onCall(async (data, context) => {
-  // קוראים את המידע מהפרמטר 'data' שהלקוח שלח
-  // התיקון כאן: אנחנו מתייחסים ל-data כאל 'any' כדי לגשת ל-prompt
-  const userPrompt = (data as any).prompt;
+// הגדרה מפורשת של הטיפוסים כדי ש-TypeScript יהיה מרוצה
+interface RequestData {
+  prompt: string;
+}
+
+export const callChatGpt = functions.https.onCall(async (data: RequestData, context: functions.https.CallableContext) => {
+  const userPrompt = data.prompt;
 
   if (!userPrompt) {
     throw new functions.https.HttpsError(
@@ -26,13 +29,12 @@ export const callChatGpt = functions.https.onCall(async (data, context) => {
   }
 
   try {
-    const completion = await openai.chat.completions.create({
+    const completion = await openai.chat.com.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: userPrompt }],
     });
 
     const response = completion.choices[0].message.content;
-    
     return { result: response };
 
   } catch (error) {
@@ -44,4 +46,4 @@ export const callChatGpt = functions.https.onCall(async (data, context) => {
   }
 });
 
-// *** סיים העתקה: functions/src/index.ts ***
+// *** סיים העתקה: functions/src/index.ts (הגרסה הסופית) ***
