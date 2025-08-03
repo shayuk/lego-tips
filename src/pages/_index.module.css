@@ -50,7 +50,7 @@
   font-size: 3rem;
   font-weight: 700;
   line-height: 1.2;
-  margin-bottom: var(--spacing-4);
+  margin: var(--spacing-4);
   color: var(--foreground);
   text-align: right;
 }
@@ -63,7 +63,7 @@
   font-size: 1.125rem;
   line-height: 1.6;
   color: var(--muted-foreground);
-  margin-bottom: var(--spacing-6);
+  margin: var(--spacing-6);
   text-align: right;
 }
 
@@ -117,7 +117,7 @@
   font-size: 2rem;
   font-weight: 700;
   text-align: center;
-  margin-bottom: var(--spacing-8);
+  margin: var(--spacing-8);
   color: var(--foreground);
 }
 
@@ -153,14 +153,14 @@
   background-color: color-mix(in srgb, var(--primary) 15%, transparent);
   color: var(--primary);
   border-radius: var(--radius-full);
-  margin-bottom: var(--spacing-4);
+  margin: var(--spacing-4);
   margin-right: auto;
 }
 
 .featureTitle {
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: var(--spacing-2);
+  margin: var(--spacing-2);
   color: var(--foreground);
   text-align: right;
 }
@@ -187,12 +187,12 @@
 .ctaTitle {
   font-size: 2.5rem;
   font-weight: 700;
-  margin-bottom: var(--spacing-4);
+  margin: var(--spacing-4);
 }
 
 .ctaDescription {
   font-size: 1.25rem;
-  margin-bottom: var(--spacing-6);
+  margin: var(--spacing-6);
   opacity: 0.9;
 }
 
@@ -207,7 +207,7 @@
   
   .heroContent {
     padding-left: 0;
-    margin-bottom: var(--spacing-6);
+    margin: var(--spacing-6);
   }
   
   .heroTitle {

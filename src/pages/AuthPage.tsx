@@ -12,7 +12,7 @@ export default function AuthPage() {
   useEffect(() => {
     if (!uiRef.current) {
       uiRef.current = new firebaseui.auth.AuthUI(auth);
-    }
+    }כ
 
     uiRef.current.start("#firebaseui-auth-container", {
       signInOptions: [

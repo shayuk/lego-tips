@@ -27,13 +27,13 @@
 .mainTabs {
   display: flex;
   gap: var(--spacing-2);
-  margin-bottom: var(--spacing-3);
+  margin: var(--spacing-3);
 }
 
 .modeToggle {
   display: flex;
   gap: var(--spacing-2);
-  margin-bottom: var(--spacing-3);
+  margin: var(--spacing-3);
 }
 
 .titleInput {

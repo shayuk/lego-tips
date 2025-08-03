@@ -1434,7 +1434,7 @@ export const assessmentMethods: AssessmentMethod[] = [
       {
         name: "Simulx",
         description: "פלטפורמת סימולציה מתקדמת לחינוך רפואי",
-        link: "https://www.simulx.com/"
+        link: "https://www.simulations-plus.com/software/monolix/simulx/"
       },
       {
         name: "D-ID",
@@ -1500,12 +1500,12 @@ export const assessmentMethods: AssessmentMethod[] = [
       {
         name: "Peergrade",
         description: "פלטפורמה מתמחה בהערכת עמיתים ומשוב",
-        link: "https://www.peergrade.io/"
+        link: "https://hundred.org/en/innovations/peergrade"
       },
       {
         name: "Turnitin PeerMark",
         description: "כלי הערכת עמיתים מתקדם מבית Turnitin",
-        link: "https://www.turnitin.com/products/feedback-studio/peermark"
+        link: "https://www.turnitin.com/"
       },
       {
         name: "Google Classroom",
@@ -1515,7 +1515,7 @@ export const assessmentMethods: AssessmentMethod[] = [
       {
         name: "Flipgrid",
         description: "פלטפורמה לשיתוף וידאו ומשוב עמיתים",
-        link: "https://flipgrid.com/"
+        link: "https://sites.google.com/nclack.k12.or.us/ncsd-digital-parent-guardian/support-for-other-learning-apps-your-student-might-use/flipgrid"
       }
     ],
     time_investment: "moderate",
@@ -1857,7 +1857,7 @@ export const assessmentMethods: AssessmentMethod[] = [
       {
         name: "Peergrade",
         description: "פלטפורמה ייעודית להערכת עמיתים המאפשרת יצירת רובריקות ומתן משוב מובנה.",
-        link: "https://www.peergrade.io/"
+        link: "https://hundred.org/en/innovations/peergrade"
       },
       {
         name: "Kritik",

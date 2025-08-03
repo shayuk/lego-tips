@@ -1,4 +1,4 @@
-// *** התחל העתקה: הקוד המלא והסופי ***
+// *** התחל העתקה: PedagogicalLibrary.tsx (מתוקן) ***
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { assessmentMethods } from '../features/assessmentBuilder/lib/assessmentMethods';
@@ -10,20 +10,22 @@ import { Input } from './Input';
 import { Textarea } from './Textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './Select';
 import { Dialog, DialogContent } from './Dialog';
-import { Star, Info, Search, Filter, Plus, ExternalLink, X, User, Sparkles } from 'lucide-react'; // הוספנו אייקון Sparkles
+import { Star, Info, Search, Filter, Plus, ExternalLink, X, User, Sparkles } from 'lucide-react';
 import styles from '../features/assessmentBuilder/components/PedagogicalMethodSelector.module.css';
 
-// הוספת ה-imports הנדרשים עבור Firebase Functions
 import { getFunctions, httpsCallable } from "firebase/functions";
 
-// הפונקציה שקוראת ל-AI דרך ה-Cloud Function המאובטח
+// הפונקציה המעודכנת שקוראת ל־Cloud Function המאובטח דרך הבינה המלאכותית
 async function generateAssignment(promptText: string) {
     const functions = getFunctions();
     const callChatGpt = httpsCallable(functions, 'callChatGpt');
-    
+
+   
     try {
         console.log(`Calling cloud function with prompt: "${promptText}"`);
+        // השינוי החשוב: פונקציות onRequest מצפות לקבל את המידע בתוך אובייקט data
         const result = await callChatGpt({ prompt: promptText });
+        // התשובה גם היא נמצאת בתוך אובייקט data
         const aiResult = (result.data as any).result;
         console.log("Response from AI:", aiResult);
         return aiResult;
@@ -52,11 +54,7 @@ const MethodDetailsContent = ({ method }: { method: any }) => (
         <div className={styles.modalHeader} style={{ position: 'sticky', top: 0, background: 'var(--card)', zIndex: 1, paddingTop: 0, paddingBottom: 'var(--spacing-2)' }}>
             <h2 id="method-modal-title" className={styles.modalTitle}>{method?.title}</h2>
         </div>
-        <div className={styles.modalSection}>
-            <h3 className={styles.sectionTitle}>📋 תיאור</h3>
-            <p className={styles.description}>{method.description}</p>
-            {method.fullDescription && (<div className={styles.fullDescription}><h4 className={styles.subsectionTitle}>תיאור מלא</h4><div className={styles.descriptionContent}>{method.fullDescription.split('\n\n').map((p:string, i:number) => (<p key={i} style={{marginBottom:'10px',lineHeight:'1.6'}}>{p}</p>))}</div></div>)}
-        </div>
+        <div className={styles.modalSection}><h3 className={styles.sectionTitle}>📋 תיאור</h3><p className={styles.description}>{method.description}</p>{method.fullDescription && (<div className={styles.fullDescription}><h4 className={styles.subsectionTitle}>תיאור מלא</h4><div className={styles.descriptionContent}>{method.fullDescription.split('\n\n').map((p:string, i:number) => (<p key={i} style={{marginBottom:'10px',lineHeight:'1.6'}}>{p}</p>))}</div></div>)}</div>
         <div className={styles.modalSection}><h3 className={styles.sectionTitle}>מאפיינים טכניים</h3><div className={styles.technicalInfo}><div className={styles.techItem}><span className={styles.techLabel}>רמת קושי:</span><DifficultyStars level={method.implementation_difficulty} /></div><div className={styles.techItem}><span className={styles.techLabel}>השקעת זמן:</span><Badge variant="secondary">{method.time_investment}</Badge></div><div className={styles.techItem}><span className={styles.techLabel}>גדלי כיתה:</span><div className={styles.badgeGroup}>{method.class_size_suitability.map((s:string, i:number) => <Badge key={i} variant="outline">{s}</Badge>)}</div></div></div></div>
         <div className={styles.modalSection}><h3 className={styles.sectionTitle}>יתרונות</h3><ul className={styles.modalList}>{method.advantages.pedagogical.map((adv:string, i:number) => <li key={`ped-${i}`}><strong>פדגוגי:</strong> {adv}</li>)}{method.advantages.practical.map((adv:string, i:number) => <li key={`pra-${i}`}><strong>מעשי:</strong> {adv}</li>)}{method.advantages.student_engagement.map((adv:string, i:number) => <li key={`eng-${i}`}><strong>מעורבות:</strong> {adv}</li>)}</ul></div>
         <div className={styles.modalSection}><h3 className={styles.sectionTitle}>חסרונות ואתגרים</h3><ul className={styles.modalList}>{method.disadvantages.challenges.map((dis:string, i:number) => <li key={`cha-${i}`}><strong>אתגר:</strong> {dis}</li>)}{method.disadvantages.limitations.map((dis:string, i:number) => <li key={`lim-${i}`}><strong>מגבלה:</strong> {dis}</li>)}{method.disadvantages.resource_requirements.map((dis:string, i:number) => <li key={`res-${i}`}><strong>דרישות:</strong> {dis}</li>)}</ul></div>
@@ -66,12 +64,9 @@ const MethodDetailsContent = ({ method }: { method: any }) => (
 );
 
 export const PedagogicalLibrary: React.FC<PedagogicalLibraryProps> = ({ className }) => {
-  // --- שינוי 1: מוסיפים state חדשים לניהול ה-AI ---
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiResult, setAiResult] = useState('');
   const [isLoadingAi, setIsLoadingAi] = useState(false);
-
-  // כל ה-state הקיים נשאר
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
@@ -80,68 +75,13 @@ export const PedagogicalLibrary: React.FC<PedagogicalLibraryProps> = ({ classNam
   const [newTip, setNewTip] = useState({ title: '', shortDescription: '', fullDescription: '', categories: [] as string[], classSizes: [] as string[], teachingMethods: [] as string[], subjectAreas: [] as string[], difficulty: '', timeInvestment: '', advantages: { pedagogical: '', practical: '', engagement: '' }, disadvantages: { challenges: '', limitations: '', resources: '' }, recommendedTools: '', toolsWithLinks: [{ name: '', link: '', description: '' }], furtherReading: [{ title: '', link: '' }], implementationGuidelines: '', rubricTemplate: '' });
   const [allMethods, setAllMethods] = useState<AssessmentMethod[]>([]);
 
-  useEffect(() => {
-    const publicTips = assessmentMethods;
-    const privateTips = getPrivateTips().map(tip => ({ ...tip, isPrivate: true }));
-    setAllMethods([...publicTips, ...privateTips]);
-  }, []);
-
-  const filteredAndSortedMethods = useMemo(() => {
-    return allMethods.filter(method => {
-        const matchesSearch = searchQuery === '' || method.title.toLowerCase().includes(searchQuery.toLowerCase()) || method.description.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = categoryFilter === 'all' || method.categories.includes(categoryFilter as any);
-        const matchesDifficulty = difficultyFilter === 'all' || method.implementation_difficulty.toString() === difficultyFilter;
-        return matchesSearch && matchesCategory && matchesDifficulty;
-      }).sort((a, b) => {
-        if (a.isPrivate && !b.isPrivate) return -1;
-        if (!a.isPrivate && b.isPrivate) return 1;
-        return a.title.localeCompare(b.title);
-      });
-  }, [searchQuery, categoryFilter, difficultyFilter, allMethods]);
-
-  const handleSaveNewTip = (isPublic: boolean) => {
-    if (isPublic) {
-      console.log('Submitting tip for public review:', newTip);
-      alert('הטיפ הוגש לבדיקה ויופיע במאגר הציבורי לאחר אישור.');
-    } else {
-      savePrivateTip(newTip as NewTipData);
-      const privateTips = getPrivateTips().map(tip => ({ ...tip, isPrivate: true }));
-      setAllMethods([...assessmentMethods, ...privateTips]);
-      alert('הטיפ נשמר בהצלחה במאגר הפרטי שלך!');
-    }
-    setIsAddTipModalOpen(false);
-    setNewTip({ title: '', shortDescription: '', fullDescription: '', categories: [], classSizes: [], teachingMethods: [], subjectAreas: [], difficulty: '', timeInvestment: '', advantages: { pedagogical: '', practical: '', engagement: '' }, disadvantages: { challenges: '', limitations: '', resources: '' }, recommendedTools: '', toolsWithLinks: [{ name: '', link: '', description: '' }], furtherReading: [{ title: '', link: '' }], implementationGuidelines: '', rubricTemplate: '' });
-  };
-  
+  useEffect(() => { const publicTips = assessmentMethods; const privateTips = getPrivateTips().map(tip => ({ ...tip, isPrivate: true })); setAllMethods([...publicTips, ...privateTips]); }, []);
+  const filteredAndSortedMethods = useMemo(() => { return allMethods.filter(method => { const matchesSearch = searchQuery === '' || method.title.toLowerCase().includes(searchQuery.toLowerCase()) || method.description.toLowerCase().includes(searchQuery.toLowerCase()); const matchesCategory = categoryFilter === 'all' || method.categories.includes(categoryFilter as any); const matchesDifficulty = difficultyFilter === 'all' || method.implementation_difficulty.toString() === difficultyFilter; return matchesSearch && matchesCategory && matchesDifficulty; }).sort((a, b) => { if (a.isPrivate && !b.isPrivate) return -1; if (!a.isPrivate && b.isPrivate) return 1; return a.title.localeCompare(b.title); }); }, [searchQuery, categoryFilter, difficultyFilter, allMethods]);
+  const handleSaveNewTip = (isPublic: boolean) => { if (isPublic) { console.log('Submitting tip for public review:', newTip); alert('הטיפ הוגש לבדיקה ויופיע במאגר הציבורי לאחר אישור.'); } else { savePrivateTip(newTip as NewTipData); const privateTips = getPrivateTips().map(tip => ({ ...tip, isPrivate: true })); setAllMethods([...assessmentMethods, ...privateTips]); alert('הטיפ נשמר בהצלחה במאגר הפרטי שלך!'); } setIsAddTipModalOpen(false); setNewTip({ title: '', shortDescription: '', fullDescription: '', categories: [], classSizes: [], teachingMethods: [], subjectAreas: [], difficulty: '', timeInvestment: '', advantages: { pedagogical: '', practical: '', engagement: '' }, disadvantages: { challenges: '', limitations: '', resources: '' }, recommendedTools: '', toolsWithLinks: [{ name: '', link: '', description: '' }], furtherReading: [{ title: '', link: '' }], implementationGuidelines: '', rubricTemplate: '' }); };
   const handleAddToolLink = () => setNewTip(prev => ({...prev, toolsWithLinks: [...prev.toolsWithLinks, { name: '', link: '', description: '' }]}));
   const handleAddFurtherReading = () => setNewTip(prev => ({...prev, furtherReading: [...prev.furtherReading, { title: '', link: '' }]}));
-
-  const handleDeletePrivateTip = (tipId: string) => {
-    if (window.confirm("האם אתה בטוח שברצונך למחוק את הטיפ הפרטי הזה?")) {
-      deletePrivateTip(tipId);
-      const privateTips = getPrivateTips().map(tip => ({ ...tip, isPrivate: true }));
-      setAllMethods([...assessmentMethods, ...privateTips]);
-      setSelectedMethodForDetails(null);
-    }
-  };
-
-  // --- שינוי 2: פונקציה שתפעיל את התהליך ---
-  const handleGenerateClick = async () => {
-    if (!aiPrompt.trim()) {
-      alert("אנא הזן נושא ליצירת מטלה.");
-      return;
-    }
-    setIsLoadingAi(true);
-    setAiResult('');
-    const fullPrompt = `Create a short academic assignment about: "${aiPrompt}".`;
-    const result = await generateAssignment(fullPrompt);
-    if (result) {
-      setAiResult(result);
-    }
-    setIsLoadingAi(false);
-  };
-
-
+  const handleDeletePrivateTip = (tipId: string) => { if (window.confirm("האם אתה בטוח שברצונך למחוק את הטיפ הפרטי הזה?")) { deletePrivateTip(tipId); const privateTips = getPrivateTips().map(tip => ({ ...tip, isPrivate: true })); setAllMethods([...assessmentMethods, ...privateTips]); setSelectedMethodForDetails(null); } };
+  const handleGenerateClick = async () => { if (!aiPrompt.trim()) { alert("אנא הזן נושא ליצירת מטלה."); return; } setIsLoadingAi(true); setAiResult(''); const fullPrompt = `Create a short academic assignment about: "${aiPrompt}".`; const result = await generateAssignment(fullPrompt); if (result) { setAiResult(result); } setIsLoadingAi(false); };
   const uniqueCategories = useMemo(() => { const cats = new Set(allMethods.flatMap(m => m.categories)); return ['all', ...Array.from(cats)]; }, [allMethods]);
   const uniqueDifficulties = useMemo(() => { const diffs = new Set(allMethods.map(m => m.implementation_difficulty.toString())); return ['all', ...Array.from(diffs)]; }, [allMethods]);
 
@@ -149,31 +89,12 @@ export const PedagogicalLibrary: React.FC<PedagogicalLibraryProps> = ({ classNam
     <div className={`${styles.container} ${className || ''}`}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-4)' }}><h2 style={{ color: 'var(--foreground)', margin: 0 }}>ספריית שיטות הערכה</h2><Button onClick={() => setIsAddTipModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', backgroundColor: 'var(--primary)', color: 'white' }}><Plus size={18} /> הוסף טיפ פדגוגי חדש</Button></div>
       
-      {/* --- שינוי 3: מוסיפים ממשק משתמש לקריאה ל-AI --- */}
       <div style={{ padding: 'var(--spacing-6)', backgroundColor: 'var(--muted)', borderRadius: 'var(--radius)', marginBottom: 'var(--spacing-6)', border: '1px solid var(--border)'}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', marginBottom: 'var(--spacing-4)'}}>
-          <Sparkles size={24} color="var(--primary)" />
-          <h3 style={{ margin: 0, color: 'var(--foreground)' }}>מחולל מטלות מבוסס AI</h3>
-        </div>
+        <div style={{display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', marginBottom: 'var(--spacing-4)'}}><Sparkles size={24} color="var(--primary)" /><h3 style={{ margin: 0, color: 'var(--foreground)' }}>מחולל מטלות מבוסס AI</h3></div>
         <p style={{color: 'var(--muted-foreground)', marginBottom: 'var(--spacing-4)'}}>הזן נושא או מושג, וה-AI ינסח עבורך הצעה למטלה קצרה.</p>
-        <div style={{ display: 'flex', gap: 'var(--spacing-4)', alignItems: 'center' }}>
-          <Input 
-            placeholder="לדוגמה: פוטוסינתזה, מלחמת העולם השנייה, שירת ביאליק..."
-            value={aiPrompt}
-            onChange={(e) => setAiPrompt(e.target.value)}
-            style={{ flexGrow: 1 }}
-          />
-          <Button onClick={handleGenerateClick} disabled={isLoadingAi}>
-            {isLoadingAi ? 'חושב...' : 'צור מטלה'}
-          </Button>
-        </div>
+        <div style={{ display: 'flex', gap: 'var(--spacing-4)', alignItems: 'center' }}><Input placeholder="לדוגמה: פוטוסינתזה, מלחמת העולם השנייה, שירת ביאליק..." value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} style={{ flexGrow: 1 }}/><Button onClick={handleGenerateClick} disabled={isLoadingAi}>{isLoadingAi ? 'חושב...' : 'צור מטלה'}</Button></div>
         {isLoadingAi && (<div style={{ textAlign: 'center', padding: 'var(--spacing-4)'}}>טוען... אנא המתן.</div>)}
-        {aiResult && !isLoadingAi && (
-          <div style={{ marginTop: 'var(--spacing-6)', padding: 'var(--spacing-4)', backgroundColor: 'var(--card)', borderRadius: 'var(--radius)', whiteSpace: 'pre-wrap', lineHeight: '1.7' }}>
-            <h4 style={{ color: 'var(--primary)', marginBottom: 'var(--spacing-3)'}}>הצעה למטלה:</h4>
-            {aiResult}
-          </div>
-        )}
+        {aiResult && !isLoadingAi && (<div style={{ marginTop: 'var(--spacing-6)', padding: 'var(--spacing-4)', backgroundColor: 'var(--card)', borderRadius: 'var(--radius)', whiteSpace: 'pre-wrap', lineHeight: '1.7' }}><h4 style={{ color: 'var(--primary)', marginBottom: 'var(--spacing-3)'}}>הצעה למטלה:</h4>{aiResult}</div>)}
       </div>
 
       <div className={styles.filterBar}><div className={styles.searchContainer}><Search size={18} className={styles.searchIcon} /><Input placeholder="חפש שיטות הערכה..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={styles.searchInput} /></div><Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger><SelectValue placeholder="סוג קורס" /></SelectTrigger><SelectContent>{uniqueCategories.map((c) => (<SelectItem key={c} value={c}>{c === 'all' ? 'כל הסוגים' : c}</SelectItem>))}</SelectContent></Select><Select value={difficultyFilter} onValueChange={setDifficultyFilter}><SelectTrigger><SelectValue placeholder="רמת קושי" /></SelectTrigger><SelectContent>{uniqueDifficulties.map((d) => (<SelectItem key={d} value={d}>{d === 'all' ? 'כל הרמות' : `רמה ${d}`}</SelectItem>))}</SelectContent></Select></div>

@@ -10,7 +10,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--spacing-4);
+    margin: var(--spacing-4);
 }
 
 .modalHeader h2 {
@@ -38,7 +38,7 @@
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--primary);
-    margin-bottom: var(--spacing-4);
+    margin: var(--spacing-4);
 }
 
 .checkboxGroup {
