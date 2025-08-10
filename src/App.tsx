@@ -10,9 +10,6 @@ import PendingSubmissionsPageLayout from "./pages/pending-submissions.pageLayout
 // 🆕 דף התחברות/הרשמה של FirebaseUI
 import AuthPage from "./pages/AuthPage";
 
-// 🧪 טפסים מותאמים אישית (אם עדיין רוצים לבדוק אותם)
-import SignUp from "./auth/SignUp";
-import SignIn from "./auth/SignIn";
 
 // 🧠 כותרת עליונה עם שם משתמש + התנתקות
 import Header from "./components/Header";

@@ -1,10 +1,5 @@
-import { saveAs } from 'file-saver';
-// ❌ הוסרו כדי לא לקרוס בפרודקשן
-// import { jsPDF } from 'jspdf';
-// import 'jspdf-autotable';
-
-import { RubricCriteria } from '../features/assessmentBuilder/lib/assessmentTypes';
-import { Packer, Paragraph, TextRun, Document } from 'docx';
+import { Document, HeadingLevel, Packer, Paragraph } from 'docx';
+import { downloadDocx } from '../utils/downloadDocx';
 
 export interface ExportOptions {
   title: string;
@@ -44,62 +39,50 @@ export function exportToPDF(): void {
  */
 export async function exportToWord(options: ExportOptions): Promise<void> {
   try {
-    const { default: HTMLtoDOCX } = await import('html-to-docx');
-    const { saveAs } = await import('file-saver');
+    const lines = htmlToLines(options.htmlContent);
+    const children: Paragraph[] = [
+      new Paragraph({ text: options.title, heading: HeadingLevel.HEADING_1 }),
+    ];
 
-    const documentContent = `
-      <!DOCTYPE html>
-      <html dir="rtl" lang="he">
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          body { font-family: 'Arial', 'David', sans-serif; direction: rtl; text-align: right; line-height: 1.6; margin: 20px; }
-          h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; font-size: 24px; }
-          h2 { color: #34495e; margin-top: 25px; font-size: 20px; }
-          h3 { color: #7f8c8d; font-size: 18px; }
-          table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 14px; }
-          th, td { border: 1px solid #bdc3c7; padding: 12px; text-align: right; }
-          th { background-color: #ecf0f1; font-weight: bold; }
-          p { margin-bottom: 10px; font-size: 14px; }
-          ul, ol { padding-right: 20px; }
-          li { margin-bottom: 5px; }
-          .document-header { text-align: center; margin-bottom: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px; }
-          .document-footer { margin-top: 30px; padding-top: 20px; border-top: 2px solid #e9ecef; font-size: 12px; color: #6c757d; }
-        </style>
-      </head>
-      <body>
-        <div class="document-header">
-          <h1>${options.title}</h1>
-          ${options.courseName ? `<p><strong>קורס:</strong> ${options.courseName}</p>` : ''}
-          ${options.faculty ? `<p><strong>פקולטה:</strong> ${options.faculty}</p>` : ''}
-          ${options.department ? `<p><strong>מחלקה:</strong> ${options.department}</p>` : ''}
-          <p><strong>תאריך יצירה:</strong> ${options.createdAt.toLocaleDateString('he-IL')}</p>
-        </div>
+    if (options.courseName)
+      children.push(new Paragraph(`קורס: ${options.courseName}`));
+    if (options.faculty)
+      children.push(new Paragraph(`פקולטה: ${options.faculty}`));
+    if (options.department)
+      children.push(new Paragraph(`מחלקה: ${options.department}`));
 
-        ${options.htmlContent}
+    children.push(new Paragraph(`תאריך יצירה: ${options.createdAt.toLocaleDateString('he-IL')}`));
+    children.push(new Paragraph(""));
 
-        <div class="document-footer">
-          <p><strong>נוצר באמצעות:</strong> ${options.modelUsed}</p>
-          <p><strong>מערכת:</strong> פדגוגיקל לגו - מחולל מטלות חכם</p>
-          <p><strong>זמן יצירה:</strong> ${options.createdAt.toLocaleDateString('he-IL')} בשעה ${options.createdAt.toLocaleTimeString('he-IL')}</p>
-        </div>
-      </body>
-      </html>
-    `;
-
-    const docxBlob = await HTMLtoDOCX(documentContent, null, {
-      table: { row: { cantSplit: true } },
-      footer: true,
-      pageNumber: true,
-      font: 'Arial'
+    lines.forEach((line) => {
+      children.push(new Paragraph(line));
     });
 
+    children.push(new Paragraph(""));
+    children.push(new Paragraph(`נוצר באמצעות: ${options.modelUsed}`));
+
+    const doc = new Document({
+      sections: [{ children }],
+    });
+
+    const blob = await Packer.toBlob(doc);
     const fileName = generateFileName(options);
-    saveAs(docxBlob, fileName);
+    downloadDocx(blob, fileName);
   } catch (error) {
     console.error('❌ Error exporting to Word:', error);
     throw new Error(`שגיאה ביצוא לקובץ Word. בדוק את הקונסולה לפרטים טכניים.`);
   }
+}
+
+function htmlToLines(html: string): string[] {
+  return html
+    .replace(/<br\s*\/?>(?=\s*<)/gi, '\n')
+    .replace(/<\/?p>/gi, '\n')
+    .replace(/<\/?li>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
 }
 
 function generateFileName(options: ExportOptions): string {
@@ -144,12 +127,3 @@ export function deletePersonalAssignment(id: string): void {
   localStorage.setItem('personalAssignments', JSON.stringify(filtered));
 }
 
-export const exportAssessmentToDOCX = async (assessmentHTML: string, fileName: string) => {
-  try {
-    const HTMLtoDOCX = (await import('html-to-docx')).default;
-    const docxBlob = await HTMLtoDOCX(assessmentHTML, {});
-    saveAs(docxBlob, `${fileName}.docx`);
-  } catch (error) {
-    console.error('Error exporting to DOCX:', error);
-  }
-};
