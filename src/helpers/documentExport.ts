@@ -1,4 +1,7 @@
-import { Document, HeadingLevel, Packer, Paragraph } from 'docx';
+import type {
+  Paragraph as DocxParagraph,
+  TextRun as DocxTextRun,
+} from 'docx';
 import { downloadDocx } from '../utils/downloadDocx';
 
 export interface ExportOptions {
@@ -9,6 +12,15 @@ export interface ExportOptions {
   courseName?: string;
   faculty?: string;
   department?: string;
+}
+
+let docxModule: typeof import('docx') | null = null;
+
+async function loadDocx() {
+  if (!docxModule) {
+    docxModule = await import('docx');
+  }
+  return docxModule;
 }
 
 // ✅ פונקציה חדשה – ייצוא ל־PDF עם טבלת autoTable
@@ -39,27 +51,69 @@ export function exportToPDF(): void {
  */
 export async function exportToWord(options: ExportOptions): Promise<void> {
   try {
-    const lines = htmlToLines(options.htmlContent);
-    const children: Paragraph[] = [
-      new Paragraph({ text: options.title, heading: HeadingLevel.HEADING_1 }),
+    const { Document, HeadingLevel, Paragraph, Packer, AlignmentType } =
+      await loadDocx();
+
+    const children: DocxParagraph[] = [
+      new Paragraph({
+        text: options.title,
+        heading: HeadingLevel.HEADING_1,
+        alignment: AlignmentType.RIGHT,
+        bidirectional: true,
+      }),
     ];
 
     if (options.courseName)
-      children.push(new Paragraph(`קורס: ${options.courseName}`));
+      children.push(
+        new Paragraph({
+          text: `קורס: ${options.courseName}`,
+          alignment: AlignmentType.RIGHT,
+          bidirectional: true,
+        }),
+      );
     if (options.faculty)
-      children.push(new Paragraph(`פקולטה: ${options.faculty}`));
+      children.push(
+        new Paragraph({
+          text: `פקולטה: ${options.faculty}`,
+          alignment: AlignmentType.RIGHT,
+          bidirectional: true,
+        }),
+      );
     if (options.department)
-      children.push(new Paragraph(`מחלקה: ${options.department}`));
+      children.push(
+        new Paragraph({
+          text: `מחלקה: ${options.department}`,
+          alignment: AlignmentType.RIGHT,
+          bidirectional: true,
+        }),
+      );
 
-    children.push(new Paragraph(`תאריך יצירה: ${options.createdAt.toLocaleDateString('he-IL')}`));
-    children.push(new Paragraph(""));
+    children.push(
+      new Paragraph({
+        text: `תאריך יצירה: ${options.createdAt.toLocaleDateString('he-IL')}`,
+        alignment: AlignmentType.RIGHT,
+        bidirectional: true,
+      }),
+    );
+    children.push(new Paragraph({}));
 
-    lines.forEach((line) => {
-      children.push(new Paragraph(line));
-    });
+    children.push(...htmlToDocxParagraphs(options.htmlContent));
+    children.push(new Paragraph({}));
 
-    children.push(new Paragraph(""));
-    children.push(new Paragraph(`נוצר באמצעות: ${options.modelUsed}`));
+    const footerInfo = [
+      `יוצר באמצעות: ${options.modelUsed}`,
+      'מערכת: פדגוגיקל-לגו',
+      `זמן יצירה: ${(options.createdAt ?? new Date()).toLocaleString('he-IL')}`,
+    ];
+    footerInfo.forEach((line) =>
+      children.push(
+        new Paragraph({
+          text: line,
+          alignment: AlignmentType.RIGHT,
+          bidirectional: true,
+        }),
+      ),
+    );
 
     const doc = new Document({
       sections: [{ children }],
@@ -74,15 +128,146 @@ export async function exportToWord(options: ExportOptions): Promise<void> {
   }
 }
 
-function htmlToLines(html: string): string[] {
-  return html
-    .replace(/<br\s*\/?>(?=\s*<)/gi, '\n')
-    .replace(/<\/?p>/gi, '\n')
-    .replace(/<\/?li>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
+function htmlToDocxParagraphs(html: string): DocxParagraph[] {
+  if (!docxModule) {
+    throw new Error('docx module not loaded');
+  }
+
+  const { Paragraph, TextRun, HeadingLevel, AlignmentType } = docxModule;
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  doc.querySelectorAll('script, style').forEach((el) => el.remove());
+
+  const paragraphs: DocxParagraph[] = [];
+
+  const headingMap: Record<string, (typeof HeadingLevel)[keyof typeof HeadingLevel]> = {
+    H1: HeadingLevel.HEADING_1,
+    H2: HeadingLevel.HEADING_2,
+    H3: HeadingLevel.HEADING_3,
+    H4: HeadingLevel.HEADING_4,
+    H5: HeadingLevel.HEADING_5,
+    H6: HeadingLevel.HEADING_6,
+  };
+
+  interface RunStyle {
+    bold?: boolean;
+    italics?: boolean;
+    underline?: {};
+  }
+
+  const parseNode = (
+    node: Node,
+    style: RunStyle = {},
+  ): DocxTextRun[] => {
+    const runs: DocxTextRun[] = [];
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent?.replace(/\s+/g, ' ') ?? '';
+      if (text.trim()) runs.push(new TextRun({ text, ...style }));
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      if (el.tagName === 'BR') {
+        runs.push(new TextRun({ break: 1 }));
+        return runs;
+      }
+      const nextStyle = { ...style };
+      if (el.tagName === 'B' || el.tagName === 'STRONG') nextStyle.bold = true;
+      if (el.tagName === 'I' || el.tagName === 'EM') nextStyle.italics = true;
+      if (el.tagName === 'U') nextStyle.underline = {};
+      el.childNodes.forEach((child) => {
+        runs.push(...parseNode(child, nextStyle));
+      });
+    }
+    return runs;
+  };
+
+  const parseInline = (el: HTMLElement): DocxTextRun[] => {
+    const runs: DocxTextRun[] = [];
+    el.childNodes.forEach((child) => {
+      runs.push(...parseNode(child));
+    });
+    return runs;
+  };
+
+  doc.body.childNodes.forEach((node) => {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      if (headingMap[el.tagName]) {
+        const children = parseInline(el);
+        if (children.length)
+          paragraphs.push(
+            new Paragraph({
+              children,
+              heading: headingMap[el.tagName],
+              alignment: AlignmentType.RIGHT,
+              bidirectional: true,
+            }),
+          );
+      } else if (el.tagName === 'P') {
+        const children = parseInline(el);
+        if (children.length)
+          paragraphs.push(
+            new Paragraph({
+              children,
+              alignment: AlignmentType.RIGHT,
+              bidirectional: true,
+            }),
+          );
+      } else if (el.tagName === 'UL') {
+        Array.from(el.querySelectorAll(':scope > li')).forEach((li) => {
+          const children = parseInline(li as HTMLElement);
+          if (children.length)
+            paragraphs.push(
+              new Paragraph({
+                children,
+                bullet: { level: 0 },
+                alignment: AlignmentType.RIGHT,
+                bidirectional: true,
+              }),
+            );
+        });
+      } else if (el.tagName === 'OL') {
+        const items = Array.from(el.querySelectorAll(':scope > li'));
+        items.forEach((li, idx) => {
+          const children = parseInline(li as HTMLElement);
+          if (children.length)
+            paragraphs.push(
+              new Paragraph({
+                children: [new TextRun(`${idx + 1}. `), ...children],
+                alignment: AlignmentType.RIGHT,
+                bidirectional: true,
+              }),
+            );
+        });
+      } else if (el.tagName === 'BR') {
+        paragraphs.push(
+          new Paragraph({ alignment: AlignmentType.RIGHT, bidirectional: true }),
+        );
+      } else {
+        const children = parseInline(el);
+        if (children.length)
+          paragraphs.push(
+            new Paragraph({
+              children,
+              alignment: AlignmentType.RIGHT,
+              bidirectional: true,
+            }),
+          );
+      }
+    } else if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent?.replace(/\s+/g, ' ').trim();
+      if (text)
+        paragraphs.push(
+          new Paragraph({
+            text,
+            alignment: AlignmentType.RIGHT,
+            bidirectional: true,
+          }),
+        );
+    }
+  });
+
+  return paragraphs;
 }
 
 function generateFileName(options: ExportOptions): string {
