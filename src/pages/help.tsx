@@ -1,16 +1,61 @@
-import React from 'react';
+import { Users, BookOpen, Award, Zap } from 'lucide-react';
 import styles from './help.module.css';
 
 export default function HelpPage() {
   return (
     <div className={styles.container}>
-      <h1>עזרה ותמיכה</h1>
+      <h1>עזרה ומידע</h1>
 
       <section className={styles.section}>
-        <h2>ברוכים הבאים למרכז העזרה</h2>
+        <h2>ברוכים הבאים למרכז העזרה והמידע</h2>
         <p>
           כאן תוכלו למצוא תשובות לשאלות נפוצות ומידע על השימוש במערכת "בונה הערכות".
         </p>
+      </section>
+
+      <section className={styles.section}>
+        <h2>יכולות המערכת</h2>
+        <div className={styles.featureGrid}>
+          <div className={styles.featureCard}>
+            <div className={styles.featureIcon}>
+              <Users size={24} />
+            </div>
+            <h3 className={styles.featureTitle}>ספרייה של טיפים מרצים</h3>
+            <p className={styles.featureDescription}>
+              מאגר של טיפים פדגוגיים שמרצים שיתפו מניסיונם האישי והצלחותיהם. כל הטיפים הטובים ביותר במקום אחד.
+            </p>
+          </div>
+          
+          <div className={styles.featureCard}>
+            <div className={styles.featureIcon}>
+              <BookOpen size={24} />
+            </div>
+            <h3 className={styles.featureTitle}>התאמה אישית חכמה</h3>
+            <p className={styles.featureDescription}>
+              איחוד טיפים לבניית מטלה או הערכה בהתאמה לרכיבים מאתגרים: גודל כיתה, סוג שיעור, אופן למידה ורמת הלמידה.
+            </p>
+          </div>
+          
+          <div className={styles.featureCard}>
+            <div className={styles.featureIcon}>
+              <Award size={24} />
+            </div>
+            <h3 className={styles.featureTitle}>טקסונומיה של בלום</h3>
+            <p className={styles.featureDescription}>
+              חלוקה לפי טקסונומיה של בלום עם הסבר מפורט על כל טיפ, כולל קישורים להרחבת הידע על השיטות הפדגוגיות.
+            </p>
+          </div>
+          
+          <div className={styles.featureCard}>
+            <div className={styles.featureIcon}>
+              <Zap size={24} />
+            </div>
+            <h3 className={styles.featureTitle}>הוראות ומחוון הערכה</h3>
+            <p className={styles.featureDescription}>
+              המטלה הנבנית כוללת הוראות ברורות לתלמיד, מחוון הערכה מפורט למרצה, ורמת קושי בבניית המטלה.
+            </p>
+          </div>
+        </div>
       </section>
 
       <section className={styles.section}>

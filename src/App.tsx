@@ -25,10 +25,6 @@ function App() {
         {/* 🔐 דף התחברות/הרשמה */}
         <Route path="/auth" element={<AuthPage />} />
 
-        {/* 🧪 טפסים ישנים (אפשר למחוק בהמשך) */}
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/login" element={<SignIn />} />
-
         {/* 🏠 דפים עיקריים */}
         <Route path="/" element={<HomePageLayout />} />
         <Route path="/assessment-builder" element={<AssessmentBuilderPageLayout />} />
