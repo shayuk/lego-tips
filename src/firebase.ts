@@ -3,6 +3,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getAnalytics, isSupported } from "firebase/analytics";
+import { getFirestore } from "firebase/firestore";
 
 // 📦 קונפיג מהקונסול שלך כולל measurementId
 const firebaseConfig = {
@@ -20,6 +21,9 @@ const app = initializeApp(firebaseConfig);
 
 // ✅ אתחול Firebase Auth
 export const auth = getAuth(app);
+
+// 🔥 אתחול Firestore
+export const db = getFirestore(app);
 
 // 📊 אתחול Analytics – רק אם אפשר (בסביבת דפדפן)
 let analytics: ReturnType<typeof getAnalytics> | null = null;

@@ -1,6 +1,8 @@
 // *** התחל העתקה: functions/src/index.ts (הגרסה הסופית באמת) ***
 
 import { onRequest } from "firebase-functions/v2/https";
+import { Request } from "firebase-functions/v2/https";
+import { Response } from "express";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import OpenAI from "openai";
@@ -17,8 +19,7 @@ const openai = new OpenAI({
   apiKey: openAIKey.value(),
 });
 
-export const callChatGpt = onRequest(async (request, response) => {
-    // עטיפת הפונקציה ב-corsHandler
+export const callChatGpt = onRequest(async (request: Request, response: Response) => {   // עטיפת הפונקציה ב-corsHandler
     corsHandler(request, response, async () => {
         try {
             logger.info("Function received a request.", { body: request.body });

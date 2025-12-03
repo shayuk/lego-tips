@@ -6,36 +6,85 @@ import MyAssessmentsPageLayout from "./pages/my-assessments.pageLayout";
 import TeachingLibraryPageLayout from "./pages/teaching-library.pageLayout";
 import HelpPageLayout from "./pages/help.pageLayout";
 import PendingSubmissionsPageLayout from "./pages/pending-submissions.pageLayout";
+import { AdminPage } from "./pages/AdminPage";
 
 // 🆕 דף התחברות/הרשמה של FirebaseUI
 import AuthPage from "./pages/AuthPage";
 
-// 🧪 טפסים מותאמים אישית (אם עדיין רוצים לבדוק אותם)
-import SignUp from "./auth/SignUp";
-import SignIn from "./auth/SignIn";
-
 // 🧠 כותרת עליונה עם שם משתמש + התנתקות
 import Header from "./components/Header";
+
+// 🔒 Route protection components
+import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { AdminRoute } from "./auth/AdminRoute";
 
 function App() {
   return (
     <>
       <Header /> {/* ✅ מוצג תמיד אם המשתמש מחובר */}
       <Routes>
-        {/* 🔐 דף התחברות/הרשמה */}
+        {/* 🔐 דף התחברות/הרשמה - Public route */}
         <Route path="/auth" element={<AuthPage />} />
 
-        {/* 🧪 טפסים ישנים (אפשר למחוק בהמשך) */}
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/login" element={<SignIn />} />
+        {/* 🏠 דפים עיקריים - Protected routes (require login) */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <HomePageLayout />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/assessment-builder"
+          element={
+            <ProtectedRoute>
+              <AssessmentBuilderPageLayout />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-assessments"
+          element={
+            <ProtectedRoute>
+              <MyAssessmentsPageLayout />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teaching-library"
+          element={
+            <ProtectedRoute>
+              <TeachingLibraryPageLayout />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/help"
+          element={
+            <ProtectedRoute>
+              <HelpPageLayout />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pending-submissions"
+          element={
+            <ProtectedRoute>
+              <PendingSubmissionsPageLayout />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* 🏠 דפים עיקריים */}
-        <Route path="/" element={<HomePageLayout />} />
-        <Route path="/assessment-builder" element={<AssessmentBuilderPageLayout />} />
-        <Route path="/my-assessments" element={<MyAssessmentsPageLayout />} />
-        <Route path="/teaching-library" element={<TeachingLibraryPageLayout />} />
-        <Route path="/help" element={<HelpPageLayout />} />
-        <Route path="/pending-submissions" element={<PendingSubmissionsPageLayout />} />
+        {/* 👑 Admin routes - Require admin role */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminPage />
+            </AdminRoute>
+          }
+        />
       </Routes>
     </>
   );

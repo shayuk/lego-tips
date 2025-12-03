@@ -4,7 +4,7 @@
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-6);
+    gap: var(--spacing-4);
 }
 
 .grid {
@@ -17,8 +17,8 @@
     background-color: var(--card);
     border-radius: var(--radius-lg);
     border: 1px solid var(--border);
-    padding: var(--spacing-5);
-    padding-top: 45px; /* Add space for the badge */
+    padding: var(--spacing -1);
+    padding-top: 35px; /* Add space for the badge */
     display: flex;
     flex-direction: column;
     transition: all 0.2s ease-in-out;
@@ -41,9 +41,9 @@
 
 .cardHeader {
     display: flex;
-    align-items: center;
+    align-items: Right;
     gap: var(--spacing-3);
-    margin: var(--spacing-3);
+    margin: var(--spacing-0.2);
 }
 
 .checkbox {
@@ -68,11 +68,11 @@
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--foreground);
-    margin: 0;
+    margin: 1px;
     flex-grow: 1;
     display: flex;
     align-items: center;
-    gap: var(--spacing-2);
+    gap: var(--spacing-1);
 }
 
 .privateBadge {
@@ -93,13 +93,14 @@
     font-size: 0.9rem;
     color: var(--muted-foreground);
     line-height: 1.6;
-    margin: var(--spacing-4);
+    margin: var(--spacing-1);
     flex-grow: 1;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin: 3px;
 }
 
 .cardFooter {
@@ -146,8 +147,8 @@
     font-weight: bold;
     color: var(--foreground);
     margin: var(--spacing-4);
-    border-bottom: 2px solid var(--primary);
-    padding: var(--spacing-2);
+    border: 2px solid var(--primary);
+    padding: var(--spacing-3);
     display: flex;
     align-items: center;
     gap: var(--spacing-3);
@@ -156,7 +157,7 @@
 .otherMethodsDetails {
     margin-top: var(--spacing-6);
     border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
 }
 
 .otherMethodsSummary {
@@ -240,7 +241,7 @@
     color: var(--primary);
     margin: var(--spacing-3);
     padding: var(--spacing-2);
-    border-bottom: 1px solid var(--border);
+    border: 2px solid var(--border);
 }
 
 .descriptionContent {

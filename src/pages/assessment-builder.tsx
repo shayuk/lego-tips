@@ -476,7 +476,7 @@ ${generatedAssessment.requirements.map((requirement, index) => `${index + 1}. ${
     const body = encodeURIComponent(`
 שלום,
 
-הנני שולח/ת מטלה חדשה שנוצרה במערכת בונה הערכות:
+הנני שולח/ת מטלה חדשה שנוצרה במערכת Lego-Tips:
 
 ${generatedAssessment.title}
 

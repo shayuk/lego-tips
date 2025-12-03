@@ -45,8 +45,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, className }) => 
         <header className={styles.header}>
           <div className={styles.logoContainer}>
             <Link to="/" className={styles.logo}>
-              <div className={styles.logoIcon}>A</div>
-              <span className={styles.logoText}>בונה הערכות</span>
+              <div className={styles.logoIcon}>L</div>
+              <span className={styles.logoText}>Lego-Tips</span>
             </Link>
           </div>
 
@@ -84,7 +84,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, className }) => 
 
         <footer className={styles.footer}>
           <div className={styles.footerContent}>
-            <p>&copy; {new Date().getFullYear()} בונה הערכות. כל הזכויות שמורות.</p>
+            <p>&copy; {new Date().getFullYear()} Lego-Tips. כל הזכויות שמורות.</p>
           </div>
         </footer>
 

@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Analytics Events Collection - Admin Dashboard
+    // Allow any authenticated user to write analytics events
+    // Allow only admin emails to read analytics events
+    match /analytics_events/{doc} {
+      // Allow any authenticated user to WRITE analytics events
+      allow write: if request.auth != null;
+      
+      // Allow only specific admin emails to READ analytics events
+      allow read: if request.auth != null
+        && request.auth.token.email in [
+          "krimishay68@gmail.com",
+          "elad.assif@gmail.com"
+        ];
+    }
+    
+    // Default rule for all other collections
+    // Adjust this based on your existing security requirements
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
