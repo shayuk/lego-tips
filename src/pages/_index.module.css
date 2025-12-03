@@ -37,8 +37,10 @@
 }
 
 .topRightLogo {
-  height: 66px;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
   opacity: 0.96;
   transition: opacity 0.3s;
 }

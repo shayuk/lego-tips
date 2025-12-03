@@ -148,6 +148,18 @@ const useAssessmentGenerator = (params: {
         }
 
         if (step.index === 5) { // The actual AI call
+          // Log AI generation event (non-blocking)
+          import("../../../analytics/analyticsLogger").then(({ logAnalyticsEvent }) => {
+            logAnalyticsEvent("ai_generate", {
+              courseName: actualCourseName,
+              faculty: actualFaculty,
+              department: actualDepartment,
+              tipCount: actualTips.length,
+            });
+          }).catch((logError) => {
+            console.warn("Failed to log AI generation event:", logError);
+          });
+
           const result = await generateIntegratedAssignment({
             courseName: actualCourseName,
             faculty: actualFaculty,
@@ -181,6 +193,18 @@ const useAssessmentGenerator = (params: {
 
     } catch (error) {
       console.error('❌ AI generation error:', error);
+      
+      // Log error to analytics (non-blocking)
+      import("../../../analytics/analyticsLogger").then(({ logAnalyticsEvent }) => {
+        logAnalyticsEvent("error", {
+          message: error instanceof Error ? error.message : 'שגיאה לא ידועה',
+          context: "ai_generation",
+          courseName: actualCourseName,
+        });
+      }).catch((logError) => {
+        console.warn("Failed to log error:", logError);
+      });
+
       setLoadingState({ isLoading: false, message: 'שגיאה ביצירת המטלה', currentStepIndex: -1, progress: 0, stage: 'error' });
       setError(error instanceof Error ? error.message : 'שגיאה לא ידועה');
 

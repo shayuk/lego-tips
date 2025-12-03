@@ -48,7 +48,7 @@ const SetupStepComponent: React.FC<SetupStepProps> = ({
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>🎯 בונה הערכות מתקדם</h1>
+        <h1 className={styles.title}>🎯 Lego-Tips מתקדם</h1>
         <p className={styles.description}>
           הזן את פרטי הקורס שלך כדי לקבל טיפים פדגוגיים מותאמים אישית עם אחוזי התאמה מדויקים
         </p>

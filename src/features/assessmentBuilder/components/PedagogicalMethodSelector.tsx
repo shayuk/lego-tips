@@ -86,6 +86,13 @@ export const PedagogicalMethodSelector: React.FC<PedagogicalMethodSelectorProps>
       onMethodsSelect(selectedMethods.filter(m => m.id !== method.id));
     } else {
       onMethodsSelect([...selectedMethods, method]);
+      // Log tip selection for analytics
+      import("../../../analytics/analyticsLogger").then(({ logAnalyticsEvent }) => {
+        logAnalyticsEvent("tip_selection", {
+          tipId: method.id,
+          tipTitle: method.title,
+        });
+      });
     }
   };
 

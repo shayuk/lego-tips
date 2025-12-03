@@ -69,7 +69,11 @@ export interface AssignmentParams {
 }
 
 // Generic request handler with enhanced error handling
-async function makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function makeRequest<T>(endpoint: string, options: {
+  method?: string;
+  body?: string;
+  headers?: Record<string, string>;
+} = {}): Promise<T> {
   try {
     const url = `${SERVER_URL}${endpoint}`;
     const response = await fetch(url, {
@@ -152,6 +156,19 @@ export async function generateAssignmentWithRetry(
 ): Promise<AIResponse> {
   let lastError: Error | null = null;
   
+  // Log AI generation event (non-blocking)
+  import("../analytics/analyticsLogger").then(({ logAnalyticsEvent }) => {
+    logAnalyticsEvent("ai_generate", {
+      courseName: params.courseName,
+      faculty: params.faculty,
+      department: params.department,
+      tipCount: params.selectedMethods?.length || 0,
+      preferredProvider: params.preferredProvider,
+    });
+  }).catch((logError) => {
+    console.warn("Failed to log AI generation event:", logError);
+  });
+  
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`🔄 Assignment generation attempt ${attempt}/${maxRetries}`);
@@ -169,7 +186,21 @@ export async function generateAssignmentWithRetry(
       lastError = error instanceof Error ? error : new Error('שגיאה לא ידועה');
       console.warn(`❌ Attempt ${attempt} failed:`, lastError.message);
       
+      // Log error on final attempt (non-blocking)
       if (attempt === maxRetries) {
+        const errorToLog = lastError;
+        if (errorToLog) {
+          import("../analytics/analyticsLogger").then(({ logAnalyticsEvent }) => {
+            logAnalyticsEvent("error", {
+              message: errorToLog.message,
+              context: "ai_generation_api",
+              courseName: params.courseName,
+              attempts: maxRetries,
+            });
+          }).catch((logError) => {
+            console.warn("Failed to log error event:", logError);
+          });
+        }
         break;
       }
       

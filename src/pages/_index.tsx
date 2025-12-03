@@ -9,11 +9,11 @@ export default function HomePage() {
     <div className={styles.container}>
       {/* לוגו – פינה ימנית עליונה */}
       <div className={styles.topRightLogoContainer}>
-        <img
-          src="/logos/ariel-innovation-official.png"
-          alt="הרשות לחדשנות בהוראה, אוניברסיטת אריאל"
-          className={styles.topRightLogo}
-        />
+        <div className={styles.topRightLogo}>
+          <span style={{ fontSize: "1.2rem", fontWeight: "bold", color: "var(--primary)" }}>
+            Lego-Tips
+          </span>
+        </div>
       </div> 
 
       {/* אזור הירו הראשי עם תמונה וכפתורים */}
@@ -31,7 +31,7 @@ export default function HomePage() {
             <Link to="/assessment-builder">
               <Button size="lg">
                 <PlusCircle size={20} />
-                צור הערכה חדשה
+                צור לי הערכה חדשה
               </Button>
             </Link>
             <Link to="/my-assessments">
@@ -47,7 +47,7 @@ export default function HomePage() {
         <div className={styles.heroImageContainer}>
           <img
             src="https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
-            alt="בונה ההערכות"
+            alt="Lego-Tips"
             className={styles.image}
           />
         </div>
