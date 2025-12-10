@@ -7,14 +7,7 @@ import styles from "./_index.module.css";
 export default function HomePage() {
   return (
     <div className={styles.container}>
-      {/* לוגו – פינה ימנית עליונה */}
-      <div className={styles.topRightLogoContainer}>
-        <div className={styles.topRightLogo}>
-          <span style={{ fontSize: "1.2rem", fontWeight: "bold", color: "var(--primary)" }}>
-            Lego-Tips
-          </span>
-        </div>
-      </div> 
+
 
       {/* אזור הירו הראשי עם תמונה וכפתורים */}
       <section className={styles.hero}>
@@ -25,7 +18,7 @@ export default function HomePage() {
           </h1>
           <p className={styles.heroDescription}>
             אפליקציה חדשנית שמאפשרת למרצים באקדמיה לבנות הערכות מותאמות אישית בלחיצת כפתור, משלבת בין קובץ הסילבוס, דרישות המרצה, וטיפים פדגוגיים מבוססי ניסיון – כדי להפיק משימה אינטגרטיבית, עשירה ומדויקת., .<br />
-המערכת משמשת כספרייה חיה של רעיונות פדגוגיים, כמנוע ליצירת מטלות, וכבסיס לפלטפורמה שיתופית של סגלי הוראה — אג'ילית, דינמית ומתפתחת, שמותאמת לשינויים מתמידים בעולם ההשכלה הגבוהה. כל אלו עטופים בממשק עברי אקדמי מתקדם, הנתמך בבינה מלאכותית   
+            המערכת משמשת כספרייה חיה של רעיונות פדגוגיים, כמנוע ליצירת מטלות, וכבסיס לפלטפורמה שיתופית של סגלי הוראה — אג'ילית, דינמית ומתפתחת, שמותאמת לשינויים מתמידים בעולם ההשכלה הגבוהה. כל אלו עטופים בממשק עברי אקדמי מתקדם, הנתמך בבינה מלאכותית
           </p>
           <div className={styles.heroActions}>
             <Link to="/assessment-builder">
@@ -66,7 +59,7 @@ export default function HomePage() {
           </Link>
           <Link to="/teaching-library?tab=bloom">
             <Button variant="outline" size="lg">
-              <Brain size={18} style={{ marginLeft: 6 }} /> ניתוח הערכות על פי טקסטונומית בלום  
+              <Brain size={18} style={{ marginLeft: 6 }} /> ניתוח הערכות על פי טקסטונומית בלום
             </Button>
           </Link>
           <Link to="/teaching-library?tab=help">
@@ -76,6 +69,6 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
-   </div>
+    </div>
   );
 }
