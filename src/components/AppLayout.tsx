@@ -1,6 +1,5 @@
 import React, { createContext, useContext } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, FileText, HelpCircle, Clock } from "lucide-react";
 import { ToastContainer } from "./Toast";
 import { useToast } from "../helpers/useToast";
 import {
@@ -10,9 +9,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./DropdownMenu";
+import { Logo } from "./Logo";
 import styles from "./AppLayout.module.css";
-
-// ✅ ייבוא כותרת חכמה עם שם משתמש ותמונה דינמית
 import Header from "./Header";
 
 // Create Toast Context
@@ -42,41 +40,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, className }) => 
   return (
     <ToastContext.Provider value={toast}>
       <div className={styles.container}>
-        <header className={styles.header}>
-          <div className={styles.logoContainer}>
-            <Link to="/" className={styles.logo}>
-              <div className={styles.logoIcon}>L</div>
-              <span className={styles.logoText}>Lego-Tips</span>
-            </Link>
-          </div>
-
-          <nav className={styles.nav}>
-            <Link to="/" className={`${styles.navLink} ${isActive("/") ? styles.active : ""}`}>
-              <Home size={18} />
-              <span>בית</span>
-            </Link>
-            <Link to="/my-assessments" className={`${styles.navLink} ${isActive("/my-assessments") ? styles.active : ""}`}>
-              <FileText size={18} />
-              <span>ההערכות שלי</span>
-            </Link>
-            <Link to="/help" className={`${styles.navLink} ${isActive("/help") ? styles.active : ""}`}>
-              <HelpCircle size={18} />
-              <span>עזרה</span>
-            </Link>
-            <Link to="/teaching-library" className={`${styles.navLink} ${isActive("/teaching-library") ? styles.active : ""}`}>
-              <span>📚 ספריית הוראה</span>
-            </Link>
-            <Link to="/pending-submissions" className={`${styles.navLink} ${isActive("/pending-submissions") ? styles.active : ""}`}>
-              <Clock size={18} />
-              <span>הגשות ממתינות</span>
-            </Link>
-          </nav>
-
-          {/* 🔁 כאן שילבנו את Header במקום רבקה */}
-          <div className={styles.userSection}>
-            <Header />
-          </div>
-        </header>
+        <Header />
 
         <main className={`${styles.main} ${className || ""}`}>
           {children}

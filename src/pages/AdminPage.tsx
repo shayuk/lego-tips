@@ -7,6 +7,7 @@ import { useAdminAnalytics } from "../analytics/useAdminAnalytics";
 import { RefreshCw, Users, FileText, Lightbulb, Zap, AlertCircle } from "lucide-react";
 import { Button } from "../components/Button";
 
+
 export function AdminPage() {
   const { analytics, isLoading, error, refresh } = useAdminAnalytics();
 
@@ -57,7 +58,10 @@ export function AdminPage() {
   return (
     <div style={{ direction: "rtl", padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-        <h1>לוח בקרה למנהלים</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+
+          <h1 style={{ margin: 0 }}>לוח בקרה למנהלים</h1>
+        </div>
         <Button onClick={refresh} variant="outline" size="sm">
           <RefreshCw size={16} style={{ marginLeft: "0.5rem" }} />
           רענן
@@ -65,11 +69,11 @@ export function AdminPage() {
       </div>
 
       {/* Stat Cards */}
-      <div style={{ 
-        display: "grid", 
-        gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", 
-        gap: "1.5rem", 
-        marginBottom: "3rem" 
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+        gap: "1.5rem",
+        marginBottom: "3rem"
       }}>
         {/* Active Users Card */}
         <div style={{
@@ -170,12 +174,12 @@ export function AdminPage() {
           <AlertCircle size={20} style={{ marginLeft: "0.5rem", color: "#dc2626" }} />
           <h2 style={{ margin: 0 }}>לוג שגיאות</h2>
         </div>
-        
+
         {analytics.recentErrors.length > 0 ? (
           <div style={{ maxHeight: "400px", overflowY: "auto" }}>
             {analytics.recentErrors.map((error, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 style={{
                   padding: "0.75rem",
                   marginBottom: "0.5rem",
