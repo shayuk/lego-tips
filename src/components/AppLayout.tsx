@@ -1,5 +1,4 @@
 import React, { createContext, useContext } from "react";
-import { Link, useLocation } from "react-router-dom";
 import { ToastContainer } from "./Toast";
 import { useToast } from "../helpers/useToast";
 import {
@@ -30,12 +29,7 @@ interface AppLayoutProps {
 }
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children, className }) => {
-  const location = useLocation();
   const toast = useToast();
-
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
 
   return (
     <ToastContext.Provider value={toast}>
