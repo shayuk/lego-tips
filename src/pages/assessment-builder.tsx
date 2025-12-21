@@ -159,14 +159,7 @@ export default function AssessmentBuilderPage() {
   });
 
   // Toast hook for notifications
-  let toast: ReturnType<typeof useAppToast> | null = null;
-  try {
-    toast = useAppToast();
-    console.log('✅ Toast context זמין');
-  } catch {
-    console.log('❌ Toast context לא זמין');
-    // Toast context not available
-  }
+  const toast = useAppToast();
 
   // Auto-trigger task generation when entering task-generation step
   useEffect(() => {

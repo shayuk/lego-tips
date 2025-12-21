@@ -8,6 +8,9 @@ import tsparser from '@typescript-eslint/parser'
 export default [
   js.configs.recommended,
   {
+    ignores: ['**/*.spec.tsx', '**/*.test.tsx', '**/*.spec.ts', '**/*.test.ts'],
+  },
+  {
     files: ['**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
       globals: {

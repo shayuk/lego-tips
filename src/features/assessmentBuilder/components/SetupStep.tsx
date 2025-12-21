@@ -288,6 +288,6 @@ const SetupStepComponent: React.FC<SetupStepProps> = ({
 export const SetupStep = memo(SetupStepComponent);
 
 // 📊 Performance debugging - רק בפיתוח
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.DEV) {
   SetupStepComponent.displayName = 'SetupStep (Memoized)';
 } 

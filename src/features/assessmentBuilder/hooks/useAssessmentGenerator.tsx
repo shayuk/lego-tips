@@ -69,15 +69,8 @@ const useAssessmentGenerator = (params: {
   });
   const [error, setError] = useState<string | null>(null);
 
-  // Toast hook for notifications (with error handling)
-  let safeToast: any = null;
-  try {
-    safeToast = useToast();
-    console.log('✅ Toast context זמין');
-  } catch (error) {
-    console.log('⚠️ Toast context לא זמין עדיין:', error);
-    // המשך בלי טוסט - זה לא אמור לעצור את המחולל
-  }
+  // Toast hook for notifications
+  const safeToast = useToast();
 
   // 🎯 Real-time progress tracking based on actual API stages
   const updateRealProgress = (stage: LoadingState['stage'], message: string, estimatedTime?: number) => {

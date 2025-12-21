@@ -1,13 +1,6 @@
 dist/
+OLD/
+server/
+functions/
+.firebase/
 node_modules/
-*.js
-*.spec.tsx
-*.test.tsx
-*.stories.tsx
-.vite/
-coverage/
-
-
-
-
-
