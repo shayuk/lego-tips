@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { collection, query, where, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, Timestamp } from "firebase/firestore";
 import { db } from "../firebase";
 
 export interface AdminAnalytics {
@@ -101,14 +101,14 @@ export function useAdminAnalytics(): {
           }
           tipCounts[tipId].count += 1;
         });
-        const topTips = Object.values(tipCounts)
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5)
-          .map((tip, index) => ({
-            tipId: Object.keys(tipCounts)[index] || `tip-${index}`,
+        const topTips = Object.entries(tipCounts)
+          .map(([tipId, tip]) => ({
+            tipId,
             title: tip.title,
             count: tip.count,
-          }));
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
 
         // Calculate AI generations this week
         const aiGenerations = events.filter((e) => e.type === "ai_generate");
