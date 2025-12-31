@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../../../helpers/useToast';
-import { generateAssignmentWithRetry, checkAvailableProviders, handleAPIError, APIUsageTracker } from '../../../helpers/secureApiClient';
-import { generateIntegratedAssignment } from '../../../helpers/claudeAssignmentGenerator';
+import { generateAssignmentWithRetry, checkAvailableProviders, handleAPIError, APIUsageTracker, checkServerHealth } from '../../../helpers/secureApiClient';
 
 // 📝 Assessment Types - מתואמים עם תגובת השרת
 interface GeneratedAssessment {
@@ -98,9 +97,9 @@ const useAssessmentGenerator = (params: {
     console.log(`🚀 [${new Date().toLocaleTimeString()}] Stage: ${stage} | Progress: ${currentStageInfo.progress}% | Step: ${currentStageInfo.stepIndex} | ${message}`);
   };
 
-  // Main generation function - Single Source of Truth
+  // Main generation function - Using Secure Backend Proxy
   const fetchRubric = async () => {
-    console.log('--- [7] fetchRubric STARTED ---');
+    console.log('--- [7] fetchRubric STARTED (Secure Backend Proxy) ---');
     
     if (!shouldGenerate) {
       console.log('🛑 Generation skipped - shouldGenerate is false');
@@ -113,80 +112,127 @@ const useAssessmentGenerator = (params: {
     const actualDescription = courseContent || 'תיאור כללי של הקורס';
     const actualTips = selectedMethods || [];
 
-    console.log('--- [8] VALIDATION PASSED, PROCEEDING WITH AI GENERATION ---');
+    console.log('--- [8] VALIDATION PASSED, PROCEEDING WITH SECURE AI GENERATION ---');
 
     try {
       setError(null);
       
-      const generationSteps = [
-        { index: 0, message: 'מנתח את פרטי הקורס', time: 3 },
-        { index: 1, message: 'בוחן קבצים שהועלו', time: 5 },
-        { index: 2, message: 'מחשב התאמות פדגוגיות', time: 4 },
-        { index: 3, message: 'משלב טיפים נבחרים', time: 3 },
-        { index: 4, message: 'חיפוש קורסים דומים באינטרנט', time: 8 },
-        { index: 5, message: 'יוצר מטלה אינטגרטיבית', time: 15 },
-        { index: 6, message: 'בונה מחוון הערכה מפורט', time: 5 },
-      ];
-      
-      const totalTime = generationSteps.reduce((sum, step) => sum + step.time, 0);
-
-      setLoadingState({ isLoading: true, message: 'מתחיל...', estimatedTime: totalTime, currentStepIndex: -1, progress: 0, stage: 'init' });
-
-      for (const step of generationSteps) {
-        setLoadingState(prev => ({ ...prev, message: step.message, currentStepIndex: step.index, estimatedTime: totalTime - generationSteps.slice(0, step.index).reduce((s, t) => s + t.time, 0), progress: (step.index + 1) / generationSteps.length * 100, stage: 'generating' }));
-        
-        // For actual generation, we only need a delay on non-API steps
-        if (step.index !== 5) { 
-           await new Promise(res => setTimeout(res, 1000)); // Simulate work
+      // Step 1: Check server health
+      updateRealProgress('checking', 'בודק חיבור לשרת המאובטח...', 5);
+      try {
+        const health = await checkServerHealth();
+        console.log('✅ Server health check passed:', health);
+      } catch (healthError) {
+        console.warn('⚠️ Server health check failed, but continuing...', healthError);
+        const errorMsg = 'השרת המאובטח לא זמין. ודא שהשרת פועל על פורט 3001.';
+        setError(errorMsg);
+        if (safeToast) {
+          safeToast.showError('בעיית חיבור', errorMsg);
         }
-
-        if (step.index === 5) { // The actual AI call
-          // Log AI generation event (non-blocking)
-          import("../../../analytics/analyticsLogger").then(({ logAnalyticsEvent }) => {
-            logAnalyticsEvent("ai_generate", {
-              courseName: actualCourseName,
-              faculty: actualFaculty,
-              department: actualDepartment,
-              tipCount: actualTips.length,
-            });
-          }).catch((logError) => {
-            console.warn("Failed to log AI generation event:", logError);
-          });
-
-          const result = await generateIntegratedAssignment({
-            courseName: actualCourseName,
-            faculty: actualFaculty,
-            department: actualDepartment,
-            courseDescription: actualDescription,
-            selectedPedagogicalComponents: actualTips.map(tip => tip.title || 'שיטה פדגוגית'),
-          });
-
-          setRubricHtml(result.html);
-          setModelUsed(result.modelUsed);
-        }
+        // Continue with fallback
+        throw new Error(errorMsg);
       }
+
+      // Step 2: Check available providers
+      updateRealProgress('checking', 'בודק זמינות שירותי AI...', 10);
+      const providers = await checkAvailableProviders();
+      console.log('📊 Available providers:', providers);
       
-      setGeneratedAssessment({
-        title: `מטלה אינטגרטיבית - ${actualCourseName}`,
-        description: 'מטלה מותאמת אישית הנוצרת על בסיס השיטות הפדגוגיות שנבחרו',
-        instructions: [],
-        requirements: [],
-        generatedAt: new Date().toISOString()
+      if (!providers.openai && !providers.claude) {
+        throw new Error('אין שירותי AI זמינים. אנא ודא שמפתחות API הוגדרו בשרת.');
+      }
+
+      // Step 3: Prepare generation parameters
+      updateRealProgress('generating', 'מכין פרמטרים ליצירת מטלה...', 20);
+      
+      const generationParams = {
+        courseName: actualCourseName,
+        faculty: actualFaculty,
+        department: actualDepartment,
+        courseDescription: actualDescription,
+        selectedMethods: actualTips.map(tip => ({
+          title: tip.title || 'שיטה פדגוגית',
+          description: tip.description || ''
+        })),
+        preferredProvider: providers.openai ? 'openai' : 'claude' as 'openai' | 'claude'
+      };
+
+      // Step 4: Generate assignment via secure backend
+      updateRealProgress('generating', 'יוצר מטלה באמצעות AI מאובטח...', 50);
+      
+      // Log AI generation event (non-blocking)
+      import("../../../analytics/analyticsLogger").then(({ logAnalyticsEvent }) => {
+        logAnalyticsEvent("ai_generate", {
+          courseName: actualCourseName,
+          faculty: actualFaculty,
+          department: actualDepartment,
+          tipCount: actualTips.length,
+          provider: generationParams.preferredProvider,
+        });
+      }).catch((logError) => {
+        console.warn("Failed to log AI generation event:", logError);
       });
-        
-      setGeneratedRubric(buildFallbackRubric(actualTips));
+
+      const result = await generateAssignmentWithRetry(generationParams, 2);
       
-      setLoadingState({ isLoading: false, message: 'המטלה נוצרה בהצלחה!', estimatedTime: 0, currentStepIndex: 7, progress: 100, stage: 'complete' });
+      // Step 5: Process structured response
+      updateRealProgress('processing', 'מעבד את התוצאות...', 80);
       
-      console.log('🎉 Assignment generation completed successfully!');
+      if (!result.success || !result.data) {
+        throw new Error('תגובה לא תקינה מהשרת');
+      }
+
+      const assignmentData = result.data;
+      
+      // Set structured assessment data
+      setGeneratedAssessment({
+        title: assignmentData.title || `מטלה אינטגרטיבית - ${actualCourseName}`,
+        description: assignmentData.description || 'מטלה מותאמת אישית',
+        instructions: assignmentData.instructions || [],
+        requirements: assignmentData.requirements || [],
+        estimatedHours: assignmentData.estimatedHours,
+        difficulty: assignmentData.difficulty,
+        generatedAt: assignmentData.generatedAt || new Date().toISOString()
+      });
+
+      // Set rubric data
+      if (assignmentData.rubricCriteria && assignmentData.rubricCriteria.length > 0) {
+        setGeneratedRubric(assignmentData.rubricCriteria);
+      } else {
+        setGeneratedRubric(buildFallbackRubric(actualTips));
+      }
+
+      // Set rubric HTML
+      if (assignmentData.rubricHtml) {
+        setRubricHtml(assignmentData.rubricHtml);
+      } else {
+        setRubricHtml(generateFallbackRubricHtml(assignmentData.rubricCriteria || buildFallbackRubric(actualTips)));
+      }
+
+      // Set model used
+      setModelUsed(assignmentData.modelUsed || result.provider || 'Unknown');
+
+      // Track successful API call
+      APIUsageTracker.track('/api/generate-assignment', true, result.provider);
+
+      updateRealProgress('complete', 'המטלה נוצרה בהצלחה!', 100);
+      
+      console.log('🎉 Assignment generation completed successfully!', {
+        provider: result.provider,
+        title: assignmentData.title,
+        instructionsCount: assignmentData.instructions?.length || 0
+      });
          
       if (safeToast) {
-        safeToast.showSuccess('מטלה נוצרה בהצלחה!', `המטלה נוצרה באמצעות ${modelUsed}`);
+        safeToast.showSuccess('מטלה נוצרה בהצלחה!', `המטלה נוצרה באמצעות ${result.provider || assignmentData.modelUsed}`);
       }
 
     } catch (error) {
       console.error('❌ AI generation error:', error);
       
+      // Track failed API call
+      APIUsageTracker.track('/api/generate-assignment', false);
+
       // Log error to analytics (non-blocking)
       import("../../../analytics/analyticsLogger").then(({ logAnalyticsEvent }) => {
         logAnalyticsEvent("error", {
@@ -198,9 +244,11 @@ const useAssessmentGenerator = (params: {
         console.warn("Failed to log error:", logError);
       });
 
-      setLoadingState({ isLoading: false, message: 'שגיאה ביצירת המטלה', currentStepIndex: -1, progress: 0, stage: 'error' });
-      setError(error instanceof Error ? error.message : 'שגיאה לא ידועה');
+      const errorMessage = handleAPIError(error);
+      setError(errorMessage);
+      updateRealProgress('error', 'שגיאה ביצירת המטלה', 0);
 
+      // Use fallback assessment
       const fallbackAssessment = generateStructuredFallback(actualTips, actualCourseName, actualDescription);
       
       setGeneratedAssessment(fallbackAssessment);
@@ -208,11 +256,11 @@ const useAssessmentGenerator = (params: {
       setRubricHtml(generateFallbackRubricHtml(buildFallbackRubric(actualTips)));
       setModelUsed('מערכת גיבוי מקומית');
       
-      setLoadingState({ isLoading: false, message: '✅ המטלה מוכנה!', estimatedTime: 0, currentStepIndex: -1, progress: 100, stage: 'complete' });
+      updateRealProgress('complete', '✅ המטלה מוכנה (מערכת גיבוי)!', 100);
       
       try {
         if (safeToast) {
-          safeToast.showSuccess('מטלה נוצרה בהצלחה באמצעות מערכת גיבוי מקומית');
+          safeToast.showWarning('מערכת גיבוי', 'המטלה נוצרה באמצעות מערכת גיבוי מקומית. בדוק את חיבור השרת.');
         }
       } catch (e) {
         console.log('Toast not available:', e);

@@ -262,44 +262,77 @@ app.post('/api/generate-assignment', async (req, res) => {
 
     console.log(`📊 Assignment generation request - Course: ${courseName}, Provider: ${preferredProvider}`);
 
-    // Build comprehensive prompt
+    // Build comprehensive prompt - matching the detailed format from claudeAssignmentGenerator
+    const selectedComponents = selectedMethods.map(m => m.title || 'שיטה פדגוגית');
     const methodsText = selectedMethods.length > 0 
-      ? selectedMethods.map(m => `- ${m.title}: ${m.description}`).join('\n')
+      ? selectedMethods.map(m => `- ${m.title}: ${m.description || ''}`).join('\n')
       : 'שיטות הוראה מגוונות';
 
-    const systemPrompt = `אתה מומחה בפדגוגיה אקדמית. תפקידך ליצור מטלות אקדמיות מפורטות ואיכותיות.
+    // Check if content is minimal
+    const hasMinimalContent = !courseDescription || courseDescription.trim().length < 5;
+    const hasPlaceholderContent = courseDescription?.includes('לא הועלה תוכן קורס ספציפי');
 
-חשוב מאוד: החזר את התשובה כ-JSON תקין בפורמט הבא:
-{
-  "title": "כותרת המטלה",
-  "description": "תיאור מפורט של המטלה",
-  "instructions": ["הוראה 1", "הוראה 2", "..."],
-  "requirements": ["דרישה 1", "דרישה 2", "..."],
-  "estimatedHours": מספר שעות משוער,
-  "difficulty": "קל/בינוני/קשה"
-}
+    // Build course context
+    const courseContext = courseName && faculty && department
+      ? `שם הקורס: "${courseName}"
+       פקולטה: "${faculty}"
+       מחלקה: "${department}"`
+      : '';
 
-יש להתמקד בשיטות הפדגוגיות הנבחרות ולשלב אותן במטלה.`;
+    const systemPrompt = `אתה מומחה פדגוגי ובונה תכניות לימודים באקדמיה הישראלית. אתה מיומן ביצירת מטלות ספציפיות, ממוקדות ומעוררות מחשבה.
 
-    const userPrompt = `צור מטלה אקדמית מתקדמת עבור:
+המשימה המרכזית שלך: ליצור מטלה אקדמית מלאה בפורמט HTML, כולל הוראות מפורטות, בסיס תיאורטי עשיר, ומחוון הערכה מקצועי.
 
-📚 **פרטי הקורס:**
-- שם הקורס: ${courseName}
-- פקולטה: ${faculty || 'לא צוין'}
-- מחלקה: ${department || 'לא צוין'}
-- תיאור: ${courseDescription || 'תיאור כללי'}
+**חשוב מאוד:** החזר את התשובה בפורמט HTML נקי ומסודר בעברית, ללא תגי HTML מיותרים בתחילה או בסוף. התחל ישירות עם תוכן המשימה והסתיים עם סיום המחוון.
 
-🎯 **שיטות פדגוגיות לשילוב:**
-${methodsText}
+**מבנה הפלט הנדרש:**
+- כותרת המסמך (<h1>)
+- פרטי הקורס (<div class="course-info">)
+- מטרת המשימה (<h2>)
+- תיאור המשימה והוראות (<h2>)
+- דרישות הגשה (<h2>)
+- מחוון הערכה (<h2> עם טבלה)
 
-📋 **דרישות:**
-1. המטלה צריכה להיות ספציפית לנושא הקורס
-2. שילוב השיטות הפדגוגיות שנבחרו
-3. הוראות ברורות ומפורטות לסטודנטים
-4. דרישות אקדמיות מובנות
-5. רמת קושי מתאימה לרמת הקורס
+כלול בהכרח בהוראות המשימה:
+- דרישות אורך: מינימום 800 מילים
+- פורמט הגשה: קובץ Word (.docx) או מצגת PowerPoint
+- תאריך הגשה ודרישות טכניות נוספות
 
-אנא צור מטלה איכותית ומקצועית שתאפשר הערכה מקיפה של הסטודנטים.`;
+כתוב מחוון הערכה מתקדם ומפורט (טבלה) שכולל קריטריונים ספציפיים לכל אחד מהרכיבים הפדגוגיים שנבחרו.`;
+
+    const userPrompt = `
+    ${courseContext}
+    ${courseDescription ? `תכני הקורס המפורטים:\n"${courseDescription}"` : ''}
+    
+    **הרכיבים הפדגוגיים שנבחרו:** [${selectedComponents.join(', ')}]
+    
+    **הוראות חובה:**
+    
+    1. **נתח בקפידה את כל תכני הקורס** שסופקו לעיל.
+       ${hasMinimalContent || hasPlaceholderContent 
+         ? `**הוראות מיוחדות - תוכן הקורס חסר או מינימלי:**
+    מכיוון שהמרצה לא סיפק תוכן מפורט, תפקידך כעת הוא לפעול כחוקר פדגוגי ובונה תכניות לימודים.
+    - חפש (בידע הפנימי שלך) סילבוס של קורס דומה באוניברסיטה ישראלית
+    - בחר נושא ספציפי וממוקד אחד מתוך הסילבוס שמצאת
+    - הוסף למטלה בסיס תיאורטי עשיר`
+         : `2. **בחר נושא ספציפי אחד וממוקד** מתוך תכני הקורס שסופקו.`}
+    
+    3. **שלב את כל הרכיבים הפדגוגיים שנבחרו באופן ספציפי ומשמעותי:**
+    
+    **חובה לשלב כל אחד מהרכיבים הבאים במטלה:** ${selectedComponents.join(", ")}
+    
+    **הנחיות מפורטות לשילוב רכיבים פדגוגיים:**
+    ${methodsText}
+    
+    **אסור לך:**
+    - להשתמש בדוגמאות דמיוניות או כלליות - תמיד התבסס על תכנים ספציפיים
+    - ליצור משימות שאינן מתאימות לרמת הקורס או לתחום הלימוד
+    - להתעלם מהתכנים הספציפיים שסופקו
+    - לכתוב הוראות כלליות ולא ספציפיות
+    - לשכוח רכיבים פדגוגיים שנבחרו
+    - ליצור מחוון חלקי או לא מפורט
+    
+    **הפלט בעברית בפורמט HTML נקי וארגון מסודר** ללא תגי HTML מיותרים בתחילה או בסוף.`;
 
     const messages = [
       { role: 'system', content: systemPrompt },
@@ -342,12 +375,16 @@ ${methodsText}
 
     // Extract content from AI response
     let generatedContent = '';
+    let rawContent = '';
+    
     if (result?.data?.choices?.[0]?.message?.content) {
       // OpenAI format
-      generatedContent = result.data.choices[0].message.content;
+      rawContent = result.data.choices[0].message.content;
+      generatedContent = rawContent;
     } else if (result?.data?.content?.[0]?.text) {
       // Claude format  
-      generatedContent = result.data.content[0].text;
+      rawContent = result.data.content[0].text;
+      generatedContent = rawContent;
     } else {
       // Use local fallback
       console.log('Using high-quality local fallback');
@@ -381,6 +418,10 @@ ${methodsText}
       selectedMethods, 
       provider
     );
+
+    // Use the raw HTML content as the main rubricHtml (full assignment HTML)
+    // This matches what the frontend expects from the old claudeAssignmentGenerator
+    structuredAssignment.rubricHtml = generatedContent || structuredAssignment.rubricHtml;
 
     console.log(`✅ Assignment generated successfully using ${provider}`);
 
