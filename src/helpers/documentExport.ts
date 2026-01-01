@@ -200,6 +200,8 @@ export interface ExportOptions {
   courseName?: string;
   faculty?: string;
   department?: string;
+  apa7References?: string[];
+  groundingMode?: "uploaded" | "web" | "hybrid";
 }
 
 interface SavedAssignment {
@@ -245,10 +247,44 @@ export async function exportToWord(options: ExportOptions): Promise<void> {
       spacing: { after: 400 },
     });
 
+    // Add grounding mode info if available
+    const children: (Paragraph | Table)[] = [titleParagraph, metadataParagraph, ...docxElements];
+    
+    if (options.groundingMode) {
+      const groundingText = options.groundingMode === 'uploaded' 
+        ? 'מצב בסיס: חומר שהועלה'
+        : options.groundingMode === 'web'
+        ? 'מצב בסיס: חיפוש באינטרנט'
+        : 'מצב בסיס: היברידי';
+      const groundingParagraph = new Paragraph({
+        children: [new TextRun({ text: groundingText, italics: true, size: 20 })],
+        spacing: { after: 200 },
+      });
+      children.push(groundingParagraph);
+    }
+
+    // Add APA7 references if available
+    if (options.apa7References && options.apa7References.length > 0) {
+      const referencesTitle = new Paragraph({
+        children: [new TextRun({ text: 'References (APA 7)', bold: true, size: 28 })],
+        spacing: { before: 400, after: 200 },
+      });
+      children.push(referencesTitle);
+
+      options.apa7References.forEach((ref, idx) => {
+        const refParagraph = new Paragraph({
+          children: [new TextRun({ text: `${idx + 1}. ${ref}`, size: 22 })],
+          spacing: { after: 120 },
+          indent: { left: 400, hanging: 400 },
+        });
+        children.push(refParagraph);
+      });
+    }
+
     const doc = new Document({
       sections: [
         {
-          children: [titleParagraph, metadataParagraph, ...docxElements],
+          children,
         },
       ],
     });

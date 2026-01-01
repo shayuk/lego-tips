@@ -68,6 +68,28 @@ export interface ServerStatus {
   };
 }
 
+// Scholarly source interface
+export interface ScholarlySource {
+  id: string;
+  title: string;
+  authors: string[];
+  year: number | null;
+  venue: string | null;
+  doi: string | null;
+  isbn: string | null;
+  url: string | null;
+  abstractText: string | null;
+  credibilityScore: number;
+  relevanceScore: number;
+}
+
+// Material quality report interface
+export interface MaterialQualityReport {
+  quality: "good" | "thin" | "mismatched";
+  reasons: string[];
+  coverageScore: number;
+}
+
 // Structured assignment response from the new API
 export interface StructuredAssignment {
   title: string;
@@ -84,6 +106,10 @@ export interface StructuredAssignment {
   generatedAt: string;
   estimatedHours?: number;
   difficulty?: string;
+  groundingMode?: "uploaded" | "web" | "hybrid";
+  sourcesUsed?: ScholarlySource[];
+  apa7References?: string[];
+  materialQualityReport?: MaterialQualityReport;
 }
 
 export interface AIResponse {

@@ -186,6 +186,64 @@ app.post('/api/generate-assignment', async (req, res) => {
       ? selectedMethods.map(m => `- ${m.title}: ${m.description || ''}`).join('\n')
       : 'שיטות הוראה מגוונות';
 
+    // STEP 1: Assess material quality (simplified version for server.js)
+    const userRequestText = `${courseName} ${faculty || ''} ${department || ''} ${courseDescription || ''}`.trim();
+    const materialText = courseDescription || '';
+    let qualityReport = { quality: "good", reasons: ["החומר שהועלה מספק ורלוונטי"], coverageScore: 1.0 };
+    if (materialText.length < 50) {
+      qualityReport = { quality: "thin", reasons: ["החומר שהועלה קצר מדי או ריק"], coverageScore: 0 };
+    } else if (materialText.length < 200) {
+      qualityReport = { quality: "thin", reasons: ["החומר שהועלה דל"], coverageScore: 0.3 };
+    }
+
+    // STEP 2: Scholarly Web Fallback if needed
+    let scholarlySources = [];
+    let groundingMode = "uploaded";
+    if (qualityReport.quality !== "good") {
+      console.log(`[QualityGate] Material quality insufficient (${qualityReport.quality}), searching scholarly sources...`);
+      try {
+        const axios = require('axios');
+        const searchQuery = `${courseName} ${courseDescription || ''}`.trim();
+        const DENY_DOMAINS = ['wikipedia.org', 'wikimedia.org', 'medium.com', 'substack.com', 'blogspot.com', 'wordpress.com', 'coursehero.com', 'studocu.com'];
+        const ACADEMIC_TYPES = ['journal-article', 'book', 'book-chapter', 'report', 'dissertation'];
+        const url = `https://api.openalex.org/works?search=${encodeURIComponent(searchQuery)}&per_page=20&filter=type:${ACADEMIC_TYPES.join('|')}&sort=relevance_score:desc`;
+        const response = await axios.get(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'Pedagogical-Lego/1.0' }, timeout: 10000 });
+        const works = response.data.results || [];
+        for (const work of works) {
+          const landingUrl = work.open_access?.oa_url || work.primary_location?.landing_page_url || (work.doi ? `https://doi.org/${work.doi}` : null);
+          if (landingUrl) {
+            try {
+              const domain = new URL(landingUrl).hostname.toLowerCase();
+              if (DENY_DOMAINS.some(denied => domain.includes(denied))) continue;
+            } catch {}
+          }
+          const authors = (work.authorships || []).slice(0, 5).map(auth => auth.author?.display_name || 'Unknown').filter(Boolean);
+          const year = work.publication_date ? parseInt(work.publication_date.split('-')[0]) : null;
+          const yearValid = year && year > 1900 && year <= new Date().getFullYear() + 1 ? year : null;
+          scholarlySources.push({
+            id: work.id || work.doi || `work_${Math.random().toString(36).substr(2, 9)}`,
+            title: work.title || 'Untitled',
+            authors: authors.length > 0 ? authors : ['Unknown'],
+            year: yearValid,
+            venue: work.primary_location?.source?.display_name || work.locations?.[0]?.source?.display_name || null,
+            doi: work.doi ? work.doi.replace('https://doi.org/', '') : null,
+            isbn: null,
+            url: landingUrl,
+            abstractText: work.abstract || null,
+            credibilityScore: 0.8,
+            relevanceScore: 0.7
+          });
+          if (scholarlySources.length >= 8) break;
+        }
+        if (scholarlySources.length > 0) {
+          groundingMode = qualityReport.quality === "mismatched" ? "web" : "hybrid";
+          console.log(`[ScholarlySearch] Found ${scholarlySources.length} sources, using ${groundingMode} mode`);
+        }
+      } catch (error) {
+        console.warn(`[ScholarlySearch] Error: ${error.message}`);
+      }
+    }
+
     // Check if content is minimal
     const hasMinimalContent = !courseDescription || courseDescription.trim().length < 5;
     const hasPlaceholderContent = courseDescription?.includes('לא הועלה תוכן קורס ספציפי');
@@ -218,21 +276,37 @@ app.post('/api/generate-assignment', async (req, res) => {
 
 כתוב מחוון הערכה מתקדם ומפורט (טבלה) שכולל קריטריונים ספציפיים לכל אחד מהרכיבים הפדגוגיים שנבחרו.`;
 
+    // Build user prompt based on grounding mode
+    let materialSection = '';
+    if (groundingMode === "uploaded" && courseDescription) {
+      materialSection = `תכני הקורס המפורטים:\n"${courseDescription}"`;
+    } else if (groundingMode === "web" && scholarlySources.length > 0) {
+      const sourcesText = scholarlySources.map((src, idx) => 
+        `${idx + 1}. ${src.title} (${src.authors.slice(0, 2).join(', ')}${src.year ? `, ${src.year}` : ''})${src.abstractText ? `\n   תקציר: ${src.abstractText.substring(0, 300)}...` : ''}`
+      ).join('\n\n');
+      materialSection = `**מקורות אקדמיים שנמצאו (התבסס רק עליהם):**\n\n${sourcesText}\n\n**חשוב:** בנה מטלה ספציפית לפי הבקשה. אל תכתוב גנרי. התבסס רק על המקורות המצורפים.`;
+    } else if (groundingMode === "hybrid") {
+      const sourcesText = scholarlySources.map((src, idx) => 
+        `${idx + 1}. ${src.title} (${src.authors.slice(0, 2).join(', ')}${src.year ? `, ${src.year}` : ''})${src.abstractText ? `\n   תקציר: ${src.abstractText.substring(0, 200)}...` : ''}`
+      ).join('\n\n');
+      materialSection = `תכני הקורס שהועלו:\n"${courseDescription || ''}"\n\n**מקורות אקדמיים נוספים:**\n\n${sourcesText}`;
+    }
+
     const userPrompt = `
     ${courseContext}
-    ${courseDescription ? `תכני הקורס המפורטים:\n"${courseDescription}"` : ''}
+    ${materialSection}
     
     **הרכיבים הפדגוגיים שנבחרו:** [${selectedComponents.join(', ')}]
     
     **הוראות חובה:**
     
-    1. **נתח בקפידה את כל תכני הקורס** שסופקו לעיל.
-       ${hasMinimalContent || hasPlaceholderContent 
+    1. **נתח בקפידה את כל התכנים** שסופקו לעיל.
+       ${hasMinimalContent || hasPlaceholderContent || groundingMode === "web"
          ? `**הוראות מיוחדות - תוכן הקורס חסר או מינימלי:**
-    מכיוון שהמרצה לא סיפק תוכן מפורט, תפקידך כעת הוא לפעול כחוקר פדגוגי ובונה תכניות לימודים.
-    - חפש (בידע הפנימי שלך) סילבוס של קורס דומה באוניברסיטה ישראלית
-    - בחר נושא ספציפי וממוקד אחד מתוך הסילבוס שמצאת
-    - הוסף למטלה בסיס תיאורטי עשיר`
+    ${groundingMode === "web" ? 'התבסס על המקורות האקדמיים שנמצאו לעיל.' : 'מכיוון שהמרצה לא סיפק תוכן מפורט, תפקידך כעת הוא לפעול כחוקר פדגוגי ובונה תכניות לימודים.'}
+    - בחר נושא ספציפי וממוקד אחד
+    - הוסף למטלה בסיס תיאורטי עשיר
+    ${groundingMode === "web" ? '- הוסף בסוף המטלה סעיף "מקורות ששימשו" עם רשימת המקורות בפורמט APA 7' : ''}`
          : `2. **בחר נושא ספציפי אחד וממוקד** מתוך תכני הקורס שסופקו.`}
     
     3. **שלב את כל הרכיבים הפדגוגיים שנבחרו באופן ספציפי ומשמעותי:**
@@ -249,6 +323,7 @@ app.post('/api/generate-assignment', async (req, res) => {
     - לכתוב הוראות כלליות ולא ספציפיות
     - לשכוח רכיבים פדגוגיים שנבחרו
     - ליצור מחוון חלקי או לא מפורט
+    ${groundingMode === "web" ? '- להמציא מקורות שלא סופקו' : ''}
     
     **הפלט בעברית בפורמט HTML נקי וארגון מסודר** ללא תגי HTML מיותרים בתחילה או בסוף.`;
 
@@ -322,9 +397,41 @@ app.post('/api/generate-assignment', async (req, res) => {
     );
 
     // Use the raw HTML content as the main rubricHtml (full assignment HTML)
-    structuredAssignment.rubricHtml = generatedContent || structuredAssignment.rubricHtml;
+    // Use the raw HTML content if it looks like HTML, otherwise trust the parser's output.
+    const trimmed = (generatedContent || "").trimStart();
+    const looksLikeHtml =
+      trimmed.startsWith("<") &&
+      /<(table|tbody|thead|tr|td|th|div|p|ul|ol|h\d)\b/i.test(trimmed);
 
-    console.log(`✅ Assignment generated successfully using ${provider}`);
+    if (looksLikeHtml) {
+      structuredAssignment.rubricHtml = generatedContent;
+    }
+
+    // Add grounding metadata
+    structuredAssignment.groundingMode = groundingMode;
+    structuredAssignment.materialQualityReport = qualityReport;
+    if (scholarlySources.length > 0) {
+      structuredAssignment.sourcesUsed = scholarlySources;
+      // Format APA7 references
+      const apa7Refs = scholarlySources.map(source => {
+        const authors = source.authors.length > 0
+          ? source.authors.length === 1
+            ? source.authors[0]
+            : source.authors.length <= 7
+            ? source.authors.slice(0, -1).join(', ') + ', & ' + source.authors[source.authors.length - 1]
+            : source.authors.slice(0, 6).join(', ') + ', ... ' + source.authors[source.authors.length - 1]
+          : 'Unknown';
+        const year = source.year ? ` (${source.year})` : ' (n.d.)';
+        const title = source.title ? `. ${source.title}` : '';
+        const venue = source.venue ? `. ${source.venue}` : '';
+        const doi = source.doi ? ` https://doi.org/${source.doi}` : '';
+        const url = !source.doi && source.url ? ` ${source.url}` : '';
+        return `${authors}${year}${title}${venue}${doi}${url}`;
+      });
+      structuredAssignment.apa7References = apa7Refs;
+    }
+
+    console.log(`✅ Assignment generated successfully using ${provider}, mode: ${groundingMode}`);
 
     res.json({
       success: true,

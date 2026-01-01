@@ -5,6 +5,8 @@ import { Button } from '../../../components/Button'; // נתיב מתוקן
 import { exportToWord, saveToPersonalLibrary, saveToSharedArchive, ExportOptions } from '../../../helpers/documentExport'; // נתיב מתוקן
 import styles from '../../../components/AssessmentGenerator.module.css';
 
+import { ScholarlySource, MaterialQualityReport } from '../../../helpers/secureApiClient';
+
 // הגדרת ה-props שהרכיב יקבל
 interface GeneratedAssessmentDisplayProps {
   /** מחרוזת ה-HTML המלאה שנוצרה על ידי ה-AI */
@@ -23,6 +25,14 @@ interface GeneratedAssessmentDisplayProps {
     faculty?: string;
     department?: string;
   };
+  /** מצב הבסיס (uploaded/web/hybrid) */
+  groundingMode?: "uploaded" | "web" | "hybrid";
+  /** מקורות אקדמיים ששימשו */
+  sourcesUsed?: ScholarlySource[];
+  /** הפניות APA7 */
+  apa7References?: string[];
+  /** דוח איכות חומרים */
+  materialQualityReport?: MaterialQualityReport;
 }
 
 /**
@@ -36,6 +46,10 @@ export const GeneratedAssessmentDisplay: React.FC<GeneratedAssessmentDisplayProp
   onRetry,
   className,
   courseDetails,
+  groundingMode,
+  sourcesUsed = [],
+  apa7References = [],
+  materialQualityReport,
 }) => {
   console.log(`🎨 [GeneratedAssessmentDisplay] Rendering with content length: ${htmlContent?.length || 0}`);
 
@@ -63,6 +77,8 @@ export const GeneratedAssessmentDisplay: React.FC<GeneratedAssessmentDisplayProp
     courseName: courseDetails?.courseName,
     faculty: courseDetails?.faculty,
     department: courseDetails?.department,
+    apa7References,
+    groundingMode,
   };
 
   // פונקציית עזר להדפסה
@@ -274,6 +290,86 @@ export const GeneratedAssessmentDisplay: React.FC<GeneratedAssessmentDisplayProp
         className={styles.content}
         dangerouslySetInnerHTML={{ __html: cleanHtml }}
       />
+
+      {/* הצגת מקורות ואיכות חומרים */}
+      {(groundingMode || sourcesUsed.length > 0 || materialQualityReport) && (
+        <div style={{
+          marginTop: '2rem',
+          padding: '1.5rem',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '8px',
+          border: '1px solid #e5e5e5'
+        }}>
+          <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 'bold' }}>
+            מידע על המקורות
+          </h3>
+          
+          {groundingMode && (
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>מצב בסיס:</strong>{' '}
+              <span style={{
+                padding: '0.25rem 0.5rem',
+                borderRadius: '4px',
+                backgroundColor: groundingMode === 'uploaded' ? '#e8f5e9' : groundingMode === 'web' ? '#fff3e0' : '#e3f2fd',
+                color: groundingMode === 'uploaded' ? '#2e7d32' : groundingMode === 'web' ? '#e65100' : '#1976d2'
+              }}>
+                {groundingMode === 'uploaded' ? 'חומר שהועלה' : groundingMode === 'web' ? 'חיפוש באינטרנט' : 'היברידי'}
+              </span>
+              {materialQualityReport && (
+                <span style={{ marginRight: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                  ({materialQualityReport.reasons.join('; ')})
+                </span>
+              )}
+            </div>
+          )}
+
+          {sourcesUsed.length > 0 && (
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>מקורות ששימשו ({sourcesUsed.length}):</strong>
+              <ul style={{ marginTop: '0.5rem', paddingRight: '1.5rem' }}>
+                {sourcesUsed.map((source, idx) => (
+                  <li key={source.id || idx} style={{ marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                    {source.authors.slice(0, 2).join(', ')}
+                    {source.year && ` (${source.year})`}
+                    {'. '}
+                    <strong>{source.title}</strong>
+                    {source.venue && `. ${source.venue}`}
+                    {source.doi && (
+                      <span style={{ marginRight: '0.5rem' }}>
+                        {' '}
+                        <a href={`https://doi.org/${source.doi}`} target="_blank" rel="noopener noreferrer" style={{ color: '#1976d2' }}>
+                          DOI
+                        </a>
+                      </span>
+                    )}
+                    {source.url && !source.doi && (
+                      <span style={{ marginRight: '0.5rem' }}>
+                        {' '}
+                        <a href={source.url} target="_blank" rel="noopener noreferrer" style={{ color: '#1976d2' }}>
+                          קישור
+                        </a>
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {apa7References.length > 0 && (
+            <div>
+              <strong>הפניות (APA 7):</strong>
+              <ol style={{ marginTop: '0.5rem', paddingRight: '1.5rem', fontSize: '0.9rem' }}>
+                {apa7References.map((ref, idx) => (
+                  <li key={idx} style={{ marginBottom: '0.5rem', textAlign: 'right' }}>
+                    {ref}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* כותרת תחתונה המציגה את מקור המידע */}
       <footer style={{

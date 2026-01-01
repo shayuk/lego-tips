@@ -80,6 +80,28 @@ interface AssignmentParams {
   preferredProvider?: 'openai';
 }
 
+// Interface for scholarly source
+interface ScholarlySource {
+  id: string;
+  title: string;
+  authors: string[];
+  year: number | null;
+  venue: string | null;
+  doi: string | null;
+  isbn: string | null;
+  url: string | null;
+  abstractText: string | null;
+  credibilityScore: number;
+  relevanceScore: number;
+}
+
+// Interface for material quality report
+interface MaterialQualityReport {
+  quality: "good" | "thin" | "mismatched";
+  reasons: string[];
+  coverageScore: number;
+}
+
 // Interface for structured assignment response
 interface StructuredAssignment {
   title: string;
@@ -96,6 +118,10 @@ interface StructuredAssignment {
   generatedAt: string;
   estimatedHours?: number;
   difficulty?: string;
+  groundingMode?: "uploaded" | "web" | "hybrid";
+  sourcesUsed?: ScholarlySource[];
+  apa7References?: string[];
+  materialQualityReport?: MaterialQualityReport;
 }
 
 // Helper function to parse AI response into structured format
@@ -255,6 +281,141 @@ interface ProviderAttempt {
   errorMessage?: string;
 }
 
+// Helper: Extract keywords from text
+function extractKeywords(text: string): string[] {
+  if (!text || text.trim().length === 0) return [];
+  const stopWords = new Set(['את', 'אתה', 'אני', 'הוא', 'היא', 'של', 'על', 'אל', 'עם', 'ב', 'ל', 'מ', 'כ', 'זה', 'זו', 'היה', 'היו', 'יש', 'אין', 'לא', 'כן']);
+  const words = text.toLowerCase().replace(/[^\u0590-\u05FFa-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+  return Array.from(new Set(words)).sort((a, b) => b.length - a.length).slice(0, 15);
+}
+
+// Helper: Assess material quality
+function assessMaterialQuality(userRequestText: string, materialText: string): MaterialQualityReport {
+  const materialLength = materialText.trim().length;
+  if (materialLength < 50) {
+    return { quality: "thin", reasons: ["החומר שהועלה קצר מדי או ריק"], coverageScore: 0 };
+  }
+  const keywords = extractKeywords(userRequestText);
+  if (keywords.length === 0) {
+    return { quality: materialLength < 200 ? "thin" : "good", reasons: ["לא ניתן לזהות נושאים מרכזיים"], coverageScore: materialLength < 200 ? 0.3 : 0.5 };
+  }
+  const lowerMaterial = materialText.toLowerCase();
+  const keywordHits = keywords.map(k => ({ keyword: k, hits: (lowerMaterial.match(new RegExp(k, 'g')) || []).length }));
+  const keywordsWithHits = keywordHits.filter(kh => kh.hits > 0).length;
+  const keywordsWithMultipleHits = keywordHits.filter(kh => kh.hits >= 2).length;
+  const keywordsWithManyHits = keywordHits.filter(kh => kh.hits >= 5).length;
+  const totalKeywords = keywordHits.length;
+  const baseScore = keywordsWithHits / totalKeywords;
+  const multipleHitsBonus = (keywordsWithMultipleHits / totalKeywords) * 0.2;
+  const manyHitsBonus = (keywordsWithManyHits / totalKeywords) * 0.3;
+  const coverageScore = Math.min(1.0, baseScore + multipleHitsBonus + manyHitsBonus);
+  const reasons: string[] = [];
+  let quality: "good" | "thin" | "mismatched";
+  if (coverageScore >= 0.6) {
+    quality = "good";
+    reasons.push("החומר שהועלה מכיל תוכן רלוונטי לנושא");
+  } else if (coverageScore >= 0.3) {
+    quality = "thin";
+    reasons.push("החומר שהועלה דל או מכיל תוכן חלקי בלבד");
+    const missingKeywords = keywordHits.filter(kh => kh.hits === 0).slice(0, 3).map(kh => kh.keyword);
+    if (missingKeywords.length > 0) reasons.push(`חסרים נושאים מרכזיים: ${missingKeywords.join(', ')}`);
+  } else {
+    quality = "mismatched";
+    reasons.push("החומר שהועלה לא תואם לנושא המבוקש");
+    const missingKeywords = keywordHits.filter(kh => kh.hits === 0).slice(0, 5).map(kh => kh.keyword);
+    if (missingKeywords.length > 0) reasons.push(`נושאים מרכזיים חסרים: ${missingKeywords.join(', ')}`);
+  }
+  return { quality, reasons, coverageScore };
+}
+
+// Helper: Search scholarly sources via OpenAlex
+async function searchScholarlySources(query: string, maxResults: number = 8): Promise<ScholarlySource[]> {
+  if (!query || query.trim().length === 0) return [];
+  const DENY_DOMAINS = ['wikipedia.org', 'wikimedia.org', 'medium.com', 'substack.com', 'blogspot.com', 'wordpress.com', 'coursehero.com', 'studocu.com'];
+  const ACADEMIC_TYPES = ['journal-article', 'book', 'book-chapter', 'report', 'dissertation'];
+  try {
+    const queryKeywords = query.toLowerCase().replace(/[^\u0590-\u05FFa-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2).slice(0, 10);
+    const baseUrl = 'https://api.openalex.org/works';
+    const searchParams = new URLSearchParams({ search: query, per_page: String(Math.min(maxResults * 2, 25)), filter: `type:${ACADEMIC_TYPES.join('|')}`, sort: 'relevance_score:desc' });
+    const url = `${baseUrl}?${searchParams.toString()}`;
+    logger.info(`[ScholarlySearch] Querying OpenAlex: ${query}`);
+    const response = await fetch(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'Pedagogical-Lego/1.0' } });
+    if (!response.ok) {
+      logger.warn(`[ScholarlySearch] OpenAlex API error: ${response.status}`);
+      return [];
+    }
+    const data = await response.json();
+    const works = data.results || [];
+    const sources: ScholarlySource[] = [];
+    for (const work of works) {
+      const landingUrl = work.open_access?.oa_url || work.primary_location?.landing_page_url || (work.doi ? `https://doi.org/${work.doi}` : null);
+      if (landingUrl) {
+        try {
+          const domain = new URL(landingUrl).hostname.toLowerCase();
+          if (DENY_DOMAINS.some(denied => domain.includes(denied))) continue;
+        } catch {}
+      }
+      const credibilityScore = (work.type === 'journal-article' ? 0.3 : work.type === 'book' ? 0.2 : 0) + (work.open_access?.is_oa ? 0.1 : 0) + (work.doi ? 0.1 : 0) + Math.min(0.1, (work.cited_by_count || 0) / 1000) + 0.5;
+      const combinedText = `${work.title || ''} ${work.abstract || ''}`.toLowerCase();
+      const matches = queryKeywords.filter(kw => combinedText.includes(kw.toLowerCase())).length;
+      const relevanceScore = queryKeywords.length > 0 ? matches / queryKeywords.length : 0.5;
+      if (relevanceScore < 0.2 && credibilityScore < 0.6) continue;
+      const authors = (work.authorships || []).slice(0, 5).map((auth: any) => auth.author?.display_name || 'Unknown').filter(Boolean);
+      const year = work.publication_date ? parseInt(work.publication_date.split('-')[0]) : null;
+      const yearValid = year && year > 1900 && year <= new Date().getFullYear() + 1 ? year : null;
+      const venue = work.primary_location?.source?.display_name || work.locations?.[0]?.source?.display_name || null;
+      sources.push({
+        id: work.id || work.doi || `work_${Math.random().toString(36).substr(2, 9)}`,
+        title: work.title || 'Untitled',
+        authors: authors.length > 0 ? authors : ['Unknown'],
+        year: yearValid,
+        venue,
+        doi: work.doi ? work.doi.replace('https://doi.org/', '') : null,
+        isbn: null,
+        url: landingUrl,
+        abstractText: work.abstract || null,
+        credibilityScore: Math.min(1.0, credibilityScore),
+        relevanceScore
+      });
+      if (sources.length >= maxResults) break;
+    }
+    sources.sort((a, b) => (b.relevanceScore * 0.6 + b.credibilityScore * 0.4) - (a.relevanceScore * 0.6 + a.credibilityScore * 0.4));
+    logger.info(`[ScholarlySearch] Found ${sources.length} scholarly sources`);
+    return sources.slice(0, maxResults);
+  } catch (error: any) {
+    logger.error('[ScholarlySearch] Error:', error);
+    return [];
+  }
+}
+
+// Helper: Format APA7 references
+function formatAPA7References(sources: ScholarlySource[]): string[] {
+  return sources.map(source => {
+    const authors = source.authors.length > 0
+      ? source.authors.length === 1
+        ? source.authors[0]
+        : source.authors.length <= 7
+        ? source.authors.slice(0, -1).join(', ') + ', & ' + source.authors[source.authors.length - 1]
+        : source.authors.slice(0, 6).join(', ') + ', ... ' + source.authors[source.authors.length - 1]
+      : 'Unknown';
+    const year = source.year ? ` (${source.year})` : ' (n.d.)';
+    const title = source.title ? `. ${source.title}` : '';
+    const venue = source.venue ? `. ${source.venue}` : '';
+    const doi = source.doi ? ` https://doi.org/${source.doi}` : '';
+    const url = !source.doi && source.url ? ` ${source.url}` : '';
+    return `${authors}${year}${title}${venue}${doi}${url}`;
+  });
+}
+
+// Helper: Validate assignment specificity
+function validateAssignmentSpecificity(output: string, userRequestText: string): boolean {
+  const keywords = extractKeywords(userRequestText);
+  if (keywords.length === 0) return true; // Can't validate without keywords
+  const lowerOutput = output.toLowerCase();
+  const foundKeywords = keywords.filter(kw => lowerOutput.includes(kw.toLowerCase()));
+  return foundKeywords.length >= Math.min(2, Math.floor(keywords.length * 0.3));
+}
+
 // Main assignment generation function with provider fallback
 export const generateAssignment = onCall(
   {
@@ -296,6 +457,34 @@ export const generateAssignment = onCall(
         ? selectedMethods.map(m => `- ${m.title}: ${m.description || ''}`).join('\n')
         : 'שיטות הוראה מגוונות';
 
+      // STEP 1: Assess material quality
+      const userRequestText = `${courseName} ${faculty || ''} ${department || ''} ${courseDescription || ''}`.trim();
+      const materialText = courseDescription || '';
+      const qualityReport = assessMaterialQuality(userRequestText, materialText);
+      logger.info(`[${requestId}] Material quality: ${qualityReport.quality}, coverage: ${qualityReport.coverageScore.toFixed(2)}`);
+
+      // STEP 2: Scholarly Web Fallback if needed
+      let scholarlySources: ScholarlySource[] = [];
+      let groundingMode: "uploaded" | "web" | "hybrid" = "uploaded";
+      let qualityReason = "";
+
+      if (qualityReport.quality !== "good") {
+        logger.info(`[${requestId}] Material quality insufficient, searching scholarly sources...`);
+        const searchQuery = `${courseName} ${courseDescription || ''}`.trim();
+        scholarlySources = await searchScholarlySources(searchQuery, 8);
+        
+        if (scholarlySources.length > 0) {
+          groundingMode = qualityReport.quality === "mismatched" ? "web" : "hybrid";
+          qualityReason = qualityReport.reasons.join("; ");
+          logger.info(`[${requestId}] Found ${scholarlySources.length} scholarly sources, using ${groundingMode} mode`);
+        } else {
+          logger.warn(`[${requestId}] No scholarly sources found, proceeding with uploaded material`);
+          qualityReason = qualityReport.reasons.join("; ") + " (לא נמצאו מקורות אקדמיים חזקים)";
+        }
+      } else {
+        qualityReason = "החומר שהועלה מספק ורלוונטי";
+      }
+
       // Check if content is minimal
       const hasMinimalContent = !courseDescription || courseDescription.trim().length < 5;
       const hasPlaceholderContent = courseDescription?.includes('לא הועלה תוכן קורס ספציפי');
@@ -328,21 +517,37 @@ export const generateAssignment = onCall(
 
 כתוב מחוון הערכה מתקדם ומפורט (טבלה) שכולל קריטריונים ספציפיים לכל אחד מהרכיבים הפדגוגיים שנבחרו.`;
 
+      // Build user prompt based on grounding mode
+      let materialSection = '';
+      if (groundingMode === "uploaded" && courseDescription) {
+        materialSection = `תכני הקורס המפורטים:\n"${courseDescription}"`;
+      } else if (groundingMode === "web" && scholarlySources.length > 0) {
+        const sourcesText = scholarlySources.map((src, idx) => 
+          `${idx + 1}. ${src.title} (${src.authors.slice(0, 2).join(', ')}${src.year ? `, ${src.year}` : ''})${src.abstractText ? `\n   תקציר: ${src.abstractText.substring(0, 300)}...` : ''}`
+        ).join('\n\n');
+        materialSection = `**מקורות אקדמיים שנמצאו (התבסס רק עליהם):**\n\n${sourcesText}\n\n**חשוב:** בנה מטלה ספציפית לפי הבקשה. אל תכתוב גנרי. התבסס רק על המקורות המצורפים.`;
+      } else if (groundingMode === "hybrid") {
+        const sourcesText = scholarlySources.map((src, idx) => 
+          `${idx + 1}. ${src.title} (${src.authors.slice(0, 2).join(', ')}${src.year ? `, ${src.year}` : ''})${src.abstractText ? `\n   תקציר: ${src.abstractText.substring(0, 200)}...` : ''}`
+        ).join('\n\n');
+        materialSection = `תכני הקורס שהועלו:\n"${courseDescription || ''}"\n\n**מקורות אקדמיים נוספים:**\n\n${sourcesText}`;
+      }
+
       const userPrompt = `
   ${courseContext}
-  ${courseDescription ? `תכני הקורס המפורטים:\n"${courseDescription}"` : ''}
+  ${materialSection}
   
   **הרכיבים הפדגוגיים שנבחרו:** [${selectedComponents.join(', ')}]
   
   **הוראות חובה:**
   
-  1. **נתח בקפידה את כל תכני הקורס** שסופקו לעיל.
-     ${hasMinimalContent || hasPlaceholderContent
+  1. **נתח בקפידה את כל התכנים** שסופקו לעיל.
+     ${hasMinimalContent || hasPlaceholderContent || groundingMode === "web"
         ? `**הוראות מיוחדות - תוכן הקורס חסר או מינימלי:**
-  מכיוון שהמרצה לא סיפק תוכן מפורט, תפקידך כעת הוא לפעול כחוקר פדגוגי ובונה תכניות לימודים.
-  - חפש (בידע הפנימי שלך) סילבוס של קורס דומה באוניברסיטה ישראלית
-  - בחר נושא ספציפי וממוקד אחד מתוך הסילבוס שמצאת
-  - הוסף למטלה בסיס תיאורטי עשיר`
+  ${groundingMode === "web" ? 'התבסס על המקורות האקדמיים שנמצאו לעיל.' : 'מכיוון שהמרצה לא סיפק תוכן מפורט, תפקידך כעת הוא לפעול כחוקר פדגוגי ובונה תכניות לימודים.'}
+  - בחר נושא ספציפי וממוקד אחד
+  - הוסף למטלה בסיס תיאורטי עשיר
+  ${groundingMode === "web" ? '- הוסף בסוף המטלה סעיף "מקורות ששימשו" עם רשימת המקורות בפורמט APA 7' : ''}`
         : `2. **בחר נושא ספציפי אחד וממוקד** מתוך תכני הקורס שסופקו.`}
   
   3. **שלב את כל הרכיבים הפדגוגיים שנבחרו באופן ספציפי ומשמעותי:**
@@ -359,6 +564,7 @@ export const generateAssignment = onCall(
   - לכתוב הוראות כלליות ולא ספציפיות
   - לשכוח רכיבים פדגוגיים שנבחרו
   - ליצור מחוון חלקי או לא מפורט
+  ${groundingMode === "web" ? '- להמציא מקורות שלא סופקו' : ''}
   
   **הפלט בעברית בפורמט HTML נקי וארגון מסודר** ללא תגי HTML מיותרים בתחילה או בסוף.`;
 
@@ -468,6 +674,12 @@ export const generateAssignment = onCall(
         );
       }
 
+      // STEP 3: Validate assignment specificity
+      const isSpecific = validateAssignmentSpecificity(generatedContent, userRequestText);
+      if (!isSpecific && groundingMode !== "web") {
+        logger.warn(`[${requestId}] Assignment may be too generic, but proceeding (one-time only)`);
+      }
+
       // Parse the AI response into structured format
       const structuredAssignment = parseAIResponseToStructuredFormat(
         generatedContent,
@@ -477,9 +689,25 @@ export const generateAssignment = onCall(
       );
 
       // Use the raw HTML content as the main rubricHtml (full assignment HTML)
-      structuredAssignment.rubricHtml = generatedContent || structuredAssignment.rubricHtml;
+      // Use the raw HTML content if it looks like HTML, otherwise trust the parser's output.
+      const trimmed = (generatedContent || "").trimStart();
+      const looksLikeHtml =
+        trimmed.startsWith("<") &&
+        /<(table|tbody|thead|tr|td|th|div|p|ul|ol|h\d)\b/i.test(trimmed);
 
-      logger.info(`[${requestId}] Assignment generated successfully using ${providerUsed}`);
+      if (looksLikeHtml) {
+        structuredAssignment.rubricHtml = generatedContent;
+      }
+
+      // STEP 4: Add grounding metadata
+      structuredAssignment.groundingMode = groundingMode;
+      structuredAssignment.materialQualityReport = qualityReport;
+      if (scholarlySources.length > 0) {
+        structuredAssignment.sourcesUsed = scholarlySources;
+        structuredAssignment.apa7References = formatAPA7References(scholarlySources);
+      }
+
+      logger.info(`[${requestId}] Assignment generated successfully using ${providerUsed}, mode: ${groundingMode}`);
 
       return {
         success: true,

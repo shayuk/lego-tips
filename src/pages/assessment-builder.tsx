@@ -147,6 +147,10 @@ export default function AssessmentBuilderPage() {
     modelUsed,
     loadingState,
     error,
+    groundingMode,
+    sourcesUsed,
+    apa7References,
+    materialQualityReport,
     getAPIStats
   } = useAssessmentGenerator({
     selectedMethods,
@@ -1179,6 +1183,10 @@ ${generatedAssessment.requirements.map((requirement, index) => `${index + 1}. ${
                 faculty: courseDetails.faculty,
                 department: courseDetails.department,
               }}
+              groundingMode={groundingMode}
+              sourcesUsed={sourcesUsed}
+              apa7References={apa7References}
+              materialQualityReport={materialQualityReport}
               onRetry={() => {
                 console.log('🔄 Retry generation triggered');
                 setShouldGenerateTask(false);
