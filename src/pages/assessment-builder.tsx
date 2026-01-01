@@ -1177,7 +1177,7 @@ ${generatedAssessment.requirements.map((requirement, index) => `${index + 1}. ${
             <GeneratedAssessmentDisplay
               htmlContent={rubricHtml || ''}
               modelUsed={modelUsed || 'Unknown'}
-              createdAt={new Date()} // הוספת תאריך נוכחי
+              createdAt={new Date()}
               courseDetails={{
                 courseName: courseDetails.courseName,
                 faculty: courseDetails.faculty,
