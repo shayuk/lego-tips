@@ -13,7 +13,10 @@ jobs:
       # Step 1: Install dependencies for the main project
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
-        
+
+      - name: Build shared modules
+        run: npm run build:shared
+
       # Step 2: Install dependencies for the functions folder (THIS IS THE FIX)
       - name: Install Function Dependencies
         run: cd functions && npm install
