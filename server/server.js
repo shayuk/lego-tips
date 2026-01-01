@@ -322,7 +322,15 @@ app.post('/api/generate-assignment', async (req, res) => {
     );
 
     // Use the raw HTML content as the main rubricHtml (full assignment HTML)
-    structuredAssignment.rubricHtml = generatedContent || structuredAssignment.rubricHtml;
+    // Use the raw HTML content if it looks like HTML, otherwise trust the parser's output.
+    const trimmed = (generatedContent || "").trimStart();
+    const looksLikeHtml =
+      trimmed.startsWith("<") &&
+      /<(table|tbody|thead|tr|td|th|div|p|ul|ol|h\d)\b/i.test(trimmed);
+
+    if (looksLikeHtml) {
+      structuredAssignment.rubricHtml = generatedContent;
+    }
 
     console.log(`✅ Assignment generated successfully using ${provider}`);
 
