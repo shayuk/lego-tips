@@ -370,7 +370,7 @@ export const generateAssignment = onCall(
         try {
           logger.info(`[${requestId}] Attempting OpenAI generation`);
           const completion = await openaiClient.chat.completions.create({
-            model: 'gpt-4',
+            model: 'gpt-4o',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }

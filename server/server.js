@@ -40,7 +40,7 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID']
 }));
 
 // 📝 Logging
@@ -69,7 +69,7 @@ app.post('/api/openai/generate', async (req, res) => {
       });
     }
 
-    const { messages, model = 'gpt-4', max_tokens = 4000, ...otherParams } = req.body;
+    const { messages, model = 'gpt-4o', max_tokens = 4000, ...otherParams } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ 
@@ -264,7 +264,7 @@ app.post('/api/generate-assignment', async (req, res) => {
     try {
       const openaiResponse = await axios.post(`${req.protocol}://${req.get('host')}/api/openai/generate`, {
         messages,
-        model: 'gpt-4',
+        model: 'gpt-4o',
         max_tokens: 4000,
         temperature: 0.7
       });
