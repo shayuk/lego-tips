@@ -6,6 +6,10 @@ const morgan = require('morgan');
 const axios = require('axios');
 require('dotenv').config();
 
+// Import shared modules
+const { assessMaterialQuality } = require('../shared/lib/materialQuality');
+const { searchScholarlySources, formatAPA7References } = require('../shared/lib/scholarlySearch');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -186,15 +190,11 @@ app.post('/api/generate-assignment', async (req, res) => {
       ? selectedMethods.map(m => `- ${m.title}: ${m.description || ''}`).join('\n')
       : 'שיטות הוראה מגוונות';
 
-    // STEP 1: Assess material quality (simplified version for server.js)
+    // STEP 1: Assess material quality using shared module
     const userRequestText = `${courseName} ${faculty || ''} ${department || ''} ${courseDescription || ''}`.trim();
     const materialText = courseDescription || '';
-    let qualityReport = { quality: "good", reasons: ["החומר שהועלה מספק ורלוונטי"], coverageScore: 1.0 };
-    if (materialText.length < 50) {
-      qualityReport = { quality: "thin", reasons: ["החומר שהועלה קצר מדי או ריק"], coverageScore: 0 };
-    } else if (materialText.length < 200) {
-      qualityReport = { quality: "thin", reasons: ["החומר שהועלה דל"], coverageScore: 0.3 };
-    }
+    const qualityReport = assessMaterialQuality(userRequestText, materialText);
+    console.log(`[QualityGate] Material quality: ${qualityReport.quality}, coverage: ${qualityReport.coverageScore.toFixed(2)}`);
 
     // STEP 2: Scholarly Web Fallback if needed
     let scholarlySources = [];
@@ -202,42 +202,13 @@ app.post('/api/generate-assignment', async (req, res) => {
     if (qualityReport.quality !== "good") {
       console.log(`[QualityGate] Material quality insufficient (${qualityReport.quality}), searching scholarly sources...`);
       try {
-        const axios = require('axios');
         const searchQuery = `${courseName} ${courseDescription || ''}`.trim();
-        const DENY_DOMAINS = ['wikipedia.org', 'wikimedia.org', 'medium.com', 'substack.com', 'blogspot.com', 'wordpress.com', 'coursehero.com', 'studocu.com'];
-        const ACADEMIC_TYPES = ['journal-article', 'book', 'book-chapter', 'report', 'dissertation'];
-        const url = `https://api.openalex.org/works?search=${encodeURIComponent(searchQuery)}&per_page=20&filter=type:${ACADEMIC_TYPES.join('|')}&sort=relevance_score:desc`;
-        const response = await axios.get(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'Pedagogical-Lego/1.0' }, timeout: 10000 });
-        const works = response.data.results || [];
-        for (const work of works) {
-          const landingUrl = work.open_access?.oa_url || work.primary_location?.landing_page_url || (work.doi ? `https://doi.org/${work.doi}` : null);
-          if (landingUrl) {
-            try {
-              const domain = new URL(landingUrl).hostname.toLowerCase();
-              if (DENY_DOMAINS.some(denied => domain.includes(denied))) continue;
-            } catch {}
-          }
-          const authors = (work.authorships || []).slice(0, 5).map(auth => auth.author?.display_name || 'Unknown').filter(Boolean);
-          const year = work.publication_date ? parseInt(work.publication_date.split('-')[0]) : null;
-          const yearValid = year && year > 1900 && year <= new Date().getFullYear() + 1 ? year : null;
-          scholarlySources.push({
-            id: work.id || work.doi || `work_${Math.random().toString(36).substr(2, 9)}`,
-            title: work.title || 'Untitled',
-            authors: authors.length > 0 ? authors : ['Unknown'],
-            year: yearValid,
-            venue: work.primary_location?.source?.display_name || work.locations?.[0]?.source?.display_name || null,
-            doi: work.doi ? work.doi.replace('https://doi.org/', '') : null,
-            isbn: null,
-            url: landingUrl,
-            abstractText: work.abstract || null,
-            credibilityScore: 0.8,
-            relevanceScore: 0.7
-          });
-          if (scholarlySources.length >= 8) break;
-        }
+        scholarlySources = await searchScholarlySources(searchQuery, 8);
         if (scholarlySources.length > 0) {
           groundingMode = qualityReport.quality === "mismatched" ? "web" : "hybrid";
           console.log(`[ScholarlySearch] Found ${scholarlySources.length} sources, using ${groundingMode} mode`);
+        } else {
+          console.warn(`[ScholarlySearch] No scholarly sources found`);
         }
       } catch (error) {
         console.warn(`[ScholarlySearch] Error: ${error.message}`);
@@ -412,23 +383,7 @@ app.post('/api/generate-assignment', async (req, res) => {
     structuredAssignment.materialQualityReport = qualityReport;
     if (scholarlySources.length > 0) {
       structuredAssignment.sourcesUsed = scholarlySources;
-      // Format APA7 references
-      const apa7Refs = scholarlySources.map(source => {
-        const authors = source.authors.length > 0
-          ? source.authors.length === 1
-            ? source.authors[0]
-            : source.authors.length <= 7
-            ? source.authors.slice(0, -1).join(', ') + ', & ' + source.authors[source.authors.length - 1]
-            : source.authors.slice(0, 6).join(', ') + ', ... ' + source.authors[source.authors.length - 1]
-          : 'Unknown';
-        const year = source.year ? ` (${source.year})` : ' (n.d.)';
-        const title = source.title ? `. ${source.title}` : '';
-        const venue = source.venue ? `. ${source.venue}` : '';
-        const doi = source.doi ? ` https://doi.org/${source.doi}` : '';
-        const url = !source.doi && source.url ? ` ${source.url}` : '';
-        return `${authors}${year}${title}${venue}${doi}${url}`;
-      });
-      structuredAssignment.apa7References = apa7Refs;
+      structuredAssignment.apa7References = formatAPA7References(scholarlySources);
     }
 
     console.log(`✅ Assignment generated successfully using ${provider}, mode: ${groundingMode}`);
