@@ -136,17 +136,17 @@ export function buildFallbackRubric(
     {
       name: 'איכות תוכן',
       description: 'עומק הניתוח ורמת ההבנה',
-      levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+      levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
     },
     {
       name: 'מקורות ומחקר',
       description: 'איכות המקורות ושימוש נכון בהם',
-      levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+      levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
     },
     {
       name: 'כתיבה אקדמית',
       description: 'רמת הכתיבה והביטוי האקדמי',
-      levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+      levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
     }
   ];
 
@@ -156,28 +156,28 @@ export function buildFallbackRubric(
       criteria.push({
         name: 'רפלקציה על AI',
         description: 'איכות הניתוח הביקורתי של תגובות ה-AI',
-        levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+        levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
       });
     }
     if (method.title?.includes('עבודה קבוצתית') || method.title?.includes('עבודה בקבוצות')) {
       criteria.push({
         name: 'שיתוף פעולה',
         description: 'יעילות העבודה הקבוצתית והחלוקה ההוגנת',
-        levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+        levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
       });
     }
     if (method.title?.includes('הערכת עמיתים')) {
       criteria.push({
         name: 'איכות הערכת עמיתים',
         description: 'מקצועיות ההערכה והמשוב הבונה',
-        levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+        levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
       });
     }
     if (method.title?.includes('רפלקציה')) {
       criteria.push({
         name: 'רפלקציה אישית',
         description: 'עומק הרפלקציה והקישור האישי',
-        levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+        levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
       });
     }
   });
@@ -194,22 +194,22 @@ export function generateFallbackRubricHtml(criteria: FallbackRubricCriteria[]): 
       <h3 style="color: #1976d2; border-bottom: 2px solid #1976d2; padding-bottom: 5px; margin-bottom: 15px;">
         מחוון הערכה (רובריקה)
       </h3>
-      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+      <table dir="rtl" style="width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         <thead>
           <tr style="background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);">
             <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">קריטריון</th>
-            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">תיאור</th>
-            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">רמות הערכה</th>
+            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע בסיסי (0–7 נקודות)</th>
+            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע מתקדם (8–15 נקודות)</th>
+            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע מיטבי (16–20 נקודות)</th>
           </tr>
         </thead>
         <tbody>
           ${criteria.map((criterion, index) => `
             <tr style="background: ${index % 2 === 0 ? '#fafafa' : '#ffffff'};">
               <td style="border: 1px solid #ddd; padding: 12px; font-weight: bold; color: #333;">${criterion.name}</td>
-              <td style="border: 1px solid #ddd; padding: 12px; color: #666;">${criterion.description}</td>
-              <td style="border: 1px solid #ddd; padding: 12px;">
-                ${criterion.levels.map(level => `<div style="margin: 5px 0; padding: 3px 8px; background: #f0f7ff; border-radius: 4px; color: #1976d2;">${level}</div>`).join('')}
-              </td>
+              <td style="border: 1px solid #ddd; padding: 12px; color: #666;">ביצוע חלקי או לא מספק של הדרישות</td>
+              <td style="border: 1px solid #ddd; padding: 12px; color: #666;">ביצוע טוב של רוב הדרישות</td>
+              <td style="border: 1px solid #ddd; padding: 12px; color: #666;">ביצוע מעולה ומקיף של כל הדרישות</td>
             </tr>
           `).join('')}
         </tbody>

@@ -14,7 +14,10 @@ jobs:
       # שלב 1: התקנת התלויות של הפרויקט הראשי (Frontend)
       - name: Install Frontend Dependencies
         run: npm install --legacy-peer-deps
-        
+
+      - name: Build shared modules
+        run: npm run build:shared
+
       # שלב 2: התקנת התלויות של הפונקציות (Backend) - זה התיקון הקריטי!
       - name: Install Functions Dependencies
         run: cd functions && npm install
