@@ -201,6 +201,47 @@ const useAssessmentGenerator = (params: {
 
       const assignmentData = result.data;
       
+      // STEP 1: Hard validation - fail if structuredAssignment is missing or incomplete
+      if (!assignmentData) {
+        throw new Error('Missing structuredAssignment — generation pipeline mismatch. No data received from API.');
+      }
+
+      // Validate required fields
+      const missingFields: string[] = [];
+      if (!assignmentData.title) missingFields.push('title');
+      if (!assignmentData.rubricHtml) missingFields.push('rubricHtml');
+      
+      // Validate rubricHtml has point ranges
+      const hasPointRanges = assignmentData.rubricHtml?.includes('(0–7 נקודות)') || 
+                              assignmentData.rubricHtml?.includes('(0-7 נקודות)') ||
+                              assignmentData.rubricHtml?.includes('(8–15 נקודות)') ||
+                              assignmentData.rubricHtml?.includes('(8-15 נקודות)') ||
+                              assignmentData.rubricHtml?.includes('(16–20 נקודות)');
+      
+      if (!hasPointRanges && assignmentData.rubricHtml) {
+        console.warn('⚠️ Rubric HTML missing point ranges. Expected: (0–7 נקודות), (8–15 נקודות), (16–20 נקודות)');
+      }
+
+      // Validate tip implementation if tips were selected
+      if (actualTips.length > 0 && assignmentData.studentInstructionsHtml) {
+        const hasTipImplementation = assignmentData.studentInstructionsHtml.includes('יישום הטיפ');
+        if (!hasTipImplementation) {
+          console.warn('⚠️ Missing "יישום הטיפ" section in studentInstructionsHtml');
+        }
+      }
+
+      if (missingFields.length > 0) {
+        const errorMsg = `Missing structuredAssignment fields: ${missingFields.join(', ')} — generation pipeline mismatch.`;
+        console.error('❌ Validation failed:', errorMsg);
+        console.error('Assignment data received:', assignmentData);
+        throw new Error(errorMsg);
+      }
+
+      // Log debug info if available
+      if (assignmentData.debug) {
+        console.log('🔍 Debug info:', assignmentData.debug);
+      }
+      
       // Set structured assessment data
       setGeneratedAssessment({
         title: assignmentData.title || `מטלה אינטגרטיבית - ${actualCourseName}`,
@@ -219,11 +260,16 @@ const useAssessmentGenerator = (params: {
         setGeneratedRubric(buildFallbackRubric(actualTips));
       }
 
-      // Set rubric HTML
-      if (assignmentData.rubricHtml) {
+      // Set full assignment HTML (prefer fullAssignmentHtml, fallback to rubricHtml for backward compatibility)
+      if (assignmentData.fullAssignmentHtml) {
+        setRubricHtml(assignmentData.fullAssignmentHtml);
+        console.log('✅ Using fullAssignmentHtml from structuredAssignment');
+      } else if (assignmentData.rubricHtml) {
         setRubricHtml(assignmentData.rubricHtml);
+        console.warn('⚠️ Using rubricHtml (legacy path). fullAssignmentHtml not available.');
       } else {
         setRubricHtml(generateFallbackRubricHtml(assignmentData.rubricCriteria || buildFallbackRubric(actualTips)));
+        console.warn('⚠️ Using fallback rubric HTML. No structured HTML available.');
       }
 
       // Set model used (use providerUsed if available, fallback to provider for backward compatibility)

@@ -96,12 +96,15 @@ export interface StructuredAssignment {
   description: string;
   instructions: string[];
   requirements: string[];
+  studentInstructionsHtml?: string; // Full HTML for student instructions (including tasks and tip implementations)
+  tasks?: string[]; // List of specific tasks/deliverables
   rubricCriteria?: Array<{
     name: string;
     description: string;
     levels: string[];
   }>;
-  rubricHtml?: string;
+  rubricHtml?: string; // Rubric table HTML only (with point ranges)
+  fullAssignmentHtml?: string; // Complete assignment HTML built from structured fields
   modelUsed: string;
   generatedAt: string;
   estimatedHours?: number;
@@ -110,6 +113,14 @@ export interface StructuredAssignment {
   sourcesUsed?: ScholarlySource[];
   apa7References?: string[];
   materialQualityReport?: MaterialQualityReport;
+  debug?: {
+    generatorVersion?: string;
+    usedTipEnforcer?: boolean;
+    selectedTipsCount?: number;
+    rubricPointRanges?: boolean;
+    usedWebFallback?: boolean;
+    renderedFrom?: "structuredAssignment" | "legacy";
+  };
 }
 
 export interface AIResponse {

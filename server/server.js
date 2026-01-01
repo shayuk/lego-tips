@@ -408,21 +408,118 @@ app.post('/api/generate-assignment', async (req, res) => {
       }
     }
 
-    // Use the raw HTML content as the main rubricHtml (full assignment HTML)
-    // Use the raw HTML content if it looks like HTML, otherwise trust the parser's output.
+    // Extract studentInstructionsHtml and rubricHtml from generatedContent
     const trimmed = (generatedContent || "").trimStart();
     const looksLikeHtml =
       trimmed.startsWith("<") &&
       /<(table|tbody|thead|tr|td|th|div|p|ul|ol|h\d)\b/i.test(trimmed);
 
     if (looksLikeHtml) {
-      structuredAssignment.rubricHtml = generatedContent;
+      // Remove past due dates from content
+      let cleanedContent = generatedContent
+        .replace(/\d{1,2}\/\d{1,2}\/\d{4}/g, (match) => {
+          // Check if date is in the past (before today)
+          const dateParts = match.split('/');
+          if (dateParts.length === 3) {
+            const day = parseInt(dateParts[0]);
+            const month = parseInt(dateParts[1]) - 1; // JS months are 0-indexed
+            const year = parseInt(dateParts[2]);
+            const date = new Date(year, month, day);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (date < today) {
+              return 'תאריך שיקבע ע״י המרצה';
+            }
+          }
+          return match;
+        })
+        .replace(/15\/05\/2022/g, 'תאריך שיקבע ע״י המרצה')
+        .replace(/תאריך הגשה[:\s]*\d{1,2}\/\d{1,2}\/\d{4}/gi, 'תאריך הגשה: ייקבע ע״י המרצה');
+
+      // Try to separate rubric from instructions
+      // Look for rubric markers: "מחוון", "רובריקה", "rubric", table with "קריטריון"
+      const rubricMarkers = [
+        /<h[23][^>]*>.*?מחוון.*?<\/h[23]>/i,
+        /<h[23][^>]*>.*?רובריקה.*?<\/h[23]>/i,
+        /<table[^>]*>[\s\S]*?קריטריון[\s\S]*?<\/table>/i
+      ];
+      
+      let rubricStartIndex = -1;
+      for (const marker of rubricMarkers) {
+        const match = cleanedContent.search(marker);
+        if (match !== -1) {
+          rubricStartIndex = match;
+          break;
+        }
+      }
+
+      if (rubricStartIndex !== -1) {
+        // Extract studentInstructionsHtml (everything before rubric)
+        structuredAssignment.studentInstructionsHtml = cleanedContent.substring(0, rubricStartIndex).trim();
+        
+        // Extract rubricHtml (from rubric marker to end, or just the table)
+        const rubricMatch = cleanedContent.match(/<table[^>]*>[\s\S]*?<\/table>/i);
+        if (rubricMatch) {
+          structuredAssignment.rubricHtml = rubricMatch[0];
+        } else {
+          structuredAssignment.rubricHtml = cleanedContent.substring(rubricStartIndex).trim();
+        }
+      } else {
+        // No clear separation - use full content as studentInstructionsHtml
+        // Try to extract rubric table if it exists
+        const rubricTableMatch = cleanedContent.match(/<table[^>]*>[\s\S]*?<\/table>/i);
+        if (rubricTableMatch) {
+          structuredAssignment.studentInstructionsHtml = cleanedContent.replace(rubricTableMatch[0], '').trim();
+          structuredAssignment.rubricHtml = rubricTableMatch[0];
+        } else {
+          structuredAssignment.studentInstructionsHtml = cleanedContent;
+          // rubricHtml will be built from rubricCriteria below
+        }
+      }
     }
 
     // Normalize rubric HTML to use point ranges (0-7, 8-15, 16-20)
     if (structuredAssignment.rubricHtml && tipImplementation?.normalizeRubricHtmlToPointRanges) {
       structuredAssignment.rubricHtml = tipImplementation.normalizeRubricHtmlToPointRanges(structuredAssignment.rubricHtml);
+    } else if (structuredAssignment.rubricCriteria && structuredAssignment.rubricCriteria.length > 0) {
+      // Build rubricHtml from rubricCriteria if not extracted
+      const rubricHtml = `
+        <div style="margin-top: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+          <h3 style="color: #1976d2; border-bottom: 2px solid #1976d2; padding-bottom: 5px; margin-bottom: 15px;">
+            מחוון הערכה (רובריקה)
+          </h3>
+          <table dir="rtl" style="width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);">
+                <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">קריטריון</th>
+                <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע בסיסי (0–7 נקודות)</th>
+                <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע מתקדם (8–15 נקודות)</th>
+                <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע מיטבי (16–20 נקודות)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${structuredAssignment.rubricCriteria.map((criterion, index) => `
+                <tr style="background: ${index % 2 === 0 ? '#fafafa' : '#ffffff'};">
+                  <td style="border: 1px solid #ddd; padding: 12px; font-weight: bold; color: #333;">${criterion.name}</td>
+                  <td style="border: 1px solid #ddd; padding: 12px; color: #666;">ביצוע חלקי או לא מספק של הדרישות</td>
+                  <td style="border: 1px solid #ddd; padding: 12px; color: #666;">ביצוע טוב של רוב הדרישות</td>
+                  <td style="border: 1px solid #ddd; padding: 12px; color: #666;">ביצוע מעולה ומקיף של כל הדרישות</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      structuredAssignment.rubricHtml = rubricHtml;
     }
+
+    // Build full assignment HTML from structured fields
+    structuredAssignment.fullAssignmentHtml = buildFullAssignmentHtml(
+      structuredAssignment,
+      courseName,
+      faculty,
+      department
+    );
 
     // Add grounding metadata
     structuredAssignment.groundingMode = groundingMode;
@@ -432,7 +529,23 @@ app.post('/api/generate-assignment', async (req, res) => {
       structuredAssignment.apa7References = formatAPA7References(scholarlySources);
     }
 
+    // Add debug fields
+    const hasPointRanges = structuredAssignment.rubricHtml?.includes('(0–7 נקודות)') || 
+                            structuredAssignment.rubricHtml?.includes('(0-7 נקודות)') ||
+                            structuredAssignment.rubricHtml?.includes('(8–15 נקודות)') ||
+                            structuredAssignment.rubricHtml?.includes('(8-15 נקודות)');
+    
+    structuredAssignment.debug = {
+      generatorVersion: process.env.GIT_SHA || 'dev',
+      usedTipEnforcer: selectedMethods.length > 0,
+      selectedTipsCount: selectedMethods.length,
+      rubricPointRanges: hasPointRanges || false,
+      usedWebFallback: groundingMode === "web",
+      renderedFrom: structuredAssignment.fullAssignmentHtml ? "structuredAssignment" : "legacy"
+    };
+
     console.log(`✅ Assignment generated successfully using ${provider}, mode: ${groundingMode}`);
+    console.log(`🔍 Debug: ${JSON.stringify(structuredAssignment.debug)}`);
 
     res.json({
       success: true,
@@ -506,6 +619,81 @@ app.listen(PORT, () => {
 module.exports = app; 
 
 // Helper function to parse AI response into structured format
+/**
+ * Build full assignment HTML from structured fields
+ */
+function buildFullAssignmentHtml(structuredAssignment, courseName, faculty, department) {
+  const { title, description, instructions, requirements, studentInstructionsHtml, rubricHtml } = structuredAssignment;
+  
+  // Use studentInstructionsHtml if available, otherwise build from structured fields
+  let instructionsSection = '';
+  if (studentInstructionsHtml) {
+    instructionsSection = studentInstructionsHtml;
+  } else {
+    // Build instructions section from structured fields
+    instructionsSection = `
+      <div style="margin-top: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        <h2 style="color: #1976d2; border-bottom: 2px solid #1976d2; padding-bottom: 5px; margin-bottom: 15px;">
+          הוראות למטלה
+        </h2>
+        <ol style="padding-right: 20px; line-height: 1.8;">
+          ${instructions.map(inst => `<li style="margin-bottom: 10px;">${inst}</li>`).join('')}
+        </ol>
+      </div>
+    `;
+  }
+
+  // Build requirements section
+  const requirementsSection = requirements && requirements.length > 0 ? `
+    <div style="margin-top: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+      <h2 style="color: #1976d2; border-bottom: 2px solid #1976d2; padding-bottom: 5px; margin-bottom: 15px;">
+        דרישות הגשה
+      </h2>
+      <ul style="padding-right: 20px; line-height: 1.8;">
+        ${requirements.map(req => {
+          // Remove past due dates - replace with placeholder
+          const cleanedReq = req.replace(/\d{1,2}\/\d{1,2}\/\d{4}/g, 'תאריך שיקבע ע״י המרצה')
+                                 .replace(/15\/05\/2022/g, 'תאריך שיקבע ע״י המרצה')
+                                 .replace(/תאריך הגשה[:\s]*\d{1,2}\/\d{1,2}\/\d{4}/gi, 'תאריך הגשה: ייקבע ע״י המרצה');
+          return `<li style="margin-bottom: 10px;">${cleanedReq}</li>`;
+        }).join('')}
+      </ul>
+    </div>
+  ` : '';
+
+  // Build full HTML
+  const fullHtml = `
+    <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; max-width: 900px; margin: 0 auto;">
+      <h1 style="color: #1976d2; text-align: center; margin-bottom: 20px; border-bottom: 3px solid #1976d2; padding-bottom: 10px;">
+        ${title}
+      </h1>
+      
+      ${courseName || faculty || department ? `
+        <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: right;">
+          ${courseName ? `<p style="margin: 5px 0;"><strong>קורס:</strong> ${courseName}</p>` : ''}
+          ${faculty ? `<p style="margin: 5px 0;"><strong>פקולטה:</strong> ${faculty}</p>` : ''}
+          ${department ? `<p style="margin: 5px 0;"><strong>מחלקה:</strong> ${department}</p>` : ''}
+        </div>
+      ` : ''}
+      
+      <div style="margin-top: 20px; line-height: 1.8;">
+        <h2 style="color: #1976d2; border-bottom: 2px solid #1976d2; padding-bottom: 5px; margin-bottom: 15px;">
+          תיאור המטלה
+        </h2>
+        <p style="text-align: right; line-height: 1.8;">${description}</p>
+      </div>
+      
+      ${instructionsSection}
+      
+      ${requirementsSection}
+      
+      ${rubricHtml || ''}
+    </div>
+  `;
+  
+  return fullHtml;
+}
+
 function parseAIResponseToStructuredFormat(content, courseName, selectedMethods, provider) {
   try {
     // Try to parse if it's already JSON
@@ -547,7 +735,7 @@ function parseAIResponseToStructuredFormat(content, courseName, selectedMethods,
       'נתחו את הנושא בצורה ביקורתית ועמוקה',
       'השתמשו במקורות אקדמיים מהימנים בלבד',
       'כתבו את העבודה במבנה אקדמי ברור',
-      'הגישו את העבודה במועד הנקוב'
+      'הגישו את העבודה במועד שיקבע ע״י המרצה'
     ];
   }
   
@@ -565,7 +753,7 @@ function parseAIResponseToStructuredFormat(content, courseName, selectedMethods,
       'גופן: David או Arial, גודל 12',
       'לפחות 8 מקורות אקדמיים',
       'ציטוט לפי תקן APA',
-      'הגשה עד לתאריך הנקוב'
+      'תאריך הגשה: ייקבע ע״י המרצה'
     ];
   }
   
