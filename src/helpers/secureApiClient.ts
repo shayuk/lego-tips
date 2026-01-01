@@ -224,11 +224,31 @@ async function makeRequest<T>(endpoint: string, options: {
 
     const duration = Date.now() - startTime;
 
+    // Check Content-Type to detect HTML responses (server not running or wrong endpoint)
+    const contentType = response.headers.get('content-type') || '';
+    const isHtmlResponse = contentType.includes('text/html') || contentType.includes('text/plain');
+    
     if (!response.ok) {
-      const errorData: ErrorResponse = await response.json().catch(() => ({
-        error: `HTTP ${response.status}: ${response.statusText}`,
-        code: 'HTTP_ERROR'
-      }));
+      // Try to parse JSON error, but handle HTML error pages gracefully
+      let errorData: ErrorResponse;
+      if (isHtmlResponse) {
+        const text = await response.text();
+        console.error(`[API] ${requestId} ✗ ${endpoint} - Server returned HTML instead of JSON`, {
+          status: response.status,
+          preview: text.substring(0, 200)
+        });
+        errorData = {
+          error: isProduction()
+            ? 'השרת לא זמין. אנא נסה שוב בעוד מספר דקות.'
+            : 'השרת המאובטח לא זמין. ודא שהשרת פועל על פורט 3001. הרץ: cd server && npm start',
+          code: 'SERVER_NOT_RUNNING'
+        };
+      } else {
+        errorData = await response.json().catch(() => ({
+          error: `HTTP ${response.status}: ${response.statusText}`,
+          code: 'HTTP_ERROR'
+        }));
+      }
       
       console.error(`[API] ${requestId} ✗ ${endpoint}`, {
         status: response.status,
@@ -239,7 +259,27 @@ async function makeRequest<T>(endpoint: string, options: {
       throw new Error(errorData.error || `Request failed with status ${response.status}`);
     }
 
-    const data = await response.json();
+    // Check if response is HTML even with 200 status (wrong server/proxy)
+    if (isHtmlResponse) {
+      const text = await response.text();
+      console.error(`[API] ${requestId} ✗ ${endpoint} - Server returned HTML instead of JSON`, {
+        status: response.status,
+        preview: text.substring(0, 200)
+      });
+      const errorMsg = isProduction()
+        ? 'השרת לא זמין. אנא נסה שוב בעוד מספר דקות.'
+        : 'השרת המאובטח לא זמין. ודא שהשרת פועל על פורט 3001. הרץ: cd server && npm start';
+      throw new Error(errorMsg);
+    }
+
+    const data = await response.json().catch((parseError) => {
+      // If JSON parsing fails, it might be HTML
+      console.error(`[API] ${requestId} ✗ ${endpoint} - Failed to parse JSON response`, parseError);
+      const errorMsg = isProduction()
+        ? 'השרת לא זמין. אנא נסה שוב בעוד מספר דקות.'
+        : 'השרת המאובטח לא זמין. ודא שהשרת פועל על פורט 3001. הרץ: cd server && npm start';
+      throw new Error(errorMsg);
+    });
     
     console.log(`[API] ${requestId} ✓ ${endpoint}`, {
       status: response.status,
@@ -258,12 +298,26 @@ async function makeRequest<T>(endpoint: string, options: {
     
     if (error instanceof Error) {
       // Network errors or parsing errors
-      if (error.message.includes('Failed to fetch')) {
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
         const errorMsg = isProduction()
           ? 'לא ניתן להתחבר לשירותי Firebase Functions. אנא נסה שוב בעוד מספר דקות.'
-          : 'לא ניתן להתחבר לשרת. אנא ודא שהשרת המאובטח פועל על פורט 3001.';
+          : 'לא ניתן להתחבר לשרת. אנא ודא שהשרת המאובטח פועל על פורט 3001. הרץ: cd server && npm start';
         throw new Error(errorMsg);
       }
+      
+      // JSON parsing errors (usually means HTML response)
+      if (error.message.includes('Unexpected token') || error.message.includes('JSON') || error.message.includes('is not valid JSON')) {
+        const errorMsg = isProduction()
+          ? 'השרת לא זמין. אנא נסה שוב בעוד מספר דקות.'
+          : 'השרת המאובטח לא זמין. ודא שהשרת פועל על פורט 3001. הרץ: cd server && npm start';
+        throw new Error(errorMsg);
+      }
+      
+      // If error message already contains helpful instructions, use it as-is
+      if (error.message.includes('cd server') || error.message.includes('פועל על פורט')) {
+        throw error;
+      }
+      
       throw error;
     }
     throw new Error('שגיאה לא צפויה בתקשורת עם השרת');
@@ -293,7 +347,7 @@ export async function getServerStatus(): Promise<ServerStatus> {
 }
 
 // Generate with OpenAI (direct proxy)
-export async function generateWithOpenAI(messages: any[], model = 'gpt-4'): Promise<any> {
+export async function generateWithOpenAI(messages: any[], model = 'gpt-4o'): Promise<any> {
   return makeRequest('/api/openai/generate', {
     method: 'POST',
     body: JSON.stringify({
