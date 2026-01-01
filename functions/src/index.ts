@@ -6,6 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { defineSecret } from "firebase-functions/params";
 import { assessMaterialQuality, validateAssignmentSpecificity, MaterialQualityReport } from "../../shared/materialQuality";
 import { searchScholarlySources, formatAPA7References, ScholarlySource } from "../../shared/scholarlySearch";
+import { buildTipEnforcementPrompt, validateTipCompliance, normalizeRubricHtmlToPointRanges } from "../../shared/tipImplementation";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -177,22 +178,22 @@ function parseAIResponseToStructuredFormat(
     ];
   }
   
-  // Generate rubric HTML
+  // Generate rubric HTML with point ranges (0-7, 8-15, 16-20)
   const rubricCriteria: Array<{ name: string; description: string; levels: string[] }> = [
     {
       name: 'איכות תוכן',
       description: 'עומק הניתוח ורמת ההבנה',
-      levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+      levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
     },
     {
       name: 'מקורות ומחקר',
       description: 'איכות המקורות ושימוש נכון בהם',
-      levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+      levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
     },
     {
       name: 'כתיבה אקדמית',
       description: 'רמת הכתיבה והביטוי האקדמי',
-      levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+      levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
     }
   ];
   
@@ -202,14 +203,14 @@ function parseAIResponseToStructuredFormat(
       rubricCriteria.push({
         name: 'רפלקציה על AI',
         description: 'איכות הניתוח הביקורתי של תגובות ה-AI',
-        levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+        levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
       });
     }
     if (method.title && method.title.includes('עבודה קבוצתית')) {
       rubricCriteria.push({
         name: 'שיתוף פעולה',
         description: 'יעילות העבודה הקבוצתית והחלוקה ההוגנת',
-        levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+        levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
       });
     }
   });
@@ -219,22 +220,22 @@ function parseAIResponseToStructuredFormat(
       <h3 style="color: #1976d2; border-bottom: 2px solid #1976d2; padding-bottom: 5px; margin-bottom: 15px;">
         מחוון הערכה (רובריקה)
       </h3>
-      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+      <table dir="rtl" style="width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         <thead>
           <tr style="background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);">
             <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">קריטריון</th>
-            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">תיאור</th>
-            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">רמות הערכה</th>
+            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע בסיסי (0–7 נקודות)</th>
+            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע מתקדם (8–15 נקודות)</th>
+            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע מיטבי (16–20 נקודות)</th>
           </tr>
         </thead>
         <tbody>
           ${rubricCriteria.map((criterion, index) => `
             <tr style="background: ${index % 2 === 0 ? '#fafafa' : '#ffffff'};">
               <td style="border: 1px solid #ddd; padding: 12px; font-weight: bold; color: #333;">${criterion.name}</td>
-              <td style="border: 1px solid #ddd; padding: 12px; color: #666;">${criterion.description}</td>
-              <td style="border: 1px solid #ddd; padding: 12px;">
-                ${criterion.levels.map(level => `<div style="margin: 5px 0; padding: 3px 8px; background: #f0f7ff; border-radius: 4px; color: #1976d2;">${level}</div>`).join('')}
-              </td>
+              <td style="border: 1px solid #ddd; padding: 12px; color: #666;">ביצוע חלקי או לא מספק של הדרישות</td>
+              <td style="border: 1px solid #ddd; padding: 12px; color: #666;">ביצוע טוב של רוב הדרישות</td>
+              <td style="border: 1px solid #ddd; padding: 12px; color: #666;">ביצוע מעולה ומקיף של כל הדרישות</td>
             </tr>
           `).join('')}
         </tbody>
@@ -381,6 +382,9 @@ export const generateAssignment = onCall(
         materialSection = `תכני הקורס שהועלו:\n"${courseDescription || ''}"\n\n**מקורות אקדמיים נוספים:**\n\n${sourcesText}`;
       }
 
+      // Build tip enforcement prompt
+      const tipEnforcementPrompt = buildTipEnforcementPrompt(selectedMethods, courseDescription || courseName);
+
       const userPrompt = `
   ${courseContext}
   ${materialSection}
@@ -405,6 +409,8 @@ export const generateAssignment = onCall(
   **הנחיות מפורטות לשילוב רכיבים פדגוגיים:**
   ${methodsText}
   
+  ${tipEnforcementPrompt}
+  
   **אסור לך:**
   - להשתמש בדוגמאות דמיוניות או כלליות - תמיד התבסס על תכנים ספציפיים
   - ליצור משימות שאינן מתאימות לרמת הקורס או לתחום הלימוד
@@ -414,9 +420,20 @@ export const generateAssignment = onCall(
   - ליצור מחוון חלקי או לא מפורט
   ${groundingMode === "web" ? '- להמציא מקורות שלא סופקו' : ''}
   
+  **מחוון הערכה - דרישות חובה:**
+  - המחוון חייב להיות טבלה HTML עם העמודות הבאות (בסדר RTL):
+    1. קריטריון
+    2. ביצוע בסיסי (0–7 נקודות)
+    3. ביצוע מתקדם (8–15 נקודות)
+    4. ביצוע מיטבי (16–20 נקודות)
+  - אסור להשתמש באחוזים (%)
+  - כל קריטריון חייב לכלול תיאור לכל אחת משלוש רמות הביצוע
+  
   **הפלט בעברית בפורמט HTML נקי וארגון מסודר** ללא תגי HTML מיותרים בתחילה או בסוף.`;
 
       let generatedContent = '';
+      let activeClient: OpenAI | Anthropic | null = null;
+      let activeProviderType: 'openai' | 'claude' | null = null;
 
       // Attempt 1: Try OpenAI
       const openaiClient = initializeOpenAIClient();
@@ -436,6 +453,8 @@ export const generateAssignment = onCall(
           if (completion.choices?.[0]?.message?.content) {
             generatedContent = completion.choices[0].message.content;
             providerUsed = 'OpenAI GPT-4';
+            activeClient = openaiClient;
+            activeProviderType = 'openai';
             attempts.push({ provider: 'openai', ok: true });
             logger.info(`[${requestId}] OpenAI generation successful`);
           } else {
@@ -480,6 +499,8 @@ export const generateAssignment = onCall(
             if (message.content?.[0]?.type === 'text') {
               generatedContent = message.content[0].text;
               providerUsed = 'Claude 3 Sonnet';
+              activeClient = claudeClient;
+              activeProviderType = 'claude';
               attempts.push({ provider: 'claude', ok: true });
               logger.info(`[${requestId}] Claude generation successful`);
             } else {
@@ -536,6 +557,58 @@ export const generateAssignment = onCall(
         providerUsed
       );
 
+      // Validate tip compliance
+      const compliance = validateTipCompliance(structuredAssignment, selectedMethods);
+      if (!compliance.ok && selectedMethods.length > 0) {
+        logger.warn(`[${requestId}] Tip compliance check failed:`, compliance.missing);
+        // If critical tips are missing, regenerate once with stricter prompt
+        const criticalMissing = compliance.missing.filter(m => 
+          m.includes('Prompt A') || m.includes('Prompt B') || m.includes('יישום הטיפ')
+        );
+        if (criticalMissing.length > 0 && activeClient && activeProviderType) {
+          logger.info(`[${requestId}] Regenerating with stricter tip enforcement`);
+          const stricterPrompt = `${userPrompt}\n\n**תיקון חובה:** התשובה הקודמת שלך חסרה את הדברים הבאים:\n${criticalMissing.map(m => `- ${m}`).join('\n')}\n\nאנא צור מטלה חדשה שמכילה את כל הדרישות הנ"ל.`;
+          
+          try {
+            let retryContent = '';
+            if (activeProviderType === 'openai') {
+              const retryCompletion = await (activeClient as OpenAI).chat.completions.create({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: stricterPrompt }
+                ],
+                max_tokens: 4000,
+                temperature: 0.7
+              });
+              retryContent = retryCompletion.choices?.[0]?.message?.content || '';
+            } else if (activeProviderType === 'claude') {
+              const retryMessage = await (activeClient as Anthropic).messages.create({
+                model: 'claude-3-sonnet-20240229',
+                max_tokens: 4000,
+                messages: [
+                  { role: 'user', content: `${systemPrompt}\n\n${stricterPrompt}` }
+                ]
+              });
+              retryContent = retryMessage.content?.[0]?.type === 'text' ? retryMessage.content[0].text : '';
+            }
+
+            if (retryContent) {
+              generatedContent = retryContent;
+              const retryStructured = parseAIResponseToStructuredFormat(
+                generatedContent,
+                courseName,
+                selectedMethods,
+                providerUsed
+              );
+              Object.assign(structuredAssignment, retryStructured);
+            }
+          } catch (retryError: any) {
+            logger.warn(`[${requestId}] Retry generation failed: ${retryError.message}, proceeding with original`);
+          }
+        }
+      }
+
       // Use the raw HTML content as the main rubricHtml (full assignment HTML)
       // Use the raw HTML content if it looks like HTML, otherwise trust the parser's output.
       const trimmed = (generatedContent || "").trimStart();
@@ -545,6 +618,11 @@ export const generateAssignment = onCall(
 
       if (looksLikeHtml) {
         structuredAssignment.rubricHtml = generatedContent;
+      }
+
+      // Normalize rubric HTML to use point ranges (0-7, 8-15, 16-20)
+      if (structuredAssignment.rubricHtml) {
+        structuredAssignment.rubricHtml = normalizeRubricHtmlToPointRanges(structuredAssignment.rubricHtml);
       }
 
       // STEP 4: Add grounding metadata

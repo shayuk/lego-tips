@@ -84,6 +84,15 @@ function convertNodeToBlocks(node: Node): DocxBlock[] {
   return out;
 }
 
+/**
+ * Wrap LTR (English) tokens in Hebrew text with LRM markers to prevent reordering
+ */
+function wrapLtrTokens(text: string): string {
+  // Match sequences of English letters, numbers, spaces, and common punctuation
+  // This regex matches: [A-Za-z0-9][...English chars...][A-Za-z0-9]
+  return text.replace(/([A-Za-z0-9][A-Za-z0-9 _\-\(\)\[\]\.\/:]+[A-Za-z0-9])/g, '\u200E$1\u200E');
+}
+
 function convertInlineChildrenToRuns(
   el: HTMLElement,
   opts?: { bold?: boolean; italics?: boolean }
@@ -94,9 +103,11 @@ function convertInlineChildrenToRuns(
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent ?? "";
       if (text) {
+        // Apply BiDi fix: wrap English tokens with LRM markers
+        const fixedText = wrapLtrTokens(text);
         runs.push(
           new TextRun({
-            text,
+            text: fixedText,
             bold: opts?.bold,
             italics: opts?.italics,
           })
@@ -176,14 +187,21 @@ function convertTableRowElement(trEl: HTMLElement): TableRow {
 
 function convertTableCellElement(cellEl: HTMLElement): TableCell {
   const isHeader = cellEl.tagName.toUpperCase() === "TH";
+  
+  // Extract text and apply BiDi fix
+  const cellText = cellEl.textContent ?? "";
+  const fixedText = wrapLtrTokens(cellText);
 
   return new TableCell({
     children: [
       new Paragraph({
-        children: convertInlineChildrenToRuns(cellEl, {
-          bold: isHeader,
-        }),
-        alignment: AlignmentType.LEFT,
+        children: [
+          new TextRun({
+            text: fixedText,
+            bold: isHeader,
+          })
+        ],
+        alignment: AlignmentType.RIGHT, // RTL alignment for Hebrew
       }),
     ],
     verticalAlign: "center",

@@ -17,6 +17,15 @@ const {
   formatAPA7References,
 } = require("../shared/lib/scholarlySearch");
 
+// Import tip implementation (will be available after build)
+let tipImplementation;
+try {
+  tipImplementation = require("../shared/lib/tipImplementation");
+} catch (e) {
+  console.warn("Tip implementation module not yet built, will use fallback");
+  tipImplementation = null;
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -270,6 +279,11 @@ app.post('/api/generate-assignment', async (req, res) => {
       materialSection = `תכני הקורס שהועלו:\n"${courseDescription || ''}"\n\n**מקורות אקדמיים נוספים:**\n\n${sourcesText}`;
     }
 
+    // Build tip enforcement prompt
+    const tipEnforcementPrompt = tipImplementation?.buildTipEnforcementPrompt 
+      ? tipImplementation.buildTipEnforcementPrompt(selectedMethods, courseDescription || courseName)
+      : '';
+
     const userPrompt = `
     ${courseContext}
     ${materialSection}
@@ -294,6 +308,8 @@ app.post('/api/generate-assignment', async (req, res) => {
     **הנחיות מפורטות לשילוב רכיבים פדגוגיים:**
     ${methodsText}
     
+    ${tipEnforcementPrompt}
+    
     **אסור לך:**
     - להשתמש בדוגמאות דמיוניות או כלליות - תמיד התבסס על תכנים ספציפיים
     - ליצור משימות שאינן מתאימות לרמת הקורס או לתחום הלימוד
@@ -302,6 +318,15 @@ app.post('/api/generate-assignment', async (req, res) => {
     - לשכוח רכיבים פדגוגיים שנבחרו
     - ליצור מחוון חלקי או לא מפורט
     ${groundingMode === "web" ? '- להמציא מקורות שלא סופקו' : ''}
+    
+    **מחוון הערכה - דרישות חובה:**
+    - המחוון חייב להיות טבלה HTML עם העמודות הבאות (בסדר RTL):
+      1. קריטריון
+      2. ביצוע בסיסי (0–7 נקודות)
+      3. ביצוע מתקדם (8–15 נקודות)
+      4. ביצוע מיטבי (16–20 נקודות)
+    - אסור להשתמש באחוזים (%)
+    - כל קריטריון חייב לכלול תיאור לכל אחת משלוש רמות הביצוע
     
     **הפלט בעברית בפורמט HTML נקי וארגון מסודר** ללא תגי HTML מיותרים בתחילה או בסוף.`;
 
@@ -374,6 +399,15 @@ app.post('/api/generate-assignment', async (req, res) => {
       provider
     );
 
+    // Validate tip compliance
+    if (tipImplementation?.validateTipCompliance && selectedMethods.length > 0) {
+      const compliance = tipImplementation.validateTipCompliance(structuredAssignment, selectedMethods);
+      if (!compliance.ok) {
+        console.warn(`Tip compliance check failed:`, compliance.missing);
+        // Log but don't fail - we'll normalize rubric anyway
+      }
+    }
+
     // Use the raw HTML content as the main rubricHtml (full assignment HTML)
     // Use the raw HTML content if it looks like HTML, otherwise trust the parser's output.
     const trimmed = (generatedContent || "").trimStart();
@@ -383,6 +417,11 @@ app.post('/api/generate-assignment', async (req, res) => {
 
     if (looksLikeHtml) {
       structuredAssignment.rubricHtml = generatedContent;
+    }
+
+    // Normalize rubric HTML to use point ranges (0-7, 8-15, 16-20)
+    if (structuredAssignment.rubricHtml && tipImplementation?.normalizeRubricHtmlToPointRanges) {
+      structuredAssignment.rubricHtml = tipImplementation.normalizeRubricHtmlToPointRanges(structuredAssignment.rubricHtml);
     }
 
     // Add grounding metadata
@@ -530,22 +569,22 @@ function parseAIResponseToStructuredFormat(content, courseName, selectedMethods,
     ];
   }
   
-  // Generate rubric HTML
+  // Generate rubric HTML with point ranges (0-7, 8-15, 16-20)
   const rubricCriteria = [
     {
       name: 'איכות תוכן',
       description: 'עומק הניתוח ורמת ההבנה',
-      levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+      levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
     },
     {
       name: 'מקורות ומחקר',
       description: 'איכות המקורות ושימוש נכון בהם',
-      levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+      levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
     },
     {
       name: 'כתיבה אקדמית',
       description: 'רמת הכתיבה והביטוי האקדמי',
-      levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+      levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
     }
   ];
   
@@ -555,14 +594,14 @@ function parseAIResponseToStructuredFormat(content, courseName, selectedMethods,
       rubricCriteria.push({
         name: 'רפלקציה על AI',
         description: 'איכות הניתוח הביקורתי של תגובות ה-AI',
-        levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+        levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
       });
     }
     if (method.title && method.title.includes('עבודה קבוצתית')) {
       rubricCriteria.push({
         name: 'שיתוף פעולה',
         description: 'יעילות העבודה הקבוצתית והחלוקה ההוגנת',
-        levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
+        levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
       });
     }
   });
@@ -572,22 +611,22 @@ function parseAIResponseToStructuredFormat(content, courseName, selectedMethods,
       <h3 style="color: #1976d2; border-bottom: 2px solid #1976d2; padding-bottom: 5px; margin-bottom: 15px;">
         מחוון הערכה (רובריקה)
       </h3>
-      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+      <table dir="rtl" style="width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         <thead>
           <tr style="background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);">
             <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">קריטריון</th>
-            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">תיאור</th>
-            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">רמות הערכה</th>
+            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע בסיסי (0–7 נקודות)</th>
+            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע מתקדם (8–15 נקודות)</th>
+            <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע מיטבי (16–20 נקודות)</th>
           </tr>
         </thead>
         <tbody>
           ${rubricCriteria.map((criterion, index) => `
             <tr style="background: ${index % 2 === 0 ? '#fafafa' : '#ffffff'};">
               <td style="border: 1px solid #ddd; padding: 12px; font-weight: bold; color: #333;">${criterion.name}</td>
-              <td style="border: 1px solid #ddd; padding: 12px; color: #666;">${criterion.description}</td>
-              <td style="border: 1px solid #ddd; padding: 12px;">
-                ${criterion.levels.map(level => `<div style="margin: 5px 0; padding: 3px 8px; background: #f0f7ff; border-radius: 4px; color: #1976d2;">${level}</div>`).join('')}
-              </td>
+              <td style="border: 1px solid #ddd; padding: 12px; color: #666;">ביצוע חלקי או לא מספק של הדרישות</td>
+              <td style="border: 1px solid #ddd; padding: 12px; color: #666;">ביצוע טוב של רוב הדרישות</td>
+              <td style="border: 1px solid #ddd; padding: 12px; color: #666;">ביצוע מעולה ומקיף של כל הדרישות</td>
             </tr>
           `).join('')}
         </tbody>
