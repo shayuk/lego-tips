@@ -2,13 +2,13 @@ import { signOut } from "firebase/auth";
 import { Link, useLocation } from "react-router-dom";
 import { Home, FileText, HelpCircle, Clock } from "lucide-react";
 import { auth } from "../firebase";
-import { useUser } from "../contexts/UserContext";
+import { useAuth } from "../features/auth/AuthProvider";
 import { Logo } from "./Logo";
 import layoutStyles from "./AppLayout.module.css";
 import styles from "./Header.module.css";
 
 export default function Header() {
-  const { user, isAdmin } = useUser();
+  const { user, isAdmin } = useAuth();
   const location = useLocation();
 
   const isActive = (path: string) => {

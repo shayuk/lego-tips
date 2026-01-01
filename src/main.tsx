@@ -4,8 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './global.css';
 
-// 🆕 ייבוא של UserProvider
-import { UserProvider } from './contexts/UserContext';
+// 🆕 ייבוא של AuthProvider
+import { AuthProvider } from './features/auth/AuthProvider';
 
 console.log('🚀 Main.tsx loaded');
 
@@ -28,9 +28,9 @@ try {
   root.render(
     <React.StrictMode>
       <BrowserRouter>
-        <UserProvider> {/* ⬅️ כאן אנחנו שומרים את המשתמש המחובר */}
+        <AuthProvider> {/* ⬅️ כאן אנחנו שומרים את המשתמש המחובר */}
           <App />
-        </UserProvider>
+        </AuthProvider>
       </BrowserRouter>
     </React.StrictMode>
   );

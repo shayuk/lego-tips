@@ -43,7 +43,6 @@
     "embla-carousel-react": "^8.6.0",
     "file-saver": "^2.0.5",
     "firebase": "^12.0.0",
-    "firebaseui": "^6.1.0",
     "framer-motion": "^12.23.11",
     "html-react-parser": "^5.2.6",
     "html-to-docx": "^1.8.0",

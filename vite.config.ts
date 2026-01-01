@@ -22,6 +22,14 @@ export default defineConfig({
     rollupOptions: {
       external: ['jspdf-autotable'],
     },
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: 'es2020',
+    },
   },
   define: {
     'process.env': {},

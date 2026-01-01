@@ -52,6 +52,7 @@ export const GeneratedAssessmentDisplay: React.FC<GeneratedAssessmentDisplayProp
   const [isExporting, setIsExporting] = useState(false);
   const [isSavingPersonal, setIsSavingPersonal] = useState(false);
   const [isSavingShared, setIsSavingShared] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // יצירת אובייקט אפשרויות לייצוא
   const exportOptions: ExportOptions = {
@@ -71,18 +72,71 @@ export const GeneratedAssessmentDisplay: React.FC<GeneratedAssessmentDisplayProp
   };
 
   // פונקציית ייצוא ל-Word
-  const handleExportToWord = async () => {
+  const handleExportToWord = async (retryCount = 0) => {
     try {
       setIsExporting(true);
-      console.log('📄 Exporting to Word...');
+      setExportError(null);
+      console.log(`📄 Exporting to Word... (attempt ${retryCount + 1})`);
       await exportToWord(exportOptions);
       console.log('✅ Word export completed');
+      setExportError(null);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('❌ Word export failed:', errorMessage);
-      alert(`שגיאה ביצוא לקובץ Word: ${errorMessage}`);
+      
+      // Log detailed error info for debugging
+      const errorDetails = {
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        retryCount,
+        timestamp: new Date().toISOString(),
+        browser: navigator.userAgent,
+      };
+      console.error('📋 Export error details:', errorDetails);
+      
+      setExportError(errorMessage);
+      
+      // Show user-friendly error with options
+      const shouldRetry = retryCount < 2 && 
+        (errorMessage.includes('constructor') || 
+         errorMessage.includes('undefined') ||
+         errorMessage.includes('XMLBuilder'));
+      
+      if (shouldRetry) {
+        const retry = window.confirm(
+          `שגיאה ביצוא Word (ניסיון ${retryCount + 1}/3).\n\n` +
+          `האם לנסות שוב עם שיטת גיבוי?\n\n` +
+          `פרטים: ${errorMessage.substring(0, 100)}...`
+        );
+        if (retry) {
+          // Retry will use fallback method automatically
+          setTimeout(() => handleExportToWord(retryCount + 1), 500);
+          return;
+        }
+      } else {
+        const usePDF = window.confirm(
+          `לא ניתן לייצא ל-Word כרגע.\n\n` +
+          `השגיאה: ${errorMessage}\n\n` +
+          `האם לנסות לייצא ל-PDF במקום?`
+        );
+        if (usePDF) {
+          handleExportToPDF();
+        }
+      }
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  // פונקציית ייצוא ל-PDF (fallback)
+  const handleExportToPDF = () => {
+    try {
+      console.log('📄 Exporting to PDF (fallback)...');
+      window.print();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ PDF export failed:', errorMessage);
+      alert(`שגיאה ביצוא ל-PDF: ${errorMessage}`);
     }
   };
 
@@ -158,10 +212,42 @@ export const GeneratedAssessmentDisplay: React.FC<GeneratedAssessmentDisplayProp
             <Printer size={16} />
             <span>הדפסה</span>
           </Button>
-          <Button variant="outline" onClick={handleExportToWord} disabled={isExporting}>
-            <FileText size={16} />
-            <span>{isExporting ? 'יוצר קובץ...' : 'ייצא ל-Word'}</span>
-          </Button>
+          <div style={{ position: 'relative' }}>
+            <Button variant="outline" onClick={() => handleExportToWord(0)} disabled={isExporting}>
+              <FileText size={16} />
+              <span>{isExporting ? 'יוצר קובץ...' : 'ייצא ל-Word'}</span>
+            </Button>
+            {exportError && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '8px',
+                padding: '12px',
+                backgroundColor: '#fee',
+                border: '1px solid #fcc',
+                borderRadius: '4px',
+                fontSize: '0.9rem',
+                maxWidth: '300px',
+                zIndex: 1000,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              }}>
+                <p style={{ margin: '0 0 8px 0', fontWeight: 'bold' }}>שגיאת יצוא</p>
+                <p style={{ margin: '0 0 8px 0' }}>{exportError.substring(0, 150)}...</p>
+                <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+                  <Button variant="outline" size="sm" onClick={() => { setExportError(null); handleExportToWord(0); }}>
+                    נסה שוב
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => { setExportError(null); handleExportToPDF(); }}>
+                    ייצא PDF
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setExportError(null)}>
+                    סגור
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
           <Button variant="outline" onClick={handleSavePersonal} disabled={isSavingPersonal}>
             <Save size={16} />
             <span>{isSavingPersonal ? 'שומר...' : "שמור ב'ההערכות שלי'"}</span>

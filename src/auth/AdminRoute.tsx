@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
-import { useUser } from "../contexts/UserContext";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../features/auth/AuthProvider";
 
 interface AdminRouteProps {
   children: ReactNode;
@@ -8,13 +8,14 @@ interface AdminRouteProps {
 
 /**
  * AdminRoute component - requires admin role
- * Redirects to /auth if not logged in
+ * Redirects to /login if not logged in
  * Shows access denied message if logged in but not admin
  */
 export function AdminRoute({ children }: AdminRouteProps) {
-  const { user, isAdmin, isLoading } = useUser();
+  const { user, isAdmin, loading } = useAuth();
+  const location = useLocation();
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div style={{ 
         display: "flex", 
@@ -29,7 +30,8 @@ export function AdminRoute({ children }: AdminRouteProps) {
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    const returnTo = location.pathname + location.search;
+    return <Navigate to={`/login?returnTo=${encodeURIComponent(returnTo)}`} replace />;
   }
 
   if (!isAdmin) {

@@ -30,7 +30,7 @@
 - Vite build: ✅ Success
 - Build time: 38.09s
 - Warnings:
-  - CSS typos: `margin-botom` → should be `margin-bottom`, `margin-Right` → should be `margin-right`
+  - CSS typos: `margin-botom` → should be `margin-bottom`, `margin-rght` → should be `margin-right`
   - Large chunks (>500KB): `html-to-docx.esm-eb0a523b.js` (1.2MB), `index-700f9f7b.js` (1.4MB)
   - Dynamic import optimization suggestion for file-saver
 - **Build artifacts:** Created successfully in `dist/` directory
@@ -140,7 +140,7 @@
 
 ## Recommendations
 
-1. **Fix CSS typos:** `margin-botom` → `margin-bottom`, `margin-Right` → `margin-right`
+1. **Fix CSS typos:** `margin-bottom` → `margin-bottom`, `margin-right` → `margin-right`
 2. **Consider code splitting:** Large chunks (>500KB) could benefit from dynamic imports
 3. **Add backend linting:** Consider adding ESLint to `server/package.json`
 4. **Add backend tests:** Replace placeholder test script with actual tests

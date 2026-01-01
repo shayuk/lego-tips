@@ -14,7 +14,7 @@ service cloud.firestore {
       allow read: if request.auth != null
         && request.auth.token.email in [
           "krimishay68@gmail.com",
-          "elad.assif@gmail.com"
+          "eladassif@gmail.com"
         ];
     }
     

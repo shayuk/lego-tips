@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
-import { useUser } from "../contexts/UserContext";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../features/auth/AuthProvider";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -8,12 +8,13 @@ interface ProtectedRouteProps {
 
 /**
  * ProtectedRoute component - requires authentication
- * Redirects to /auth if user is not logged in
+ * Redirects to /login if user is not logged in
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading } = useUser();
+  const { user, loading } = useAuth();
+  const location = useLocation();
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div style={{ 
         display: "flex", 
@@ -28,7 +29,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    const returnTo = location.pathname + location.search;
+    return <Navigate to={`/login?returnTo=${encodeURIComponent(returnTo)}`} replace />;
   }
 
   return <>{children}</>;
