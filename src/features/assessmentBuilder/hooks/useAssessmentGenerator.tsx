@@ -127,7 +127,10 @@ const useAssessmentGenerator = (params: {
           console.log('✅ Server health check passed:', health);
         } catch (healthError) {
           console.warn('⚠️ Server health check failed, but continuing...', healthError);
-          const errorMsg = 'השרת המאובטח לא זמין. ודא שהשרת פועל על פורט 3001.';
+          // Use the error message from secureApiClient which includes helpful instructions
+          const errorMsg = healthError instanceof Error 
+            ? healthError.message 
+            : 'השרת המאובטח לא זמין. ודא שהשרת פועל על פורט 3001. הרץ: cd server && npm start';
           setError(errorMsg);
           if (safeToast) {
             safeToast.showError('בעיית חיבור', errorMsg);
