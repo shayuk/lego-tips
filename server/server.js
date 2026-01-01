@@ -7,8 +7,15 @@ const axios = require('axios');
 require('dotenv').config();
 
 // Import shared modules
-const { assessMaterialQuality } = require('../shared/lib/materialQuality');
-const { searchScholarlySources, formatAPA7References } = require('../shared/lib/scholarlySearch');
+const {
+  assessMaterialQuality,
+  validateAssignmentSpecificity,
+} = require("../shared/lib/materialQuality");
+
+const {
+  searchScholarlySources,
+  formatAPA7References,
+} = require("../shared/lib/scholarlySearch");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
