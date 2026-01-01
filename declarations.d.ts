@@ -14,7 +14,6 @@ declare module '*.module.sass' {
 }
 
 interface ImportMetaEnv {
-  readonly VITE_CLAUDE_API_KEY: string
   readonly VITE_OPENAI_API_KEY: string
   readonly VITE_OPENAI_MODEL: string
   readonly VITE_APP_ENV: string

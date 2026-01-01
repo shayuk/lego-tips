@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "../firebase";
-import { UserRole, isAdminEmail } from "../config/authRoles";
+import { UserRole } from "../config/authRoles";
+import { isAdminEmail } from "../constants/admin";
 
 interface UserContextValue {
   user: User | null;

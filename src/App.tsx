@@ -8,8 +8,8 @@ import HelpPageLayout from "./pages/help.pageLayout";
 import PendingSubmissionsPageLayout from "./pages/pending-submissions.pageLayout";
 import { AdminPage } from "./pages/AdminPage";
 
-// 🆕 דף התחברות/הרשמה של FirebaseUI
-import AuthPage from "./pages/AuthPage";
+// 🆕 דף התחברות/הרשמה מותאם אישית
+import { LoginPage } from "./features/auth/LoginPage";
 
 // 🧠 כותרת עליונה עם שם משתמש + התנתקות
 import Header from "./components/Header";
@@ -24,7 +24,7 @@ function App() {
       <Header /> {/* ✅ מוצג תמיד אם המשתמש מחובר */}
       <Routes>
         {/* 🔐 דף התחברות/הרשמה - Public route */}
-        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/login" element={<LoginPage />} />
 
         {/* 🏠 דפים עיקריים - Protected routes (require login) */}
         <Route

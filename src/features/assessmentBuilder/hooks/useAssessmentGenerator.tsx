@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../../../helpers/useToast';
-import { generateAssignmentWithRetry, checkAvailableProviders, handleAPIError, APIUsageTracker, checkServerHealth } from '../../../helpers/secureApiClient';
+import { generateAssignmentWithRetry, checkAvailableProviders, handleAPIError, APIUsageTracker, checkServerHealth, isProduction } from '../../../helpers/secureApiClient';
+import { buildLocalFallbackAssignment, buildFallbackRubric, generateFallbackRubricHtml } from '../lib/localFallback';
 
 // 📝 Assessment Types - מתואמים עם תגובת השרת
 interface GeneratedAssessment {
@@ -117,29 +118,38 @@ const useAssessmentGenerator = (params: {
     try {
       setError(null);
       
-      // Step 1: Check server health
-      updateRealProgress('checking', 'בודק חיבור לשרת המאובטח...', 5);
-      try {
-        const health = await checkServerHealth();
-        console.log('✅ Server health check passed:', health);
-      } catch (healthError) {
-        console.warn('⚠️ Server health check failed, but continuing...', healthError);
-        const errorMsg = 'השרת המאובטח לא זמין. ודא שהשרת פועל על פורט 3001.';
-        setError(errorMsg);
-        if (safeToast) {
-          safeToast.showError('בעיית חיבור', errorMsg);
+      // Step 1: Check server health (ONLY in development - NEVER in production)
+      // In production, Firebase Functions are used directly, no health check needed
+      if (!isProduction()) {
+        updateRealProgress('checking', 'בודק חיבור לשרת המאובטח על פורט 3001...', 5);
+        try {
+          const health = await checkServerHealth();
+          console.log('✅ Server health check passed:', health);
+        } catch (healthError) {
+          console.warn('⚠️ Server health check failed, but continuing...', healthError);
+          const errorMsg = 'השרת המאובטח לא זמין. ודא שהשרת פועל על פורט 3001.';
+          setError(errorMsg);
+          if (safeToast) {
+            safeToast.showError('בעיית חיבור', errorMsg);
+          }
+          // Continue with fallback
+          throw new Error(errorMsg);
         }
-        // Continue with fallback
-        throw new Error(errorMsg);
+      } else {
+        // In production, NEVER call checkServerHealth() - Firebase Functions don't need health checks
+        console.log('Production mode: using Firebase Functions (no localhost health check)');
       }
 
       // Step 2: Check available providers
-      updateRealProgress('checking', 'בודק זמינות שירותי AI...', 10);
+      updateRealProgress('checking', isProduction() ? 'בודק זמינות שירותי Firebase Functions...' : 'בודק זמינות שירותי AI על פורט 3001...', 10);
       const providers = await checkAvailableProviders();
       console.log('📊 Available providers:', providers);
       
       if (!providers.openai && !providers.claude) {
-        throw new Error('אין שירותי AI זמינים. אנא ודא שמפתחות API הוגדרו בשרת.');
+        const errorMsg = isProduction()
+          ? 'שירותי AI לא זמינים ב-Firebase Functions. אנא ודא שמפתחות OPENAI_KEY או CLAUDE_API_KEY הוגדרו ב-Firebase Functions.'
+          : 'שירותי AI לא זמינים. אנא ודא שמפתחות OPENAI_KEY או CLAUDE_API_KEY הוגדרו בשרת על פורט 3001.';
+        throw new Error(errorMsg);
       }
 
       // Step 3: Prepare generation parameters
@@ -154,11 +164,11 @@ const useAssessmentGenerator = (params: {
           title: tip.title || 'שיטה פדגוגית',
           description: tip.description || ''
         })),
-        preferredProvider: providers.openai ? 'openai' : 'claude' as 'openai' | 'claude'
+        preferredProvider: 'openai' as 'openai'
       };
 
-      // Step 4: Generate assignment via secure backend
-      updateRealProgress('generating', 'יוצר מטלה באמצעות AI מאובטח...', 50);
+      // Step 4: Generate assignment via secure backend (Firebase Functions)
+      updateRealProgress('generating', isProduction() ? 'יוצר מטלה באמצעות Firebase Functions...' : 'יוצר מטלה באמצעות Firebase Functions (פיתוח)...', 50);
       
       // Log AI generation event (non-blocking)
       import("../../../analytics/analyticsLogger").then(({ logAnalyticsEvent }) => {
@@ -209,22 +219,25 @@ const useAssessmentGenerator = (params: {
         setRubricHtml(generateFallbackRubricHtml(assignmentData.rubricCriteria || buildFallbackRubric(actualTips)));
       }
 
-      // Set model used
-      setModelUsed(assignmentData.modelUsed || result.provider || 'Unknown');
+      // Set model used (use providerUsed if available, fallback to provider for backward compatibility)
+      const providerName = result.providerUsed || result.provider || assignmentData.modelUsed || 'Unknown';
+      setModelUsed(providerName);
 
       // Track successful API call
-      APIUsageTracker.track('/api/generate-assignment', true, result.provider);
+      APIUsageTracker.track('/api/generate-assignment', true, providerName);
 
       updateRealProgress('complete', 'המטלה נוצרה בהצלחה!', 100);
       
       console.log('🎉 Assignment generation completed successfully!', {
-        provider: result.provider,
+        providerUsed: providerName,
+        attempts: result.attempts,
+        requestId: result.requestId,
         title: assignmentData.title,
         instructionsCount: assignmentData.instructions?.length || 0
       });
          
       if (safeToast) {
-        safeToast.showSuccess('מטלה נוצרה בהצלחה!', `המטלה נוצרה באמצעות ${result.provider || assignmentData.modelUsed}`);
+        safeToast.showSuccess('מטלה נוצרה בהצלחה!', `המטלה נוצרה באמצעות ${providerName}`);
       }
 
     } catch (error) {
@@ -248,19 +261,29 @@ const useAssessmentGenerator = (params: {
       setError(errorMessage);
       updateRealProgress('error', 'שגיאה ביצירת המטלה', 0);
 
-      // Use fallback assessment
-      const fallbackAssessment = generateStructuredFallback(actualTips, actualCourseName, actualDescription);
+      // Use modular local fallback (last resort when server fails)
+      const fallbackReason = error instanceof Error ? error.message : 'Unknown error';
+      const fallbackResult = buildLocalFallbackAssignment(
+        actualCourseName,
+        actualFaculty,
+        actualDepartment,
+        actualTips,
+        fallbackReason
+      );
       
-      setGeneratedAssessment(fallbackAssessment);
-      setGeneratedRubric(buildFallbackRubric(actualTips));
-      setRubricHtml(generateFallbackRubricHtml(buildFallbackRubric(actualTips)));
+      setGeneratedAssessment(fallbackResult.assignment);
+      setGeneratedRubric(fallbackResult.rubricCriteria);
+      setRubricHtml(fallbackResult.rubricHtml);
       setModelUsed('מערכת גיבוי מקומית');
       
-      updateRealProgress('complete', '✅ המטלה מוכנה (מערכת גיבוי)!', 100);
+      updateRealProgress('complete', '✅ המטלה מוכנה (מערכת גיבוי)', 100);
       
       try {
         if (safeToast) {
-          safeToast.showWarning('מערכת גיבוי', 'המטלה נוצרה באמצעות מערכת גיבוי מקומית. בדוק את חיבור השרת.');
+          safeToast.showWarning(
+            'מערכת גיבוי', 
+            'המטלה נוצרה באמצעות מערכת גיבוי מקומית. נסה שוב ליצור מטלה עם AI.'
+          );
         }
       } catch (e) {
         console.log('Toast not available:', e);
@@ -268,132 +291,6 @@ const useAssessmentGenerator = (params: {
     }
   };
 
-  // Generate structured fallback assessment - consistent format
-  const generateStructuredFallback = (methods: any[], courseName: string, description: string): GeneratedAssessment => {
-    const methodTitles = methods.map(m => m.title || 'שיטה פדגוגית').join(', ');
-    
-    // Enhanced instructions based on selected methods
-    let instructions = [
-      'קראו בעיון את כל החומרים הנדרשים לקורס',
-      'נתחו את הנושא בצורה ביקורתית ועמוקה',
-      'השתמשו במקורות אקדמיים מהימנים בלבד'
-    ];
-
-    // Add method-specific instructions
-    methods.forEach(method => {
-      if (method.title?.includes('AI רפלקציה')) {
-        instructions.push(
-          'השתמשו בכלי AI לחקר ראשוני של הנושא',
-          'תעדו את כל השיח עם ה-AI במלואו',
-          'כתבו רפלקציה מעמיקה (300+ מילים) על תובנות ה-AI ומה שחסר לו'
-        );
-      }
-      
-      if (method.title?.includes('עבודה קבוצתית')) {
-        instructions.push(
-          'התארגנו בקבוצות של 3-4 סטודנטים',
-          'חלקו את העבודה באופן שווה בין חברי הקבוצה',
-          'תעדו את תהליך קבלת ההחלטות הקבוצתיות'
-        );
-      }
-    });
-
-    instructions.push(
-      'כתבו את העבודה במבנה אקדמי ברור עם מבוא, גוף ומסקנות',
-      'הגישו את העבודה במועד שנקבע'
-    );
-    
-    return {
-      title: `מטלה אינטגרטיבית מתקדמת - ${courseName}`,
-      description: `מטלה זו משלבת מספר גישות פדגוגיות כדי להעריך את הבנתכם בחומר הנלמד באופן מעמיק ומקיף. השיטות הנבחרות: ${methodTitles}`,
-      instructions: instructions,
-      requirements: [
-        'אורך: 8-12 עמודים',
-        'גופן: David או Arial, גודל 12',
-        'לפחות 8 מקורות אקדמיים',
-        'ציטוט לפי תקן APA',
-        'הגשה עד לתאריך הנקוב'
-      ],
-      estimatedHours: 25,
-      difficulty: 'בינוני',
-      generatedAt: new Date().toISOString()
-    };
-  };
-
-  // Build fallback rubric criteria
-  const buildFallbackRubric = (selectedMethods: any[]): RubricCriteria[] => {
-    const criteria: RubricCriteria[] = [
-      {
-        name: 'איכות תוכן',
-        description: 'עומק הניתוח ורמת ההבנה',
-        levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
-      },
-      {
-        name: 'מקורות ומחקר',
-        description: 'איכות המקורות ושימוש נכון בהם',
-        levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
-      },
-      {
-        name: 'כתיבה אקדמית',
-        description: 'רמת הכתיבה והביטוי האקדמי',
-        levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
-      }
-    ];
-
-    // Add method-specific criteria
-    selectedMethods.forEach(method => {
-      if (method.title?.includes('AI רפלקציה')) {
-        criteria.push({
-          name: 'רפלקציה על AI',
-          description: 'איכות הניתוח הביקורתי של תגובות ה-AI',
-          levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
-        });
-      }
-      if (method.title?.includes('עבודה קבוצתית')) {
-        criteria.push({
-          name: 'שיתוף פעולה',
-          description: 'יעילות העבודה הקבוצתית והחלוקה ההוגנת',
-          levels: ['מעולה (90-100)', 'טוב מאוד (80-89)', 'טוב (70-79)', 'מספק (60-69)']
-        });
-      }
-    });
-
-    return criteria;
-  };
-
-  // Generate fallback rubric HTML
-  const generateFallbackRubricHtml = (criteria: RubricCriteria[]): string => {
-    return `
-      <div style="margin-top: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-        <h3 style="color: #1976d2; border-bottom: 2px solid #1976d2; padding-bottom: 5px; margin-bottom: 15px;">
-          מחוון הערכה (רובריקה)
-        </h3>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-          <thead>
-            <tr style="background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);">
-              <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">קריטריון</th>
-              <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">תיאור</th>
-              <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">רמות הערכה</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${criteria.map((criterion, index) => `
-              <tr style="background: ${index % 2 === 0 ? '#fafafa' : '#ffffff'};">
-                <td style="border: 1px solid #ddd; padding: 12px; font-weight: bold; color: #333;">${criterion.name}</td>
-                <td style="border: 1px solid #ddd; padding: 12px; color: #666;">${criterion.description}</td>
-                <td style="border: 1px solid #ddd; padding: 12px;">
-                  ${criterion.levels.map(level => `<div style="margin: 5px 0; padding: 3px 8px; background: #f0f7ff; border-radius: 4px; color: #1976d2;">${level}</div>`).join('')}
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-        <div style="margin-top: 15px; padding: 10px; background: #e8f5e8; border-radius: 6px; color: #2e7d32;">
-          <small><strong>נוצר באמצעות:</strong> מערכת גיבוי מאובטחת | <strong>תאריך:</strong> ${new Date().toLocaleDateString('he-IL')}</small>
-        </div>
-      </div>
-    `;
-  };
 
   // Effect to trigger generation - optimized dependencies
   useEffect(() => {

@@ -4,7 +4,6 @@ import { saveAs } from 'file-saver';
 // import 'jspdf-autotable';
 
 import { RubricCriteria } from '../features/assessmentBuilder/lib/assessmentTypes';
-import { Packer, Paragraph, TextRun, Document } from 'docx';
 
 export interface ExportOptions {
   title: string;
@@ -41,65 +40,212 @@ export function exportToPDF(): void {
 
 /**
  * יצוא המטלה לקובץ Word (.docx)
+ * משתמש בספריית docx בלבד (ללא html-to-docx)
  */
 export async function exportToWord(options: ExportOptions): Promise<void> {
   try {
-    const { default: HTMLtoDOCX } = await import('html-to-docx');
-    const { saveAs } = await import('file-saver');
-
-    const documentContent = `
-      <!DOCTYPE html>
-      <html dir="rtl" lang="he">
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          body { font-family: 'Arial', 'David', sans-serif; direction: rtl; text-align: right; line-height: 1.6; margin: 20px; }
-          h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; font-size: 24px; }
-          h2 { color: #34495e; margin-top: 25px; font-size: 20px; }
-          h3 { color: #7f8c8d; font-size: 18px; }
-          table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 14px; }
-          th, td { border: 1px solid #bdc3c7; padding: 12px; text-align: right; }
-          th { background-color: #ecf0f1; font-weight: bold; }
-          p { margin-bottom: 10px; font-size: 14px; }
-          ul, ol { padding-right: 20px; }
-          li { margin-bottom: 5px; }
-          .document-header { text-align: center; margin-bottom: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px; }
-          .document-footer { margin-top: 30px; padding-top: 20px; border-top: 2px solid #e9ecef; font-size: 12px; color: #6c757d; }
-        </style>
-      </head>
-      <body>
-        <div class="document-header">
-          <h1>${options.title}</h1>
-          ${options.courseName ? `<p><strong>קורס:</strong> ${options.courseName}</p>` : ''}
-          ${options.faculty ? `<p><strong>פקולטה:</strong> ${options.faculty}</p>` : ''}
-          ${options.department ? `<p><strong>מחלקה:</strong> ${options.department}</p>` : ''}
-          <p><strong>תאריך יצירה:</strong> ${options.createdAt.toLocaleDateString('he-IL')}</p>
-        </div>
-
-        ${options.htmlContent}
-
-        <div class="document-footer">
-          <p><strong>נוצר באמצעות:</strong> ${options.modelUsed}</p>
-          <p><strong>מערכת:</strong> פדגוגיקל לגו - מחולל מטלות חכם</p>
-          <p><strong>זמן יצירה:</strong> ${options.createdAt.toLocaleDateString('he-IL')} בשעה ${options.createdAt.toLocaleTimeString('he-IL')}</p>
-        </div>
-      </body>
-      </html>
-    `;
-
-    const docxBlob = await HTMLtoDOCX(documentContent, null, {
-      table: { row: { cantSplit: true } },
-      footer: true,
-      pageNumber: true,
-      font: 'Arial'
+    // Dynamically import docx to avoid bundling issues
+    const docxModule = await import('docx');
+    const { Document, Packer, Paragraph, HeadingLevel, AlignmentType } = docxModule;
+    
+    // Parse HTML content to extract structured elements
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = options.htmlContent;
+    
+    // Convert HTML elements to docx paragraphs
+    const children = convertHtmlToDocxElements(tempDiv, docxModule);
+    
+    // Build document sections
+    const doc = new Document({
+      sections: [{
+        children: [
+          // Title
+          new Paragraph({
+            text: options.title,
+            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 },
+          }),
+          // Course details
+          ...(options.courseName ? [new Paragraph({
+            text: `קורס: ${options.courseName}`,
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 200 },
+          })] : []),
+          ...(options.faculty ? [new Paragraph({
+            text: `פקולטה: ${options.faculty}`,
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 200 },
+          })] : []),
+          ...(options.department ? [new Paragraph({
+            text: `מחלקה: ${options.department}`,
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 200 },
+          })] : []),
+          new Paragraph({
+            text: `תאריך יצירה: ${options.createdAt.toLocaleDateString('he-IL')}`,
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 400 },
+          }),
+          // Content
+          ...children,
+          // Footer
+          new Paragraph({
+            text: `נוצר באמצעות: ${options.modelUsed}`,
+            alignment: AlignmentType.RIGHT,
+            spacing: { before: 400, after: 200 },
+          }),
+          new Paragraph({
+            text: `מערכת: פדגוגיקל לגו - מחולל מטלות חכם`,
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 200 },
+          }),
+          new Paragraph({
+            text: `זמן יצירה: ${options.createdAt.toLocaleDateString('he-IL')} בשעה ${options.createdAt.toLocaleTimeString('he-IL')}`,
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 200 },
+          }),
+        ],
+      }],
     });
 
+    const blob = await Packer.toBlob(doc);
     const fileName = generateFileName(options);
-    saveAs(docxBlob, fileName);
-  } catch (error) {
+    saveAs(blob, fileName);
+  } catch (error: any) {
     console.error('❌ Error exporting to Word:', error);
-    throw new Error(`שגיאה ביצוא לקובץ Word. בדוק את הקונסולה לפרטים טכניים.`);
+    throw new Error(
+      `שגיאה ביצוא לקובץ Word: ${error?.message || 'שגיאה לא ידועה'}. ` +
+      'בדוק את הקונסולה לפרטים טכניים.'
+    );
   }
+}
+
+/**
+ * Convert HTML elements to docx elements
+ */
+function convertHtmlToDocxElements(element: HTMLElement, docxModule: any): any[] {
+  const { Paragraph, HeadingLevel, AlignmentType } = docxModule;
+  const result: any[] = [];
+  
+  const walker = document.createTreeWalker(
+    element,
+    NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+    null
+  );
+  
+  let node: Node | null = walker.nextNode();
+  let currentParagraph: string[] = [];
+  
+  while (node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent?.trim();
+      if (text) {
+        currentParagraph.push(text);
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement;
+      const tagName = el.tagName.toLowerCase();
+      
+      // Flush current paragraph if we hit a block element
+      if (currentParagraph.length > 0 && ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div', 'li'].includes(tagName)) {
+        result.push(new Paragraph({
+          text: currentParagraph.join(' '),
+          alignment: AlignmentType.RIGHT,
+          spacing: { after: 200 },
+        }));
+        currentParagraph = [];
+      }
+      
+      // Handle headings
+      if (tagName === 'h1') {
+        const text = el.textContent?.trim() || '';
+        if (text) {
+          result.push(new Paragraph({
+            text,
+            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.RIGHT,
+            spacing: { before: 300, after: 200 },
+          }));
+        }
+      } else if (tagName === 'h2') {
+        const text = el.textContent?.trim() || '';
+        if (text) {
+          result.push(new Paragraph({
+            text,
+            heading: HeadingLevel.HEADING_2,
+            alignment: AlignmentType.RIGHT,
+            spacing: { before: 250, after: 200 },
+          }));
+        }
+      } else if (tagName === 'h3') {
+        const text = el.textContent?.trim() || '';
+        if (text) {
+          result.push(new Paragraph({
+            text,
+            heading: HeadingLevel.HEADING_3,
+            alignment: AlignmentType.RIGHT,
+            spacing: { before: 200, after: 200 },
+          }));
+        }
+      } else if (tagName === 'p') {
+        const text = el.textContent?.trim() || '';
+        if (text) {
+          result.push(new Paragraph({
+            text,
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 200 },
+          }));
+        }
+      } else if (tagName === 'li') {
+        const text = el.textContent?.trim() || '';
+        if (text) {
+          result.push(new Paragraph({
+            text: `• ${text}`,
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 100 },
+            indent: { left: 400 },
+          }));
+        }
+      } else if (tagName === 'br') {
+        if (currentParagraph.length > 0) {
+          result.push(new Paragraph({
+            text: currentParagraph.join(' '),
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 200 },
+          }));
+          currentParagraph = [];
+        } else {
+          result.push(new Paragraph({
+            text: '',
+            spacing: { after: 100 },
+          }));
+        }
+      }
+    }
+    
+    node = walker.nextNode();
+  }
+  
+  // Flush remaining paragraph
+  if (currentParagraph.length > 0) {
+    result.push(new Paragraph({
+      text: currentParagraph.join(' '),
+      alignment: AlignmentType.RIGHT,
+      spacing: { after: 200 },
+    }));
+  }
+  
+  return result;
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 function generateFileName(options: ExportOptions): string {
@@ -146,10 +292,34 @@ export function deletePersonalAssignment(id: string): void {
 
 export const exportAssessmentToDOCX = async (assessmentHTML: string, fileName: string) => {
   try {
-    const HTMLtoDOCX = (await import('html-to-docx')).default;
-    const docxBlob = await HTMLtoDOCX(assessmentHTML, {});
-    saveAs(docxBlob, `${fileName}.docx`);
-  } catch (error) {
+    // Dynamically import docx to avoid bundling issues
+    const docxModule = await import('docx');
+    const { Document, Packer, Paragraph, HeadingLevel, AlignmentType } = docxModule;
+    
+    // Parse HTML content
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = assessmentHTML;
+    
+    // Convert HTML elements to docx paragraphs
+    const children = convertHtmlToDocxElements(tempDiv, docxModule);
+    
+    const doc = new Document({
+      sections: [{
+        children,
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `${fileName}.docx`);
+  } catch (error: any) {
     console.error('Error exporting to DOCX:', error);
+    const errorDetails = {
+      name: error?.name,
+      message: error?.message,
+      stack: error?.stack,
+      timestamp: new Date().toISOString(),
+    };
+    console.error('DOCX export error details:', errorDetails);
+    throw new Error(`שגיאה ביצוא DOCX: ${error?.message || 'שגיאה לא ידועה'}`);
   }
 };

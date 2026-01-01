@@ -149,97 +149,7 @@ app.post('/api/openai/generate', async (req, res) => {
   }
 });
 
-// 🧠 Claude Proxy Endpoint
-app.post('/api/claude/generate', async (req, res) => {
-  try {
-    if (!process.env.CLAUDE_API_KEY) {
-      return res.status(500).json({ 
-        error: 'Claude API key not configured',
-        code: 'MISSING_API_KEY'
-      });
-    }
-
-    const { messages, model = 'claude-3-sonnet-20240229', max_tokens = 4000 } = req.body;
-
-    if (!messages || !Array.isArray(messages)) {
-      return res.status(400).json({ 
-        error: 'Messages array is required',
-        code: 'INVALID_INPUT'
-      });
-    }
-
-    console.log('🚀 Sending request to Claude API...');
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    try {
-      const response = await axios.post(
-        'https://api.anthropic.com/v1/messages',
-        {
-          model,
-          max_tokens,
-          messages: messages.filter(msg => msg.role !== 'system'),
-          system: messages.find(msg => msg.role === 'system')?.content || undefined
-        },
-        {
-          headers: {
-            'x-api-key': process.env.CLAUDE_API_KEY,
-            'Content-Type': 'application/json',
-            'anthropic-version': '2023-06-01'
-          },
-          signal: controller.signal,
-          timeout: 25000
-        }
-      );
-
-      clearTimeout(timeoutId);
-      console.log('✅ Claude response received successfully');
-      
-      res.json({
-        success: true,
-        data: response.data,
-        provider: 'Claude 3 Sonnet'
-      });
-
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
-    }
-
-  } catch (error) {
-    console.error('❌ Claude API error:', error.message);
-    
-    if (error.code === 'ECONNABORTED' || error.name === 'AbortError') {
-      return res.status(408).json({ 
-        error: 'Request timeout - Claude API took too long to respond',
-        code: 'TIMEOUT'
-      });
-    }
-    
-    if (error.response?.status === 401) {
-      return res.status(401).json({ 
-        error: 'Invalid Claude API key',
-        code: 'INVALID_API_KEY'
-      });
-    }
-    
-    if (error.response?.status === 429) {
-      return res.status(429).json({ 
-        error: 'Claude API rate limit exceeded',
-        code: 'RATE_LIMIT'
-      });
-    }
-    
-    res.status(500).json({ 
-      error: 'Claude API request failed',
-      details: error.response?.data?.error?.message || error.message,
-      code: 'API_ERROR'
-    });
-  }
-});
-
-// 🎯 Assignment Generation Endpoint - מאגד את שני השירותים
+// 🎯 Assignment Generation Endpoint - OpenAI only
 app.post('/api/generate-assignment', async (req, res) => {
   try {
     const { 
@@ -249,7 +159,7 @@ app.post('/api/generate-assignment', async (req, res) => {
       courseDescription, 
       selectedMethods = [], 
       uploadedFiles = [],
-      preferredProvider = 'openai'
+      preferredProvider = 'openai' // Only OpenAI is supported
     } = req.body;
 
     // Input validation
@@ -260,9 +170,17 @@ app.post('/api/generate-assignment', async (req, res) => {
       });
     }
 
-    console.log(`📊 Assignment generation request - Course: ${courseName}, Provider: ${preferredProvider}`);
+    // Validate OpenAI API key is available
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ 
+        error: 'OpenAI API key is required but not configured',
+        code: 'MISSING_OPENAI_KEY'
+      });
+    }
 
-    // Build comprehensive prompt - matching the detailed format from claudeAssignmentGenerator
+    console.log(`📊 Assignment generation request - Course: ${courseName}, Provider: OpenAI`);
+
+    // Build comprehensive prompt
     const selectedComponents = selectedMethods.map(m => m.title || 'שיטה פדגוגית');
     const methodsText = selectedMethods.length > 0 
       ? selectedMethods.map(m => `- ${m.title}: ${m.description || ''}`).join('\n')
@@ -342,35 +260,23 @@ app.post('/api/generate-assignment', async (req, res) => {
     let result;
     let provider;
 
-    // Try preferred provider first
-    if (preferredProvider === 'openai' && process.env.OPENAI_API_KEY) {
-      try {
-        const openaiResponse = await axios.post(`${req.protocol}://${req.get('host')}/api/openai/generate`, {
-          messages,
-          model: 'gpt-4',
-          max_tokens: 4000,
-          temperature: 0.7
-        });
-        result = openaiResponse.data;
-        provider = 'OpenAI GPT-4';
-      } catch (error) {
-        console.warn('OpenAI failed, trying Claude...');
-      }
-    }
-
-    // Fallback to Claude if OpenAI failed or Claude was preferred
-    if (!result && process.env.CLAUDE_API_KEY) {
-      try {
-        const claudeResponse = await axios.post(`${req.protocol}://${req.get('host')}/api/claude/generate`, {
-          messages,
-          model: 'claude-3-sonnet-20240229',
-          max_tokens: 4000
-        });
-        result = claudeResponse.data;
-        provider = 'Claude 3 Sonnet';
-      } catch (error) {
-        console.warn('Claude also failed, using local fallback...');
-      }
+    // Generate with OpenAI
+    try {
+      const openaiResponse = await axios.post(`${req.protocol}://${req.get('host')}/api/openai/generate`, {
+        messages,
+        model: 'gpt-4',
+        max_tokens: 4000,
+        temperature: 0.7
+      });
+      result = openaiResponse.data;
+      provider = 'OpenAI GPT-4';
+    } catch (error) {
+      console.error('OpenAI API request failed:', error.message);
+      return res.status(500).json({ 
+        error: 'OpenAI API request failed',
+        details: error.response?.data?.error || error.message,
+        code: 'OPENAI_API_ERROR'
+      });
     }
 
     // Extract content from AI response
@@ -380,10 +286,6 @@ app.post('/api/generate-assignment', async (req, res) => {
     if (result?.data?.choices?.[0]?.message?.content) {
       // OpenAI format
       rawContent = result.data.choices[0].message.content;
-      generatedContent = rawContent;
-    } else if (result?.data?.content?.[0]?.text) {
-      // Claude format  
-      rawContent = result.data.content[0].text;
       generatedContent = rawContent;
     } else {
       // Use local fallback
@@ -420,7 +322,6 @@ app.post('/api/generate-assignment', async (req, res) => {
     );
 
     // Use the raw HTML content as the main rubricHtml (full assignment HTML)
-    // This matches what the frontend expects from the old claudeAssignmentGenerator
     structuredAssignment.rubricHtml = generatedContent || structuredAssignment.rubricHtml;
 
     console.log(`✅ Assignment generated successfully using ${provider}`);
@@ -445,15 +346,13 @@ app.post('/api/generate-assignment', async (req, res) => {
 // 📊 Server Status Endpoint
 app.get('/api/status', (req, res) => {
   const hasOpenAI = !!process.env.OPENAI_API_KEY;
-  const hasClaude = !!process.env.CLAUDE_API_KEY;
   
   res.json({
     server: 'Pedagogical Lego Backend Proxy',
     version: '1.0.0',
     status: 'running',
     providers: {
-      openai: hasOpenAI ? 'configured' : 'missing_key',
-      claude: hasClaude ? 'configured' : 'missing_key'
+      openai: hasOpenAI ? 'configured' : 'missing_key'
     },
     security: {
       cors: 'enabled',
@@ -489,8 +388,7 @@ app.listen(PORT, () => {
 🔒 Pedagogical Lego Backend Proxy Server
 🚀 Server running on port ${PORT}
 🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}
-🔑 OpenAI API: ${process.env.OPENAI_API_KEY ? '✅ Configured' : '❌ Missing'}
-🧠 Claude API: ${process.env.CLAUDE_API_KEY ? '✅ Configured' : '❌ Missing'}
+🔑 OpenAI API: ${process.env.OPENAI_API_KEY ? '✅ Configured' : '❌ Missing (Required)'}
 🛡️  Security: Helmet + CORS + Rate Limiting enabled
 📊 Health Check: http://localhost:${PORT}/health
 📈 Status: http://localhost:${PORT}/api/status

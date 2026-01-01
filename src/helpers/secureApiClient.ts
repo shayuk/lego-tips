@@ -1,13 +1,58 @@
 // 🔒 Secure API Client for Pedagogical Lego Backend Proxy
 // This client ensures all AI API calls go through our secure backend proxy
 
-const SERVER_URL = 'http://localhost:3001';
+import { getFunctions, httpsCallable } from "firebase/functions";
+
+// Reliable production detection - SINGLE SOURCE OF TRUTH
+export const isProduction = (): boolean => {
+  // Check environment variable first
+  if (import.meta.env.PROD) {
+    return true;
+  }
+  
+  // Also check hostname for extra reliability
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    return hostname.endsWith('.web.app') || 
+           hostname.endsWith('.firebaseapp.com') ||
+           hostname === 'lego-tips.web.app' ||
+           hostname === 'lego-tips.firebaseapp.com';
+  }
+  
+  return false;
+};
+
+// Compile-time DEV constant - tree-shaken in production builds
+// This ensures "http://localhost:3001" never appears in production bundle
+const DEV_LOCALHOST_URL = import.meta.env.DEV ? "http://localhost:3001" : "";
+
+// Determine server URL based on environment
+const getServerUrl = (): string => {
+  // In production, NEVER use localhost - use Firebase Functions only
+  if (isProduction()) {
+    return ''; // Empty = same origin, Firebase Functions will be used
+  }
+  
+  // Development: use local Express backend ONLY when actually on localhost
+  // Even if production detection fails (preview domains / unusual hostnames),
+  // NEVER default to localhost:3001 unless window.location.hostname is localhost/127.0.0.1
+  const host = typeof window !== 'undefined' ? window.location.hostname : '';
+  const isLocalhost = host === 'localhost' || host === '127.0.0.1';
+  const envUrl = import.meta.env.VITE_API_URL;
+  
+  if (envUrl) return envUrl;
+  return isLocalhost ? DEV_LOCALHOST_URL : '';
+};
+
+const SERVER_URL = getServerUrl();
+const USE_FIREBASE_FUNCTIONS = isProduction(); // Use Firebase Functions in production
 
 // 📝 Enhanced TypeScript interfaces for structured responses
 export interface HealthStatus {
   status: 'healthy' | 'unhealthy';
   timestamp: string;
   service: string;
+  skipped?: boolean; // Indicates health check was skipped (production mode)
 }
 
 export interface ServerStatus {
@@ -15,7 +60,6 @@ export interface ServerStatus {
   providers: {
     openai: 'configured' | 'missing';
     claude: 'configured' | 'missing';
-    recommended?: 'openai' | 'claude';
   };
   security: {
     cors: string;
@@ -45,7 +89,15 @@ export interface StructuredAssignment {
 export interface AIResponse {
   success: boolean;
   data: StructuredAssignment;  // ✅ Now structured instead of raw API response
-  provider: string;
+  provider?: string;  // Legacy field for backward compatibility
+  providerUsed?: string;  // New field from server
+  attempts?: Array<{
+    provider: 'openai' | 'claude';
+    ok: boolean;
+    errorCode?: string;
+    errorMessage?: string;
+  }>;
+  requestId?: string;
   timestamp: string;
 }
 
@@ -65,7 +117,56 @@ export interface AssignmentParams {
     description: string;
   }>;
   uploadedFiles?: any[];
-  preferredProvider?: 'openai' | 'claude';
+  preferredProvider?: 'openai';
+}
+
+// Map API endpoints to Firebase Function names
+const FIREBASE_FUNCTION_MAP: Record<string, string> = {
+  '/api/generate-assignment': 'generateAssignment',
+  '/api/openai/generate': 'generateWithOpenAI',
+  '/api/status': 'getServerStatus',
+  // Note: /health endpoint is skipped in production - no Firebase Function needed
+};
+
+// Firebase Functions request handler
+async function makeFirebaseFunctionRequest<T>(
+  endpoint: string,
+  options: { method?: string; body?: string }
+): Promise<T> {
+  try {
+    const functions = getFunctions();
+    const functionName = FIREBASE_FUNCTION_MAP[endpoint];
+    
+    if (!functionName) {
+      throw new Error(`No Firebase Function mapped for endpoint: ${endpoint}`);
+    }
+    
+    const cloudFunction = httpsCallable(functions, functionName);
+    const body = options.body ? JSON.parse(options.body) : {};
+    
+    console.log(`[Firebase Function] Calling ${functionName}`, { endpoint, body });
+    
+    const result = await cloudFunction(body);
+    
+    // Firebase Functions return data in result.data
+    return result.data as T;
+  } catch (error: any) {
+    console.error(`[Firebase Function] Error calling ${endpoint}:`, error);
+    
+    // Extract error message from Firebase error
+    const errorMessage = error?.message || error?.details || 'Firebase Function call failed';
+    
+    // Handle specific Firebase errors
+    if (errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
+      throw new Error(`הפונקציה ${FIREBASE_FUNCTION_MAP[endpoint]} לא נמצאה. אנא פנה למנהל המערכת.`);
+    }
+    
+    if (errorMessage.includes('permission') || errorMessage.includes('unauthorized')) {
+      throw new Error('אין הרשאה לגשת לשירות זה. אנא התחבר מחדש.');
+    }
+    
+    throw new Error(errorMessage);
+  }
 }
 
 // Generic request handler with enhanced error handling
@@ -74,15 +175,54 @@ async function makeRequest<T>(endpoint: string, options: {
   body?: string;
   headers?: Record<string, string>;
 } = {}): Promise<T> {
+  const startTime = Date.now();
+  const requestId = Math.random().toString(36).substring(7);
+  
+  console.log(`[API] ${requestId} → ${endpoint}`, {
+    method: options.method || 'GET',
+    environment: import.meta.env.MODE,
+    useFirebaseFunctions: USE_FIREBASE_FUNCTIONS,
+    timestamp: new Date().toISOString()
+  });
+
   try {
+    // In production, ALWAYS use Firebase Functions for API endpoints
+    // NEVER call localhost:3001 in production (or non-localhost environments)
+    if (isProduction()) {
+      // Health checks are COMPLETELY skipped in production - return immediately without any fetch
+      if (endpoint === '/health') {
+        console.log('Production mode: skipping /health endpoint (no localhost check)');
+        return {
+          status: 'healthy',
+          timestamp: new Date().toISOString(),
+          service: 'Firebase Functions',
+          skipped: true
+        } as T;
+      }
+      // Route API endpoints to Firebase Functions
+      if (endpoint.startsWith('/api/')) {
+        return await makeFirebaseFunctionRequest<T>(endpoint, options);
+      }
+      // For any other endpoint in production, try Firebase Functions if mapped
+      if (FIREBASE_FUNCTION_MAP[endpoint]) {
+        return await makeFirebaseFunctionRequest<T>(endpoint, options);
+      }
+      // If not mapped and in production, throw error (don't fall back to localhost)
+      throw new Error(`Endpoint ${endpoint} is not available in production. Use Firebase Functions instead.`);
+    }
+    
+    // Development: use Express backend
     const url = `${SERVER_URL}${endpoint}`;
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
+        'X-Request-ID': requestId,
         ...options.headers,
       },
       ...options,
     });
+
+    const duration = Date.now() - startTime;
 
     if (!response.ok) {
       const errorData: ErrorResponse = await response.json().catch(() => ({
@@ -90,15 +230,39 @@ async function makeRequest<T>(endpoint: string, options: {
         code: 'HTTP_ERROR'
       }));
       
+      console.error(`[API] ${requestId} ✗ ${endpoint}`, {
+        status: response.status,
+        duration: `${duration}ms`,
+        error: errorData
+      });
+      
       throw new Error(errorData.error || `Request failed with status ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    
+    console.log(`[API] ${requestId} ✓ ${endpoint}`, {
+      status: response.status,
+      duration: `${duration}ms`,
+      success: true
+    });
+
+    return data;
   } catch (error) {
+    const duration = Date.now() - startTime;
+    
+    console.error(`[API] ${requestId} ✗ ${endpoint}`, {
+      duration: `${duration}ms`,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    
     if (error instanceof Error) {
       // Network errors or parsing errors
       if (error.message.includes('Failed to fetch')) {
-        throw new Error('לא ניתן להתחבר לשרת. אנא ודא שהשרת פועל.');
+        const errorMsg = isProduction()
+          ? 'לא ניתן להתחבר לשירותי Firebase Functions. אנא נסה שוב בעוד מספר דקות.'
+          : 'לא ניתן להתחבר לשרת. אנא ודא שהשרת המאובטח פועל על פורט 3001.';
+        throw new Error(errorMsg);
       }
       throw error;
     }
@@ -106,8 +270,20 @@ async function makeRequest<T>(endpoint: string, options: {
   }
 }
 
-// Health check
+// Health check - skipped in production (no localhost server)
 export async function checkServerHealth(): Promise<HealthStatus> {
+  // In production, NEVER perform any fetch - return immediately
+  if (isProduction()) {
+    console.log('Production mode: using Firebase Functions (no localhost health check)');
+    return {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: 'Firebase Functions',
+      skipped: true
+    };
+  }
+  
+  // In development, check local server
   return makeRequest<HealthStatus>('/health');
 }
 
@@ -129,17 +305,6 @@ export async function generateWithOpenAI(messages: any[], model = 'gpt-4'): Prom
   });
 }
 
-// Generate with Claude (direct proxy)  
-export async function generateWithClaude(messages: any[], model = 'claude-3-sonnet-20240229'): Promise<any> {
-  return makeRequest('/api/claude/generate', {
-    method: 'POST',
-    body: JSON.stringify({
-      messages,
-      model,
-      max_tokens: 4000
-    }),
-  });
-}
 
 // 🎯 Main assignment generation endpoint - returns structured data
 export async function generateAssignment(params: AssignmentParams): Promise<AIResponse> {
@@ -149,10 +314,53 @@ export async function generateAssignment(params: AssignmentParams): Promise<AIRe
   });
 }
 
-// Enhanced assignment generation with retry logic
+// Check if error is transient (should retry) or permanent (should not retry)
+function isTransientError(error: any): boolean {
+  if (!error) return false;
+  
+  const errorMessage = (error.message || '').toLowerCase();
+  const errorCode = error.code || '';
+  
+  // Permanent errors - don't retry
+  const permanentErrors = [
+    'api key',
+    'unauthorized',
+    'missing',
+    'invalid input',
+    'permission',
+    'authentication',
+    'auth_error',
+    'not_configured',
+    'missing_course_name',
+    'invalid-argument'
+  ];
+  
+  if (permanentErrors.some(term => errorMessage.includes(term) || errorCode.includes(term))) {
+    return false;
+  }
+  
+  // Transient errors - retry
+  const transientErrors = [
+    'failed to fetch',
+    'network',
+    'timeout',
+    'econnreset',
+    'enotfound',
+    'econnrefused',
+    'rate_limit',
+    'server_error',
+    'internal',
+    'all_providers_failed'  // Server tried all providers, client can retry
+  ];
+  
+  return transientErrors.some(term => errorMessage.includes(term) || errorCode.includes(term));
+}
+
+// Enhanced assignment generation with retry logic (only for transient failures)
 export async function generateAssignmentWithRetry(
   params: AssignmentParams, 
-  maxRetries = 2
+  maxRetries = 2, // Reduced to 2 since server handles provider fallback
+  baseDelay = 1000
 ): Promise<AIResponse> {
   let lastError: Error | null = null;
   
@@ -179,12 +387,22 @@ export async function generateAssignmentWithRetry(
         throw new Error('תגובה לא תקינה מהשרת - חסר מידע בסיסי');
       }
       
-      console.log(`✅ Successful generation on attempt ${attempt}`);
+      console.log(`✅ Successful generation on attempt ${attempt}`, {
+        providerUsed: result.providerUsed || result.provider,
+        attempts: result.attempts
+      });
       return result;
       
     } catch (error) {
       lastError = error instanceof Error ? error : new Error('שגיאה לא ידועה');
-      console.warn(`❌ Attempt ${attempt} failed:`, lastError.message);
+      
+      // Check if error is transient (network/server issues) or permanent (auth/config)
+      if (!isTransientError(error)) {
+        console.warn(`❌ Non-retryable error: ${lastError.message}`);
+        throw lastError;
+      }
+      
+      console.warn(`❌ Attempt ${attempt} failed (transient):`, lastError.message);
       
       // Log error on final attempt (non-blocking)
       if (attempt === maxRetries) {
@@ -204,9 +422,9 @@ export async function generateAssignmentWithRetry(
         break;
       }
       
-      // Wait before retry (exponential backoff)
-      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-      console.log(`⏳ Waiting ${delay}ms before retry...`);
+      // Exponential backoff with jitter
+      const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000;
+      console.log(`⏳ Waiting ${Math.round(delay)}ms before retry...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -218,14 +436,12 @@ export async function generateAssignmentWithRetry(
 export async function checkAvailableProviders(): Promise<{
   openai: boolean;
   claude: boolean;
-  recommended?: 'openai' | 'claude';
 }> {
   try {
     const status = await getServerStatus();
     return {
       openai: status.providers.openai === 'configured',
-      claude: status.providers.claude === 'configured',
-      recommended: status.providers.recommended || 'openai'
+      claude: status.providers.claude === 'configured'
     };
   } catch (error) {
     console.error('Failed to check providers:', error);
@@ -241,23 +457,36 @@ export function handleAPIError(error: any): string {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
     
+    // Network errors
     if (message.includes('network') || message.includes('failed to fetch')) {
-      return 'בעיית חיבור לשרת. אנא בדוק את חיבור האינטרנט ונסה שוב.';
+      if (isProduction()) {
+        return 'בעיית חיבור לשירותי Firebase Functions. אנא נסה שוב בעוד מספר דקות.';
+      }
+      return 'בעיית חיבור לשרת. ודא שהשרת המאובטח פועל על פורט 3001.';
     }
     
+    // Firebase Functions errors
+    if (message.includes('firebase') || message.includes('functions') || message.includes('not found')) {
+      return 'שגיאה בשירותי Firebase. אנא נסה שוב או פנה לתמיכה.';
+    }
+    
+    // Timeout errors
     if (message.includes('timeout')) {
-      return 'הבקשה לא הושלמה בזמן. נסה שוב במספר דקות.';
+      return 'הבקשה לא הושלמה בזמן. נסה שוב.';
     }
     
-    if (message.includes('api key')) {
-      return 'בעיה במפתח ה-API. אנא פנה למנהל המערכת.';
+    // API key errors
+    if (message.includes('api key') || message.includes('unauthorized') || message.includes('permission')) {
+      return 'בעיה באימות המפתח. אנא פנה למנהל המערכת.';
     }
     
+    // Rate limit errors
     if (message.includes('rate limit')) {
       return 'הגעת למגבלת השימוש. נסה שוב בעוד מספר דקות.';
     }
     
-    if (message.includes('תגובה לא תקינה')) {
+    // Invalid response errors
+    if (message.includes('תגובה לא תקינה') || message.includes('invalid')) {
       return 'התקבלה תגובה לא תקינה מהשרת. נסה שוב.';
     }
     

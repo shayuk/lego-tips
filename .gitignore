@@ -93,3 +93,16 @@ public
 # Temporary folders
 tmp/
 temp/ 
+
+# secrets
+*key*.txt
+.env
+.env.*
+*.pem
+*.p12
+
+# firebase local cache
+.firebase/
+
+# logs / temp
+*.log
