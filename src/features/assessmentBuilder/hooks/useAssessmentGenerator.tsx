@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../../../helpers/useToast';
-import { generateAssignmentWithRetry, checkAvailableProviders, handleAPIError, APIUsageTracker, checkServerHealth, isProduction } from '../../../helpers/secureApiClient';
+import { generateAssignmentWithRetry, checkAvailableProviders, handleAPIError, APIUsageTracker, checkServerHealth, isProduction, ScholarlySource, MaterialQualityReport } from '../../../helpers/secureApiClient';
 import { buildLocalFallbackAssignment, buildFallbackRubric, generateFallbackRubricHtml } from '../lib/localFallback';
 
 // 📝 Assessment Types - מתואמים עם תגובת השרת
@@ -59,6 +59,10 @@ const useAssessmentGenerator = (params: {
   const [generatedRubric, setGeneratedRubric] = useState<RubricCriteria[]>([]);
   const [rubricHtml, setRubricHtml] = useState<string>('');
   const [modelUsed, setModelUsed] = useState<string>('');
+  const [groundingMode, setGroundingMode] = useState<"uploaded" | "web" | "hybrid" | undefined>(undefined);
+  const [sourcesUsed, setSourcesUsed] = useState<ScholarlySource[]>([]);
+  const [apa7References, setApa7References] = useState<string[]>([]);
+  const [materialQualityReport, setMaterialQualityReport] = useState<MaterialQualityReport | undefined>(undefined);
   const [loadingState, setLoadingState] = useState<LoadingState>({
     isLoading: false,
     message: 'מוכן ליצירה...',
@@ -226,6 +230,20 @@ const useAssessmentGenerator = (params: {
       const providerName = result.providerUsed || result.provider || assignmentData.modelUsed || 'Unknown';
       setModelUsed(providerName);
 
+      // Set grounding metadata
+      if (assignmentData.groundingMode) {
+        setGroundingMode(assignmentData.groundingMode);
+      }
+      if (assignmentData.sourcesUsed && assignmentData.sourcesUsed.length > 0) {
+        setSourcesUsed(assignmentData.sourcesUsed);
+      }
+      if (assignmentData.apa7References && assignmentData.apa7References.length > 0) {
+        setApa7References(assignmentData.apa7References);
+      }
+      if (assignmentData.materialQualityReport) {
+        setMaterialQualityReport(assignmentData.materialQualityReport);
+      }
+
       // Track successful API call
       APIUsageTracker.track('/api/generate-assignment', true, providerName);
 
@@ -327,6 +345,10 @@ const useAssessmentGenerator = (params: {
     modelUsed,           // ✅ Real provider info from API
     loadingState,        // ✅ Enhanced real-time loading states
     error,               // ✅ Consistent error handling
+    groundingMode,       // ✅ Grounding mode (uploaded/web/hybrid)
+    sourcesUsed,         // ✅ Scholarly sources used
+    apa7References,      // ✅ APA7 formatted references
+    materialQualityReport, // ✅ Material quality assessment
     // Expose API stats for monitoring
     getAPIStats: () => APIUsageTracker.getStats()
   };
