@@ -14,6 +14,7 @@ interface SavedAssessment {
   htmlContent: string;
   modelUsed: string;
   createdAt: string;
+  savedAt: string;
   courseName?: string;
   // הוספנו את השדה description כדי להתאים לשינויים
   description?: string;
@@ -54,7 +55,7 @@ export default function MyAssessmentsPage() {
   const loadAssessments = () => {
     const saved = getPersonalAssignments();
     // שינוי 1: השדה נקרא savedAt, לא createdAt
-    setAssessments(saved.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()));
+    setAssessments(saved.sort((a: SavedAssessment, b: SavedAssessment) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()));
   };
 
   const loadTips = () => {
@@ -69,7 +70,7 @@ export default function MyAssessmentsPage() {
       createdAt: tip.createdAt || new Date().toISOString(),
       isPrivate: true
     }));
-    setTips(tipsWithMetadata.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    setTips(tipsWithMetadata.sort((a: SavedTip, b: SavedTip) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
   };
 
   const filteredAssessments = useMemo(() => {
