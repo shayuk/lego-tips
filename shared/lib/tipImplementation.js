@@ -8,7 +8,7 @@
  * - For AI comparison tip: explicit Prompt A + Prompt B
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.normalizeRubricHtmlToPointRanges = exports.validateAiPrompts = exports.validateSectionDepth = exports.validateTipCompliance = exports.buildTipEnforcementPrompt = void 0;
+exports.tipInvolvesAI = exports.normalizeRubricHtmlToPointRanges = exports.validateAiPrompts = exports.validateSectionDepth = exports.validateTipCompliance = exports.buildTipEnforcementPrompt = void 0;
 /**
  * Tip specifications - single source of truth for all tips
  */
@@ -289,22 +289,31 @@ exports.validateSectionDepth = validateSectionDepth;
  */
 function tipInvolvesAI(tip) {
     const spec = getTipSpec(tip);
+    // If we have a spec, treat it as the source of truth.
     if (spec) {
-        // Check if tip has promptArtifacts (AI comparison) or is AI reflection
-        if (spec.promptArtifacts && spec.promptArtifacts.length > 0) {
+        // Prefer explicit flag if present (supports gradual migration).
+        if (typeof spec.involvesAI === 'boolean')
+            return spec.involvesAI;
+        // Infer ONLY from explicit structured AI artifacts.
+        if (Array.isArray(spec.promptArtifacts) && spec.promptArtifacts.length > 0)
             return true;
-        }
-        if (spec.id === 'am_13' || tip.title.toLowerCase().includes('רפלקציה') && tip.title.toLowerCase().includes('ai')) {
+        // Legacy explicit exception (keep tiny and documented).
+        if (spec.id === 'am_13')
             return true;
-        }
+        return false;
     }
-    // Check title for AI-related keywords
-    const titleLower = tip.title.toLowerCase();
-    return titleLower.includes('ai') ||
-        titleLower.includes('רפלקציה') ||
-        titleLower.includes('השוואה') ||
-        titleLower.includes('ביקורתי');
+    // No spec (unknown tip): safe fallback via explicit AI keywords only.
+    const title = tip.title || '';
+    const t = title.toLowerCase();
+    return (t.includes('ai') ||
+        t.includes('chatgpt') ||
+        t.includes('gpt') ||
+        t.includes('claude') ||
+        t.includes('gemini') ||
+        t.includes('copilot') ||
+        title.includes('בינה מלאכותית'));
 }
+exports.tipInvolvesAI = tipInvolvesAI;
 /**
  * Validate that AI prompts are generated when AI-based tips are selected
  */
