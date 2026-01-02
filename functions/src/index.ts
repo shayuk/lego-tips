@@ -1010,7 +1010,7 @@ export const generateAssignment = onCall(
         : aiModeAddons;
       
       structuredAssignment.debug = {
-        generatorVersion: (process?.env?.GIT_SHA as string) || 'dev',
+        generatorVersion: 'tip-enforcement-v2',
         usedTipEnforcer: selectedMethods.length > 0,
         selectedTipsCount: selectedMethods.length,
         rubricPointRanges: hasPointRanges || false,

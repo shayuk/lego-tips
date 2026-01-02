@@ -8,6 +8,12 @@ import styles from '../../../components/AssessmentGenerator.module.css';
 import { ScholarlySource, MaterialQualityReport } from '../../../helpers/secureApiClient';
 
 // הגדרת ה-props שהרכיב יקבל
+interface RubricCriteria {
+  name: string;
+  description: string;
+  levels: string[];
+}
+
 interface GeneratedAssessmentDisplayProps {
   /** מחרוזת ה-HTML המלאה שנוצרה על ידי ה-AI */
   htmlContent: string;
@@ -33,6 +39,8 @@ interface GeneratedAssessmentDisplayProps {
   apa7References?: string[];
   /** דוח איכות חומרים */
   materialQualityReport?: MaterialQualityReport;
+  /** קריטריוני מחוון מובנים (אם קיימים, יוצגו במקום rubricHtml) */
+  rubricCriteria?: RubricCriteria[];
 }
 
 /**
@@ -50,14 +58,95 @@ export const GeneratedAssessmentDisplay: React.FC<GeneratedAssessmentDisplayProp
   sourcesUsed = [],
   apa7References = [],
   materialQualityReport,
+  rubricCriteria,
 }) => {
   console.log(`🎨 [GeneratedAssessmentDisplay] Rendering with content length: ${htmlContent?.length || 0}`);
+  console.log(`📋 [Rubric] rubricCriteria: ${rubricCriteria?.length || 0} criteria, htmlContent length: ${htmlContent?.length || 0}`);
+
+  // Helper function to render rubric from criteria
+  const renderRubricFromCriteria = (criteria: RubricCriteria[]): string => {
+    return `
+      <div style="margin-top: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        <h3 style="color: #1976d2; border-bottom: 2px solid #1976d2; padding-bottom: 5px; margin-bottom: 15px;">
+          מחוון הערכה (רובריקה)
+        </h3>
+        <table dir="rtl" style="width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <thead>
+            <tr style="background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);">
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">קריטריון</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע בסיסי (0–7 נקודות)</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע מתקדם (8–15 נקודות)</th>
+              <th style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">ביצוע מיטבי (16–20 נקודות)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${criteria.map((criterion, index) => {
+              // Use levels if available, otherwise use default descriptions
+              const level0 = criterion.levels && criterion.levels.length > 0 
+                ? criterion.levels[0] 
+                : 'ביצוע חלקי או לא מספק של הדרישות';
+              const level1 = criterion.levels && criterion.levels.length > 1 
+                ? criterion.levels[1] 
+                : 'ביצוע טוב של רוב הדרישות';
+              const level2 = criterion.levels && criterion.levels.length > 2 
+                ? criterion.levels[2] 
+                : 'ביצוע מעולה ומקיף של כל הדרישות';
+              
+              return `
+                <tr style="background: ${index % 2 === 0 ? '#fafafa' : '#ffffff'};">
+                  <td style="border: 1px solid #ddd; padding: 12px; font-weight: bold; color: #333;">${criterion.name}</td>
+                  <td style="border: 1px solid #ddd; padding: 12px; color: #666;">${level0}</td>
+                  <td style="border: 1px solid #ddd; padding: 12px; color: #666;">${level1}</td>
+                  <td style="border: 1px solid #ddd; padding: 12px; color: #666;">${level2}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  };
+
+  // Determine which content to render: rubricCriteria (preferred) or rubricHtml (fallback)
+  const useRubricCriteria = rubricCriteria && rubricCriteria.length > 0;
+  const rubricSource = useRubricCriteria ? 'criteria' : 'html';
+  
+  // Build the final HTML content
+  let finalHtmlContent = htmlContent;
+  if (useRubricCriteria) {
+    // Extract non-rubric content (everything before rubric section)
+    const rubricMarkers = [
+      /<h[23][^>]*>.*?מחוון.*?<\/h[23]>/i,
+      /<h[23][^>]*>.*?רובריקה.*?<\/h[23]>/i,
+      /<table[^>]*>[\s\S]*?קריטריון[\s\S]*?<\/table>/i
+    ];
+    
+    let rubricStartIndex = -1;
+    for (const marker of rubricMarkers) {
+      const match = htmlContent.search(marker);
+      if (match !== -1) {
+        rubricStartIndex = match;
+        break;
+      }
+    }
+    
+    if (rubricStartIndex !== -1) {
+      // Replace rubric section with criteria-based rubric
+      const beforeRubric = htmlContent.substring(0, rubricStartIndex).trim();
+      const rubricFromCriteria = renderRubricFromCriteria(rubricCriteria);
+      finalHtmlContent = beforeRubric + '\n' + rubricFromCriteria;
+    } else {
+      // No rubric found in HTML, append criteria-based rubric
+      finalHtmlContent = htmlContent + '\n' + renderRubricFromCriteria(rubricCriteria);
+    }
+  }
 
   // --- אבטחה: שלב קריטי! ---
   // לפני שמשתמשים ב-dangerouslySetInnerHTML, חובה "לחטא" את ה-HTML
   // כדי למנוע התקפות XSS. DOMPurify היא הספריה המובילה לכך.
-  const cleanHtml = DOMPurify.sanitize(htmlContent);
+  const cleanHtml = DOMPurify.sanitize(finalHtmlContent);
   console.log(`🔒 [Security] HTML sanitized successfully`);
+  console.log(`📋 [Rubric] Rubric source: ${rubricSource}`);
 
   // הכן את תאריך היצירה - אם לא הועבר, השתמש בזמן הנוכחי
   const displayDate = createdAt || new Date();
@@ -68,10 +157,10 @@ export const GeneratedAssessmentDisplay: React.FC<GeneratedAssessmentDisplayProp
   const [isSavingShared, setIsSavingShared] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  // יצירת אובייקט אפשרויות לייצוא
+  // יצירת אובייקט אפשרויות לייצוא (uses finalHtmlContent with rubric from criteria if available)
   const exportOptions: ExportOptions = {
     title: courseDetails?.courseName || 'מטלה מותאמת',
-    htmlContent: cleanHtml,
+    htmlContent: cleanHtml, // Already sanitized finalHtmlContent
     modelUsed,
     createdAt: displayDate,
     courseName: courseDetails?.courseName,
@@ -286,6 +375,23 @@ export const GeneratedAssessmentDisplay: React.FC<GeneratedAssessmentDisplayProp
         ✅ שימוש בטוח ב-dangerouslySetInnerHTML עם DOMPurify
         ה-div החיצוני עם הקלאס 'content' מבטיח שהעיצוב יחול על התוכן
       */}
+      {/* DEV label: Rubric source indicator */}
+      {import.meta.env.DEV && (
+        <div style={{
+          padding: '8px 12px',
+          marginBottom: '1rem',
+          backgroundColor: '#e3f2fd',
+          border: '1px solid #90caf9',
+          borderRadius: '4px',
+          fontSize: '0.85rem',
+          color: '#1565c0',
+          textAlign: 'right',
+          direction: 'rtl'
+        }}>
+          <strong>DEV:</strong> Rubric source: <strong>{rubricSource}</strong>
+          {useRubricCriteria && ` (${rubricCriteria.length} criteria)`}
+        </div>
+      )}
       <div
         className={styles.content}
         dangerouslySetInnerHTML={{ __html: cleanHtml }}
