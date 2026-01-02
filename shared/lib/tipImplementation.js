@@ -8,7 +8,7 @@
  * - For AI comparison tip: explicit Prompt A + Prompt B
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.tipInvolvesAI = exports.normalizeRubricHtmlToPointRanges = exports.validateAiPrompts = exports.validateSectionDepth = exports.validateTipCompliance = exports.buildTipEnforcementPrompt = void 0;
+exports.normalizeRubricHtmlToPointRanges = exports.validateAiPrompts = exports.getTipIdentifier = exports.tipInvolvesAI = exports.validateSectionDepth = exports.validateTipCompliance = exports.buildTipEnforcementPrompt = exports.buildAiModeAddon = void 0;
 /**
  * Tip specifications - single source of truth for all tips
  */
@@ -26,7 +26,10 @@ const TIP_SPECS = [
             'רפלקציה כתובה (300+ מילים) על התובנות והחסרונות',
             'ניתוח ביקורתי של בחירות ה-AI'
         ],
-        rubricCriteriaHints: ['רפלקציה על AI', 'איכות הניתוח הביקורתי', 'תיעוד השיח']
+        rubricCriteriaHints: ['רפלקציה על AI', 'איכות הניתוח הביקורתי', 'תיעוד השיח'],
+        involvesAI: true,
+        aiMode: 'reflection',
+        aiTools: ['ChatGPT']
     },
     {
         id: 'ai_comparison',
@@ -52,7 +55,10 @@ const TIP_SPECS = [
                 promptTemplate: 'הזן את אותו הנושא לכלי AI שונה. השתמש בשאילתה דומה אך עם שינוי קל (למשל: הוסף הקשר נוסף או בקש גישה שונה): [נושא המטלה]'
             }
         ],
-        rubricCriteriaHints: ['השוואה בין תוצרים', 'ניתוח ביקורתי', 'זיהוי הטיות', 'איכות השאילתות']
+        rubricCriteriaHints: ['השוואה בין תוצרים', 'ניתוח ביקורתי', 'זיהוי הטיות', 'איכות השאילתות'],
+        involvesAI: true,
+        aiMode: 'comparison',
+        aiTools: ['ChatGPT', 'Claude']
     },
     {
         id: 'peer_review',
@@ -105,6 +111,132 @@ function getTipSpec(tip) {
     return null;
 }
 /**
+ * Build AI mode-specific addon block for prompt
+ */
+function buildAiModeAddon(spec, context) {
+    if (!spec.aiMode) {
+        return '';
+    }
+    const topic = context.topic || context.course || 'הנושא של המטלה';
+    const tools = spec.aiTools || ['ChatGPT', 'Claude'];
+    switch (spec.aiMode) {
+        case 'reflection': {
+            return `
+**הוראות שילוב AI - רפלקציה:**
+
+המטלה כוללת שימוש בכלי AI כחלק מתהליך הלמידה. הסטודנטים נדרשים:
+
+1. **תיעוד השימוש ב-AI:**
+   - צילומי מסך או transcript מלא של כל השיחות עם כלי ה-AI
+   - תיעוד הפרומפטים ששימשו והתשובות שהתקבלו
+   - ציון תאריכים ושעות השימוש
+
+2. **רפלקציה מעמיקה (300+ מילים) הכוללת:**
+   - מה למדתי מהשימוש בכלי ה-AI?
+   - אילו תובנות חדשות קיבלתי על הנושא?
+   - מה היו המגבלות והחסרונות של התשובות שקיבלתי?
+   - איך השימוש ב-AI שינה את הבנתי את ${topic}?
+   - מה הייתי עושה אחרת בפעם הבאה?
+
+3. **ניתוח ביקורתי:**
+   - זיהוי נקודות חוזק וחולשה בתשובות ה-AI
+   - הערכת אמינות ודיוק המידע שקיבלתי
+   - השוואה בין מה שלמדתי מה-AI לבין מה שלמדתי מהקורס
+
+**דרישות הגשה:**
+- יומן שיח מלא עם ה-AI (צילומי מסך או transcript)
+- רפלקציה כתובה (מינימום 300 מילים)
+- ניתוח ביקורתי של בחירות ה-AI והתשובות שקיבלת`;
+        }
+        case 'comparison': {
+            const tool1 = tools[0] || 'ChatGPT';
+            const tool2 = tools[1] || 'Claude';
+            return `
+**הוראות שילוב AI - השוואה בין כלים:**
+
+המטלה כוללת השוואה בין שני כלי AI שונים. הסטודנטים נדרשים:
+
+1. **יצירת שני פרומפטים:**
+
+   **Prompt A (${tool1}):**
+   בנה שאילתה מפורטת שתבקש מ-${tool1} לנתח/להסביר/לבצע: ${topic}
+   
+   דוגמה לפרומפט:
+   "אני לומד/ת על ${topic}. אנא הסבר/י את המושגים המרכזיים, ספק/י דוגמאות רלוונטיות, וציין/י את המגבלות או נקודות חשובות שיש לקחת בחשבון."
+
+   **Prompt B (${tool2}):**
+   בנה שאילתה דומה אך עם שינוי קל (למשל: הוסף הקשר נוסף או בקש גישה שונה) עבור ${tool2}:
+   ${topic}
+   
+   דוגמה לפרומפט:
+   "אני לומד/ת על ${topic} כחלק מקורס אקדמי. אנא ספק/י ניתוח מעמיק הכולל: (1) הגדרות מדויקות, (2) הקשר היסטורי/תיאורטי, (3) דוגמאות מהשדה, (4) ביקורת על הגישה, (5) השוואה לגישות חלופיות."
+
+2. **הרצת שני הפרומפטים והשוואה:**
+
+   הסטודנטים חייבים להריץ את שני ה-prompts בכלי AI שונים ולהשוות את התוצאות.
+
+3. **טבלת השוואה מפורטת** הכוללת:
+   - דיוק: איזו תשובה הייתה מדויקת יותר?
+   - עומק: איזו תשובה הייתה מעמיקה יותר?
+   - הטיות: אילו הטיות זיהית בכל תשובה?
+   - ציטוטים: איזו תשובה כללה ציטוטים ומקורות טובים יותר?
+   - בחירה סופית: איזו תשובה הייתה טובה יותר ולמה?
+
+4. **ניתוח ביקורתי של ההבדלים:**
+   - מה היו ההבדלים המרכזיים בין התשובות?
+   - מה הסיבות להבדלים אלה?
+   - איך זה משפיע על השימוש בכלי AI בעתיד?
+
+**דרישות הגשה:**
+- תוצר מ-Prompt A (${tool1}) - צילום מסך או העתקה של התשובה המלאה
+- תוצר מ-Prompt B (${tool2}) - צילום מסך או העתקה של התשובה המלאה
+- טבלת השוואה מפורטת עם כל הקריטריונים לעיל
+- ניתוח ביקורתי של ההבדלים והטיות (200+ מילים)`;
+        }
+        case 'required': {
+            return `
+**הוראות שילוב AI - חובה:**
+
+השימוש בכלי AI הוא **חובה** במטלה זו. הסטודנטים נדרשים:
+
+1. **שימוש בכלי AI** כחלק אינטגרלי מהמטלה
+2. **תיעוד מלא** של השימוש (צילומי מסך או transcript)
+3. **ציון מפורש** של איך השתמשו ב-AI ומה למדו ממנו
+
+**דרישות הגשה:**
+- עדות לשימוש ב-AI (צילומי מסך או transcript)
+- הסבר על איך השתמשת ב-AI במטלה
+- ניתוח של התרומה של ה-AI לתהליך הלמידה`;
+        }
+        case 'optional': {
+            return `
+**הוראות שילוב AI - אופציונלי:**
+
+הסטודנטים יכולים להשתמש בכלי AI כסיוע במטלה, אך יש לקחת בחשבון:
+
+1. **שימוש זהיר:**
+   - וודא/י שהמידע שקיבלת מה-AI נכון ומדויק
+   - אל תעתיק ישירות - השתמש ב-AI ככלי עזר לחשיבה, לא כתחליף לחשיבה עצמאית
+   - ציין/י אם השתמשת ב-AI ובאיזה הקשר
+
+2. **מה להיזהר:**
+   - AI יכול לטעות - תמיד בדוק/י את העובדות
+   - AI יכול להמציא מקורות - אל תסמוך/י על ציטוטים ללא בדיקה
+   - AI לא מבין הקשר - התאם/י את התשובות להקשר הספציפי של המטלה
+
+3. **אם בחרת להשתמש ב-AI:**
+   - ציין/י זאת במפורש במטלה
+   - הסבר/י איך השתמשת ב-AI
+   - צרף/י צילומי מסך או transcript של השימוש
+
+**חשוב:** שימוש ב-AI הוא אופציונלי. המטלה יכולה להיעשות גם ללא שימוש ב-AI.`;
+        }
+        default:
+            return '';
+    }
+}
+exports.buildAiModeAddon = buildAiModeAddon;
+/**
  * Build enforcement prompt for selected tips
  */
 function buildTipEnforcementPrompt(selectedTips, topic) {
@@ -133,7 +265,7 @@ function buildTipEnforcementPrompt(selectedTips, topic) {
             // Special handling for AI comparison tip
             if (spec.promptArtifacts && spec.promptArtifacts.length > 0) {
                 sections.push(`\n4. **חובה מוחלטת - יצירת שני prompts מפורשים:**`);
-                spec.promptArtifacts.forEach((artifact, idx) => {
+                spec.promptArtifacts.forEach((artifact) => {
                     sections.push(`   - ${artifact.label}: ${artifact.promptTemplate}`);
                 });
                 sections.push(`   הסטודנטים חייבים להריץ את שני ה-prompts בכלי AI שונים ולהשוות את התוצאות.`);
@@ -163,11 +295,27 @@ function buildTipEnforcementPrompt(selectedTips, topic) {
     const hasAiTip = selectedTips.some(tip => tipInvolvesAI(tip));
     if (hasAiTip) {
         sections.push(`\n**חובה מוחלטת - יצירת פרומפטים ל-AI:**`);
-        sections.push(`- אם נבחר טיפ הקשור ל-AI (רפלקציה, השוואה, ניתוח ביקורתי), חובה לכלול סעיף: "פרומפטים לשימוש בכלי AI"`);
+        sections.push(`- אם נבחר טיפ הקשור ל-AI, חובה לכלול סעיף: "פרומפטים לשימוש בכלי AI"`);
         sections.push(`- בתוך הסעיף, חובה לספק פרומפטים מוכנים לשימוש (לא רק הוראה "השתמשו ב-AI")`);
         sections.push(`- הפרומפטים חייבים להתייחס לנושא המטלה הספציפי ולחומרים שהועלו`);
         sections.push(`- הפרומפטים חייבים לכלול פורמט פלט צפוי (אורך, מבנה, קריטריונים)`);
         sections.push(`- אסור להשתמש בביטויים כמו "השתמשו ב-AI כדי..." ללא פרומפט מפורש`);
+    }
+    // Collect AI mode addons from selected tips
+    const aiModeAddons = [];
+    selectedTips.forEach(tip => {
+        const spec = getTipSpec(tip);
+        if (spec?.aiMode) {
+            const addon = buildAiModeAddon(spec, { topic });
+            if (addon) {
+                aiModeAddons.push(addon);
+            }
+        }
+    });
+    // Append AI mode addons if any
+    if (aiModeAddons.length > 0) {
+        sections.push(`\n**הוראות שילוב AI (בהתבסס על הטיפים שנבחרו):**`);
+        sections.push(...aiModeAddons);
     }
     return sections.join('\n');
 }
@@ -314,6 +462,30 @@ function tipInvolvesAI(tip) {
         title.includes('בינה מלאכותית'));
 }
 exports.tipInvolvesAI = tipInvolvesAI;
+/**
+ * Extract tip identifier from an object, checking multiple possible property names
+ *
+ * @param obj - Object that may contain tip identifier in various properties
+ * @returns The first found identifier, or undefined if none found
+ */
+function getTipIdentifier(obj) {
+    if (!obj || typeof obj !== 'object')
+        return undefined;
+    const o = obj;
+    const raw = o?.id ??
+        o?.key ??
+        o?.slug ??
+        o?.methodId ??
+        o?.tipId ??
+        o?.specId ??
+        o?.code;
+    // Convert to string safely, trim whitespace, and reject empty values.
+    if (raw === null || raw === undefined)
+        return undefined;
+    const s = String(raw).trim();
+    return s.length > 0 ? s : undefined;
+}
+exports.getTipIdentifier = getTipIdentifier;
 /**
  * Validate that AI prompts are generated when AI-based tips are selected
  */
