@@ -111,6 +111,19 @@ export declare function validateAiPrompts(structuredAssignment: {
     missing: string[];
 };
 /**
+ * Validate external knowledge application - ensure external theories/concepts are meaningfully applied
+ */
+export declare function validateExternalKnowledgeApplication(structuredAssignment: {
+    studentInstructionsHtml?: string;
+    instructions?: string[];
+    requirements?: string[];
+    rubricHtml?: string;
+}): {
+    ok: boolean;
+    missing: string[];
+    externalConcepts: string[];
+};
+/**
  * Normalize rubric HTML to use point ranges (0-7, 8-15, 16-20) instead of percentages
  */
 export declare function normalizeRubricHtmlToPointRanges(rubricHtml: string): string;

@@ -6,7 +6,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { defineSecret } from "firebase-functions/params";
 import { assessMaterialQuality, validateAssignmentSpecificity, MaterialQualityReport } from "../../shared/materialQuality";
 import { searchScholarlySources, formatAPA7References, ScholarlySource } from "../../shared/scholarlySearch";
-import { buildTipEnforcementPrompt, validateTipCompliance, validateTipImplementationRequirements, normalizeRubricHtmlToPointRanges, validateSectionDepth, validateAiPrompts, tipInvolvesAI, getTipIdentifier } from "../../shared/tipImplementation";
+import { buildTipEnforcementPrompt, validateTipCompliance, validateTipImplementationRequirements, normalizeRubricHtmlToPointRanges, validateSectionDepth, validateAiPrompts, validateExternalKnowledgeApplication, tipInvolvesAI, getTipIdentifier, validateAm03Assignment } from "../../shared/tipImplementation";
+import { normalizeTipToSpec, specToImplementationBlock, TipInput, TipContext } from "../../shared/tipSpecUniversal";
+import { validateWithRetry } from "../../shared/tipSpecValidator";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -126,6 +128,23 @@ interface StructuredAssignment {
     selectedTipIdentifiers?: string[];
     tipEnforcementPromptPreview?: string;
     aiModeAddonsPreview?: string;
+    externalKnowledgeUsed?: string[];
+    externalKnowledgeRationale?: string;
+    am03ContractApplied?: boolean;
+    am03ValidationChecks?: {
+      hasCriticalReflectionSection: boolean;
+      rubricEvaluatesAIReflection: boolean;
+      parallelAnalysisDetected: boolean;
+    };
+    tipSpecsSummary?: Array<{
+      id?: string;
+      title: string;
+      goal: string;
+      ai_mode?: string;
+      confidence?: string;
+      source?: string;
+    }>;
+    tipImplementationPromptPreview?: string;
   };
 }
 
@@ -468,7 +487,23 @@ export const generateAssignment = onCall(
 - פורמט הגשה: קובץ Word (.docx) או מצגת PowerPoint
 - תאריך הגשה ודרישות טכניות נוספות
 
-כתוב מחוון הערכה מתקדם ומפורט (טבלה) שכולל קריטריונים ספציפיים לכל אחד מהרכיבים הפדגוגיים שנבחרו.`;
+כתוב מחוון הערכה מתקדם ומפורט (טבלה) שכולל קריטריונים ספציפיים לכל אחד מהרכיבים הפדגוגיים שנבחרו.
+
+**מצב עוזר-מורה (Assistant-Teacher Mode):**
+אתה רשאי ומעודד להשתמש בידע אקדמי חיצוני מבוסס (תיאוריות, מחברים קנוניים, עובדות היסטוריות, אירועים עכשוויים)
+כדי להעשיר את המטלה, **גם אם ידע זה לא הועלה במפורש על ידי המרצה**,
+**בתנאי ש:**
+  - הוא רלוונטי ישירות לנושא הקורס,
+  - הוא נחוץ למטלה אקדמית איכותית,
+  - והוא משולב דרך הסבר ויישום, לא רק אזכור שטחי.
+
+**חוק קשיח בבניית המטלה:**
+כל מושג חיצוני שמוזכר במטלה **חייב** להיות מיושם לפחות באחד מהבאים:
+  - דוגמה קונקרטית,
+  - ניתוח יישומי,
+  - השוואה,
+  - או דיון ביקורתי.
+אם מושג לא יכול להיות מיושם באופן משמעותי, **אסור לכלול אותו**.`;
 
       // Build user prompt based on grounding mode
       let materialSection = '';
@@ -494,6 +529,60 @@ export const generateAssignment = onCall(
       // Extract tip identifiers for debug
       const selectedTipIdentifiers = selectedMethods.map(m => getTipIdentifier(m) || m.title).filter(Boolean);
 
+      // AMP: Universal Tip→TipSpec pipeline
+      // Normalize each tip to TipSpecUniversal and build implementation blocks
+      const tipSpecsSummary: Array<{ id?: string; title: string; goal: string; ai_mode?: string; confidence?: string; source?: string }> = [];
+      const tipImplementationBlocks: string[] = [];
+      
+      // Initialize LLM client for tip normalization (will be set after provider selection)
+      let tipNormalizationClient: OpenAI | Anthropic | null = null;
+      let tipNormalizationProvider: 'openai' | 'claude' | null = null;
+      
+      // Pre-normalize tips (will use internal specs if available, LLM later if needed)
+      const tipContext: TipContext = {
+        courseName,
+        courseDescription,
+        topic: courseName,
+        level: undefined
+      };
+
+      // Try to normalize tips with internal specs first (no LLM needed)
+      for (const tip of selectedMethods) {
+        const tipInput: TipInput = {
+          id: tip.id,
+          title: tip.title,
+          description: tip.description,
+          fullText: tip.description
+        };
+
+        try {
+          // Try without LLM first (will use internal spec if available)
+          const normalized = await normalizeTipToSpec(tipInput, tipContext);
+          
+          tipSpecsSummary.push({
+            id: tip.id,
+            title: tip.title,
+            goal: normalized.spec.goal,
+            ai_mode: normalized.spec.ai_mode,
+            confidence: normalized.source === 'internal' ? 'high' : normalized.source === 'llm' ? 'medium' : 'low',
+            source: normalized.source
+          });
+
+          // Convert to implementation block
+          const block = specToImplementationBlock(normalized.spec, tip.title);
+          tipImplementationBlocks.push(`\n## Tip: ${tip.title}\n${block}`);
+        } catch (error: any) {
+          // If normalization fails (no internal spec and no LLM yet), store for later
+          logger.warn(`[${requestId}] Tip normalization deferred for ${tip.title}: ${error.message}`);
+          tipSpecsSummary.push({
+            id: tip.id,
+            title: tip.title,
+            goal: `Implement ${tip.title}`,
+            confidence: 'pending'
+          });
+        }
+      }
+
       const userPrompt = `
   ${courseContext}
   ${materialSection}
@@ -511,6 +600,12 @@ export const generateAssignment = onCall(
   ${groundingMode === "web" ? '- הוסף בסוף המטלה סעיף "מקורות ששימשו" עם רשימת המקורות בפורמט APA 7' : ''}`
         : `2. **בחר נושא ספציפי אחד וממוקד** מתוך תכני הקורס שסופקו.`}
   
+  2. **שלב חשיבה פנימית (לא להציג למשתמש): לפני כתיבת המטלה, זהה:**
+     א) אילו מושגים אקדמיים חיצוניים חיוניים להבנת הנושא.
+     ב) מדוע הם רלוונטיים.
+     ג) איך הם ייושמו קונקרטית במטלה (דוגמה, ניתוח, השוואה, דיון ביקורתי).
+     **חשוב:** כל מושג חיצוני שתזהה חייב להיות מיושם במטלה באופן משמעותי, לא רק מוזכר.
+  
   3. **שלב את כל הרכיבים הפדגוגיים שנבחרו באופן ספציפי ומשמעותי:**
   
   **חובה לשלב כל אחד מהרכיבים הבאים במטלה:** ${selectedComponents.join(", ")}
@@ -519,7 +614,9 @@ export const generateAssignment = onCall(
   ${methodsText}
   
   ${tipEnforcementPrompt}
-  
+
+  ${tipImplementationBlocks.length > 0 ? `\n**יישום טיפים - בלוקים ספציפיים:**\n${tipImplementationBlocks.join('\n\n')}` : ''}
+
   **אסור לך:**
   - להשתמש בדוגמאות דמיוניות או כלליות - תמיד התבסס על תכנים ספציפיים
   - ליצור משימות שאינן מתאימות לרמת הקורס או לתחום הלימוד
@@ -529,6 +626,13 @@ export const generateAssignment = onCall(
   - ליצור מחוון חלקי או לא מפורט
   ${groundingMode === "web" ? '- להמציא מקורות שלא סופקו' : ''}
   
+  **הוראות ספציפיות ליישום תיאוריות חיצוניות:**
+  - אם אתה מציג תיאוריה חיצונית (למשל, גופמן), המטלה חייבת:
+     * לכלול הקשר קצר לתיאוריה (1–2 משפטים מקסימום),
+     * לדרוש יישום למקרה קונקרטי (למשל, התנהגות ברשתות חברתיות, הופעה פוליטית, התנצלות ציבורית),
+     * לדרוש ניתוח באמצעות המושגים המרכזיים של התיאוריה.
+  - אם המטלה מזכירה תיאוריה/מחבר חיצוני אך לא כוללת משימת יישום, המטלה תיפסל ותתבצע ניסיון חוזר.
+
   **מחוון הערכה - דרישות חובה:**
   - המחוון חייב להיות טבלה HTML עם העמודות הבאות (בסדר RTL):
     1. קריטריון
@@ -537,6 +641,8 @@ export const generateAssignment = onCall(
     4. ביצוע מיטבי (16–20 נקודות)
   - אסור להשתמש באחוזים (%)
   - כל קריטריון חייב לכלול תיאור לכל אחת משלוש רמות הביצוע
+  - **אם המטלה כוללת תיאוריות חיצוניות, המחוון חייב לכלול קריטריון ספציפי לאיכות יישום התיאוריה:**
+    * דוגמה: "איכות יישום מושגי גופמן: מעולה - מיישם במדויק 'הצגת העצמי', 'הגדרת המצב', ו'קדמת הבמה/מאחורי הקלעים' למקרה עכשווי עם הסבר ברור. טוב - מיישם חלק מהמושגים נכון אך עם עומק מוגבל או דוגמאות חלקיות. בסיסי - מזכיר מושגים אך מיישם אותם באופן שטחי או תיאורי. חלש - מזכיר את התיאוריה ללא יישום משמעותי."
   
   **הפלט בעברית בפורמט HTML נקי וארגון מסודר** ללא תגי HTML מיותרים בתחילה או בסוף.`;
 
@@ -652,6 +758,42 @@ export const generateAssignment = onCall(
         );
       }
 
+      // Set tip normalization client for tips that need LLM extraction
+      tipNormalizationClient = activeClient;
+      tipNormalizationProvider = activeProviderType;
+
+      // Complete tip normalization for tips that need LLM (those with confidence='pending')
+      for (let i = 0; i < selectedMethods.length; i++) {
+        const tip = selectedMethods[i];
+        const summary = tipSpecsSummary[i];
+        
+        if (summary && summary.confidence === 'pending' && tipNormalizationClient && tipNormalizationProvider) {
+          try {
+            const tipInput: TipInput = {
+              id: tip.id,
+              title: tip.title,
+              description: tip.description,
+              fullText: tip.description
+            };
+            
+            const normalized = await normalizeTipToSpec(tipInput, tipContext, tipNormalizationClient, tipNormalizationProvider);
+            
+            summary.goal = normalized.spec.goal;
+            summary.ai_mode = normalized.spec.ai_mode;
+            summary.confidence = normalized.source === 'internal' ? 'high' : normalized.source === 'llm' ? 'medium' : 'low';
+            summary.source = normalized.source;
+
+            // Convert to implementation block and add to blocks
+            const block = specToImplementationBlock(normalized.spec, tip.title);
+            tipImplementationBlocks.push(`\n## Tip: ${tip.title}\n${block}`);
+            
+            logger.info(`[${requestId}] Completed LLM normalization for tip: ${tip.title}`);
+          } catch (error: any) {
+            logger.warn(`[${requestId}] Failed to normalize tip ${tip.title} with LLM: ${error.message}`);
+          }
+        }
+      }
+
       // STEP 3: Validate assignment specificity
       const isSpecific = validateAssignmentSpecificity(generatedContent, userRequestText);
       if (!isSpecific && groundingMode !== "web") {
@@ -665,6 +807,85 @@ export const generateAssignment = onCall(
         selectedMethods,
         providerUsed
       );
+
+      // AMP: Universal TipSpec validation with retry
+      let universalValidationRetryCount = 0;
+      if (selectedMethods.length > 0 && tipSpecsSummary.length > 0) {
+        // Validate each tip's spec
+        for (let i = 0; i < selectedMethods.length; i++) {
+          const tip = selectedMethods[i];
+          const summary = tipSpecsSummary[i];
+          
+          if (summary && summary.source && summary.source !== 'pending') {
+            // Get the normalized spec (re-normalize if needed for validation)
+            try {
+              const tipInput: TipInput = {
+                id: tip.id,
+                title: tip.title,
+                description: tip.description,
+                fullText: tip.description
+              };
+              
+              const normalized = await normalizeTipToSpec(
+                tipInput, 
+                tipContext, 
+                tipNormalizationClient || undefined, 
+                tipNormalizationProvider || undefined
+              );
+              
+              const validation = validateWithRetry(structuredAssignment, normalized.spec, universalValidationRetryCount);
+              
+              if (!validation.ok && validation.shouldRetry && activeClient && activeProviderType && universalValidationRetryCount < 1) {
+                logger.warn(`[${requestId}] Universal TipSpec validation failed for ${tip.title}:`, validation.missing);
+                logger.info(`[${requestId}] Regenerating with universal TipSpec corrections`);
+                
+                const universalRetryPrompt = `${userPrompt}\n\n${validation.retryPrompt}`;
+                
+                try {
+                  let retryContent = '';
+                  if (activeProviderType === 'openai') {
+                    const retryCompletion = await (activeClient as OpenAI).chat.completions.create({
+                      model: 'gpt-4o',
+                      messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: universalRetryPrompt }
+                      ],
+                      max_tokens: 4000,
+                      temperature: 0.7
+                    });
+                    retryContent = retryCompletion.choices?.[0]?.message?.content || '';
+                  } else if (activeProviderType === 'claude') {
+                    const retryMessage = await (activeClient as Anthropic).messages.create({
+                      model: 'claude-3-sonnet-20240229',
+                      max_tokens: 4000,
+                      messages: [
+                        { role: 'user', content: `${systemPrompt}\n\n${universalRetryPrompt}` }
+                      ]
+                    });
+                    retryContent = retryMessage.content?.[0]?.type === 'text' ? retryMessage.content[0].text : '';
+                  }
+
+                  if (retryContent) {
+                    generatedContent = retryContent;
+                    structuredAssignment = parseAIResponseToStructuredFormat(
+                      generatedContent,
+                      courseName,
+                      selectedMethods,
+                      providerUsed
+                    );
+                    universalValidationRetryCount++;
+                    logger.info(`[${requestId}] Universal TipSpec retry completed for ${tip.title}`);
+                  }
+                } catch (retryError: any) {
+                  logger.warn(`[${requestId}] Universal TipSpec retry generation failed: ${retryError.message}`);
+                }
+              }
+            } catch (error: any) {
+              logger.warn(`[${requestId}] Universal TipSpec validation error for ${tip.title}: ${error.message}`);
+            }
+          }
+        }
+      }
 
       // PHASE C: Validate tip implementation requirements (stricter validation)
       const tipImplementationValidation = validateTipImplementationRequirements(structuredAssignment, selectedMethods);
@@ -724,6 +945,77 @@ export const generateAssignment = onCall(
           }
         } catch (retryError: any) {
           logger.warn(`[${requestId}] Tip implementation retry generation failed: ${retryError.message}, proceeding with original`);
+        }
+      }
+
+      // PHASE D: Validate am_03 specific contract (if am_03 is selected)
+      const hasAm03 = selectedMethods.some(tip => getTipIdentifier(tip) === 'am_03' || tip.id === 'am_03');
+      let am03Validation: { ok: boolean; missing: string[]; debug?: any } | null = null;
+      if (hasAm03) {
+        am03Validation = validateAm03Assignment(structuredAssignment);
+        if (!am03Validation.ok && activeClient && activeProviderType) {
+          logger.warn(`[${requestId}] am_03 contract validation failed:`, am03Validation.missing);
+          
+          // ONE automatic retry for am_03
+          logger.info(`[${requestId}] Regenerating with am_03 contract corrections`);
+          const am03CorrectionPrompt = `${userPrompt}\n\n**תיקון חובה - חוזה פדגוגי עבור am_03:**\n` +
+            `המטלה לא עומדת בדרישות הפדגוגיות של טיפ am_03. הבעיות הבאות זוהו:\n${am03Validation.missing.map(m => `- ${m}`).join('\n')}\n\n` +
+            `**הוראות חובה לתיקון:**\n` +
+            `1. המטלה חייבת לכלול סעיף בדיוק בשם: "רפלקציה ביקורתית על ניתוח ה-AI"\n` +
+            `2. הניתוח של ה-AI הוא אובייקט לביקורת, לא מקור סמכותי.\n` +
+            `3. הסטודנט חייב לזהות:\n` +
+            `   • מה ה-AI עשה טוב,\n` +
+            `   • מה היה שטחי,\n` +
+            `   • מה חסר,\n` +
+            `   • איפה ה-AI לא הבין או פישט יתר על המידה את התיאוריה.\n` +
+            `4. הסטודנט חייב להסביר איך הניתוח צריך להשתפר כדי לעמוד בסטנדרטים אקדמיים.\n` +
+            `5. אסור לכלול ניתוח עצמאי של סטודנט שאינו קשור במפורש לתוצר ה-AI.\n` +
+            `6. המחוון חייב לכלול קריטריון המעריך את הביקורת של הסטודנט על ניתוח ה-AI.\n` +
+            `7. כתוב מחדש את המטלה כך שהסטודנט מעריך ביקורתית את ניתוח ה-AI במקום לייצר ניתוח מקביל עצמאי.\n`;
+          
+          try {
+            let retryContent = '';
+            if (activeProviderType === 'openai') {
+              const retryCompletion = await (activeClient as OpenAI).chat.completions.create({
+                model: 'gpt-4o',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: am03CorrectionPrompt }
+                ],
+                max_tokens: 4000,
+                temperature: 0.7
+              });
+              retryContent = retryCompletion.choices?.[0]?.message?.content || '';
+            } else if (activeProviderType === 'claude') {
+              const retryMessage = await (activeClient as Anthropic).messages.create({
+                model: 'claude-3-sonnet-20240229',
+                max_tokens: 4000,
+                messages: [
+                  { role: 'user', content: `${systemPrompt}\n\n${am03CorrectionPrompt}` }
+                ]
+              });
+              retryContent = retryMessage.content?.[0]?.type === 'text' ? retryMessage.content[0].text : '';
+            }
+
+            if (retryContent) {
+              generatedContent = retryContent;
+              structuredAssignment = parseAIResponseToStructuredFormat(
+                generatedContent,
+                courseName,
+                selectedMethods,
+                providerUsed
+              );
+              logger.info(`[${requestId}] am_03 retry generation completed, re-validating...`);
+              
+              // Re-validate am_03 after retry
+              am03Validation = validateAm03Assignment(structuredAssignment);
+              if (!am03Validation.ok) {
+                logger.warn(`[${requestId}] am_03 retry still has validation issues:`, am03Validation.missing);
+              }
+            }
+          } catch (retryError: any) {
+            logger.warn(`[${requestId}] am_03 retry generation failed: ${retryError.message}, proceeding with original`);
+          }
         }
       }
 
@@ -803,12 +1095,15 @@ export const generateAssignment = onCall(
         }
       }
 
-      // STEP: Validate section depth and AI prompts AFTER HTML extraction
+      // STEP: Validate section depth, AI prompts, and external knowledge application AFTER HTML extraction
       let sectionDepthOkBeforeRetry = false;
       let sectionDepthOkAfterRetry = false;
       let sectionDepthFailures: string[] = [];
       let aiPromptsOk = false;
       let aiPromptsFailures: string[] = [];
+      let externalKnowledgeOk = false;
+      let externalKnowledgeFailures: string[] = [];
+      let externalConceptsUsed: string[] = [];
 
       // Validate section depth
       const depthValidation = validateSectionDepth(structuredAssignment);
@@ -824,14 +1119,21 @@ export const generateAssignment = onCall(
         aiPromptsOk = true; // No AI tips, validation passes
       }
 
+      // Validate external knowledge application
+      const externalKnowledgeValidation = validateExternalKnowledgeApplication(structuredAssignment);
+      externalKnowledgeOk = externalKnowledgeValidation.ok;
+      externalKnowledgeFailures = externalKnowledgeValidation.missing;
+      externalConceptsUsed = externalKnowledgeValidation.externalConcepts;
+
       // If validation fails, regenerate ONCE with strict instruction
-      if ((!depthValidation.ok || !aiPromptsOk) && activeClient && activeProviderType) {
-        logger.warn(`[${requestId}] Section depth or AI prompts validation failed. Regenerating...`);
+      if ((!depthValidation.ok || !aiPromptsOk || !externalKnowledgeOk) && activeClient && activeProviderType) {
+        logger.warn(`[${requestId}] Validation failed. Regenerating...`);
         logger.warn(`[${requestId}] Depth failures:`, depthValidation.failures);
         logger.warn(`[${requestId}] AI prompts failures:`, aiPromptsFailures);
+        logger.warn(`[${requestId}] External knowledge failures:`, externalKnowledgeFailures);
         
-        const allFailures = [...depthValidation.failures, ...aiPromptsFailures];
-        const strictRetryPrompt = `${userPrompt}\n\n**תיקון חובה - דרישות עומק ופרומפטים:**\n` +
+        const allFailures = [...depthValidation.failures, ...aiPromptsFailures, ...externalKnowledgeFailures];
+        const strictRetryPrompt = `${userPrompt}\n\n**תיקון חובה - דרישות עומק, פרומפטים ויישום ידע חיצוני:**\n` +
           `התשובה הקודמת שלך לא עמדה בדרישות הבאות:\n${allFailures.map(f => `- ${f}`).join('\n')}\n\n` +
           `**הוראות חובה לתיקון:**\n` +
           `1. כל אחד מהסעיפים הבאים חייב לכלול לפחות שני פסקאות מלאות (כל פסקה ≥3 משפטים):\n` +
@@ -839,8 +1141,13 @@ export const generateAssignment = onCall(
           `   - תיאור המשימה והוראות\n` +
           `   - דרישות הגשה\n` +
           `${!aiPromptsOk ? `2. אם נבחר טיפ הקשור ל-AI, חובה לכלול סעיף "פרומפטים לשימוש בכלי AI" עם פרומפטים מוכנים לשימוש (לא רק הוראה כללית).\n` : ''}` +
-          `3. אל תשנה את הנושא, הטיפים או המחוון - רק הוסף עומק לסעיפים הקיימים.\n` +
-          `4. צור מטלה חדשה מלאה שעומדת בכל הדרישות הנ"ל.`;
+          `${!externalKnowledgeOk ? `3. אם המטלה מזכירה תיאוריה או מחבר חיצוני (כגון: ${externalConceptsUsed.join(', ')}), חובה לכלול משימת יישום קונקרטית:\n` +
+          `   - דוגמה קונקרטית (לא רק אזכור),\n` +
+          `   - ניתוח יישומי באמצעות המושגים של התיאוריה,\n` +
+          `   - השוואה או דיון ביקורתי.\n` +
+          `   המחוון חייב לכלול קריטריון ספציפי לאיכות יישום התיאוריה.\n` : ''}` +
+          `4. אל תשנה את הנושא, הטיפים או המחוון - רק הוסף עומק לסעיפים הקיימים.\n` +
+          `5. צור מטלה חדשה מלאה שעומדת בכל הדרישות הנ"ל.`;
         
         try {
           let retryContent = '';
@@ -935,6 +1242,11 @@ export const generateAssignment = onCall(
               const retryAiPromptsValidation = validateAiPrompts(structuredAssignment, selectedMethods);
               aiPromptsOk = retryAiPromptsValidation.ok;
             }
+            
+            const retryExternalKnowledgeValidation = validateExternalKnowledgeApplication(structuredAssignment);
+            externalKnowledgeOk = retryExternalKnowledgeValidation.ok;
+            externalKnowledgeFailures = retryExternalKnowledgeValidation.missing;
+            externalConceptsUsed = retryExternalKnowledgeValidation.externalConcepts;
           }
         } catch (retryError: any) {
           logger.warn(`[${requestId}] Depth/AI prompts retry generation failed: ${retryError.message}`);
@@ -1009,8 +1321,15 @@ export const generateAssignment = onCall(
         ? aiModeAddons.substring(aiModeAddons.length - 2000)
         : aiModeAddons;
       
+      // Build tip implementation prompt preview (last 2000 chars)
+      const tipImplementationPromptPreview = tipImplementationBlocks.length > 0
+        ? tipImplementationBlocks.join('\n').substring(Math.max(0, tipImplementationBlocks.join('\n').length - 2000))
+        : undefined;
+
       structuredAssignment.debug = {
-        generatorVersion: 'tip-enforcement-v2',
+        generatorVersion: 'tipspec-universal-v1',
+        am03ContractApplied: hasAm03,
+        am03ValidationChecks: hasAm03 && am03Validation ? am03Validation.debug : undefined,
         usedTipEnforcer: selectedMethods.length > 0,
         selectedTipsCount: selectedMethods.length,
         rubricPointRanges: hasPointRanges || false,
@@ -1023,7 +1342,13 @@ export const generateAssignment = onCall(
         aiPromptsFailures,
         selectedTipIdentifiers: selectedTipIdentifiers.length > 0 ? selectedTipIdentifiers : undefined,
         tipEnforcementPromptPreview: tipEnforcementPromptPreview || undefined,
-        aiModeAddonsPreview: aiModeAddonsPreview || undefined
+        aiModeAddonsPreview: aiModeAddonsPreview || undefined,
+        externalKnowledgeUsed: externalConceptsUsed.length > 0 ? externalConceptsUsed : undefined,
+        externalKnowledgeRationale: externalConceptsUsed.length > 0 
+          ? `תיאוריות חיצוניות שזוהו במטלה: ${externalConceptsUsed.join(', ')}. ${externalKnowledgeOk ? 'כל התיאוריות מיושמות משמעותית במטלה.' : 'חלק מהתיאוריות דורשות יישום נוסף.'}`
+          : undefined,
+        tipSpecsSummary: tipSpecsSummary.length > 0 ? tipSpecsSummary : undefined,
+        tipImplementationPromptPreview: tipImplementationPromptPreview || undefined
       };
 
       logger.info(`[${requestId}] Assignment generated successfully using ${providerUsed}, mode: ${groundingMode}`);
