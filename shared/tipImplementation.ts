@@ -9,6 +9,13 @@
 
 export type AiMode = 'optional' | 'required' | 'comparison' | 'reflection';
 
+export interface TipContract {
+  requiredSections: string[]; // Sections that MUST appear in the assignment
+  prohibitedPatterns: string[]; // Patterns that MUST NOT appear
+  requiredRubricCriteria: string[]; // Rubric criteria that MUST be present
+  intent: string; // Pedagogical intent description
+}
+
 export interface TipImplementationSpec {
   id?: string;
   titleMatchers: string[]; // Strings to match tip titles if id missing
@@ -19,6 +26,7 @@ export interface TipImplementationSpec {
   involvesAI?: boolean; // Explicit flag for AI involvement (optional, supports gradual migration)
   aiMode?: AiMode; // AI integration mode: optional, required, comparison, reflection
   aiTools?: string[]; // List of AI tools to use (e.g., ['ChatGPT', 'Claude'])
+  contract?: TipContract; // Strict pedagogical contract for tip enforcement
 }
 
 /**
@@ -101,13 +109,53 @@ const TIP_SPECS: TipImplementationSpec[] = [
       'רפלקציה על תהליך העבודה הקבוצתית'
     ],
     rubricCriteriaHints: ['שיתוף פעולה', 'יעילות העבודה הקבוצתית', 'חלוקה הוגנת']
+  },
+  {
+    id: 'am_03',
+    titleMatchers: ['ניתוח מונחה של פרומפטים', 'Guided AI Prompt Analysis', 'Critical Reflection on AI'],
+    requiredSubsections: [
+      'יישום הטיפ: ניתוח מונחה של פרומפטים',
+      'פרומפט AI',
+      'סיכום ניתוח AI',
+      'רפלקציה ביקורתית על ניתוח ה-AI'
+    ],
+    requiredDeliverables: [
+      'פרומפט AI מוכן לשימוש',
+      'סיכום תמציתי של ניתוח ה-AI',
+      'רפלקציה ביקורתית כתובה (400+ מילים) על ניתוח ה-AI'
+    ],
+    rubricCriteriaHints: [
+      'הבנת המסגרת התיאורטית',
+      'איכות הערכת ניתוח ה-AI',
+      'עומק ההנמקה הרפלקטיבית'
+    ],
+    involvesAI: true,
+    aiMode: 'reflection',
+    aiTools: ['ChatGPT', 'Claude'],
+    contract: {
+      requiredSections: [
+        'פרומפט AI',
+        'סיכום ניתוח AI',
+        'רפלקציה ביקורתית על ניתוח ה-AI'
+      ],
+      prohibitedPatterns: [
+        'ניתוח עצמאי של סטודנט שאינו קשור במפורש לתוצר ה-AI',
+        'ניתוח מקביל ללא היררכיה'
+      ],
+      requiredRubricCriteria: [
+        'הבנת המסגרת התיאורטית',
+        'איכות הערכת ניתוח ה-AI',
+        'עומק ההנמקה הרפלקטיבית'
+      ],
+      intent: 'הסטודנט אינו מתחרה עם ה-AI. הסטודנט מעריך, מבקר ומשפר את ההנמקה של ה-AI.'
+    }
   }
 ];
 
 /**
  * Get tip spec by title or id
  */
-function getTipSpec(tip: { id?: string; title: string }): TipImplementationSpec | null {
+export function getTipSpec(tip: { id?: string; title: string }): TipImplementationSpec | null {
   // Try by id first
   if (tip.id) {
     const byId = TIP_SPECS.find(spec => spec.id === tip.id);
@@ -333,6 +381,40 @@ export function buildTipEnforcementPrompt(
         }
         sections.push(`   - [ ] Students must create a comparison table`);
         sections.push(`   - [ ] Students must write a final decision paragraph`);
+      }
+      
+      // HARD implementation block for am_03 (Guided AI Prompt Analysis with Critical Reflection)
+      if (spec.id === 'am_03' && spec.contract) {
+        sections.push(`\n**⚠️ CRITICAL PEDAGOGICAL CONTRACT FOR am_03 (NON-NEGOTIABLE):**`);
+        sections.push(`\nThe generated assignment MUST include:`);
+        sections.push(`\nA) Mandatory section titled exactly:`);
+        sections.push(`   "רפלקציה ביקורתית על ניתוח ה-AI"`);
+        sections.push(`\nB) Explicit instructions stating:`);
+        sections.push(`   - The AI-generated analysis is NOT authoritative.`);
+        sections.push(`   - The student must identify:`);
+        sections.push(`     • what the AI did well,`);
+        sections.push(`     • what was superficial,`);
+        sections.push(`     • what was missing,`);
+        sections.push(`     • where the AI misunderstood or oversimplified the theory.`);
+        sections.push(`   - The student must explain how the analysis should be improved`);
+        sections.push(`     to meet academic standards.`);
+        sections.push(`\nC) Prohibit:`);
+        sections.push(`   - Parallel "independent analysis" sections that are not framed`);
+        sections.push(`     as a response to the AI analysis.`);
+        sections.push(`   - Student analysis that does not explicitly reference and critique`);
+        sections.push(`     the AI's output.`);
+        sections.push(`\nD) Rubric enforcement:`);
+        sections.push(`   - Rubric MUST be tabular.`);
+        sections.push(`   - Each criterion MUST include content-specific descriptions.`);
+        sections.push(`   - Generic labels like "Quality of content" WITHOUT explanation are INVALID.`);
+        sections.push(`   - Required rubric criteria examples:`);
+        sections.push(`     • "יישום [תיאוריה X] בהערכת ניתוח ה-AI"`);
+        sections.push(`     • "זיהוי פערים מושגיים או פשטות יתר בתוצר ה-AI"`);
+        sections.push(`     • "עומק ועקביות ההנמקה הרפלקטיבית"`);
+        sections.push(`   - Each level (Excellent / Good / Basic / Weak) MUST describe:`);
+        sections.push(`     • what the student actually demonstrates,`);
+        sections.push(`     • in relation to the specific theory and case.`);
+        sections.push(`\n**Intent:** ${spec.contract.intent}`);
       }
     } else {
       // Default spec for unknown tips
@@ -583,6 +665,284 @@ export function validateTipImplementationRequirements(
   return {
     ok: missing.length === 0,
     missing
+  };
+}
+
+/**
+ * Validate am_03 assignment - enforce strict pedagogical contract
+ * The assignment is INVALID if:
+ * - No section titled "רפלקציה ביקורתית על ניתוח ה-AI" exists
+ * - The reflection does not explicitly reference the AI's analysis
+ * - The assignment contains two unrelated analyses (AI + student) without hierarchy
+ * - The rubric does NOT contain a criterion evaluating the student's critique of AI
+ */
+export function validateAm03Assignment(
+  structuredAssignment: {
+    studentInstructionsHtml?: string;
+    instructions?: string[];
+    requirements?: string[];
+    rubricHtml?: string;
+  }
+): { ok: boolean; missing: string[]; debug?: { hasCriticalReflectionSection: boolean; rubricEvaluatesAIReflection: boolean; parallelAnalysisDetected: boolean } } {
+  const missing: string[] = [];
+  const allText = [
+    structuredAssignment.studentInstructionsHtml || '',
+    (structuredAssignment.instructions || []).join(' '),
+    (structuredAssignment.requirements || []).join(' ')
+  ].join(' ').toLowerCase();
+  
+  const rubricText = (structuredAssignment.rubricHtml || '').toLowerCase();
+  
+  // Check 1: Must have critical reflection section
+  const criticalReflectionSectionPatterns = [
+    'רפלקציה ביקורתית על ניתוח ה-ai',
+    'רפלקציה ביקורתית על ניתוח ai',
+    'ביקורת על ניתוח ה-ai',
+    'הערכת ניתוח ה-ai',
+    'critical reflection on ai analysis',
+    'critical reflection on the ai'
+  ];
+  const hasCriticalReflectionSection = criticalReflectionSectionPatterns.some(pattern => 
+    allText.includes(pattern.toLowerCase())
+  );
+  
+  if (!hasCriticalReflectionSection) {
+    missing.push('Missing mandatory section "רפלקציה ביקורתית על ניתוח ה-AI"');
+  }
+  
+  // Check 2: Reflection must explicitly reference AI's analysis
+  const aiReferencePatterns = [
+    'ניתוח ה-ai',
+    'תשובת ה-ai',
+    'תוצר ה-ai',
+    'הניתוח של ה-ai',
+    'ai analysis',
+    'ai response',
+    'ai output',
+    'the ai\'s analysis',
+    'the ai\'s reasoning'
+  ];
+  
+  // Find reflection section and check if it references AI
+  let reflectionReferencesAI = false;
+  if (hasCriticalReflectionSection) {
+    // Look for reflection section and check nearby context
+    const reflectionSectionIndex = criticalReflectionSectionPatterns.findIndex(pattern => 
+      allText.includes(pattern.toLowerCase())
+    );
+    if (reflectionSectionIndex >= 0) {
+      const pattern = criticalReflectionSectionPatterns[reflectionSectionIndex];
+      const patternIndex = allText.indexOf(pattern.toLowerCase());
+      // Check 500 characters after the section title
+      const reflectionContext = allText.substring(patternIndex, patternIndex + 500);
+      reflectionReferencesAI = aiReferencePatterns.some(aiPattern => 
+        reflectionContext.includes(aiPattern.toLowerCase())
+      );
+    }
+  }
+  
+  if (hasCriticalReflectionSection && !reflectionReferencesAI) {
+    missing.push('Critical reflection section does not explicitly reference the AI\'s analysis');
+  }
+  
+  // Check 3: Detect parallel analysis (two unrelated analyses without hierarchy)
+  // Look for patterns suggesting independent student analysis not tied to AI
+  const independentAnalysisPatterns = [
+    /ניתוח עצמאי[^.]*בלי.*ai/i,
+    /ניתוח[^.]*מקביל[^.]*ללא.*קשר.*ai/i,
+    /independent analysis[^.]*without.*ai/i,
+    /parallel analysis[^.]*not.*related.*ai/i
+  ];
+  
+  const parallelAnalysisDetected = independentAnalysisPatterns.some(pattern => 
+    pattern.test(allText)
+  );
+  
+  // Also check if there are two separate analysis sections without clear hierarchy
+  const analysisSectionCount = (allText.match(/ניתוח|analysis/gi) || []).length;
+  const aiAnalysisMentioned = aiReferencePatterns.some(pattern => allText.includes(pattern.toLowerCase()));
+  const studentAnalysisMentioned = allText.includes('ניתוח הסטודנט') || allText.includes('student analysis');
+  
+  // If both AI and student analyses are mentioned but reflection section doesn't connect them
+  if (aiAnalysisMentioned && studentAnalysisMentioned && !reflectionReferencesAI && analysisSectionCount >= 2) {
+    missing.push('Assignment contains parallel analyses (AI + student) without clear hierarchy - student analysis must critique AI analysis');
+  }
+  
+  // Check 4: Rubric must evaluate student's critique of AI
+  const rubricAIReflectionPatterns = [
+    'הערכת ניתוח ה-ai',
+    'ביקורת על ניתוח ה-ai',
+    'רפלקציה על ניתוח ה-ai',
+    'evaluation of ai analysis',
+    'critique of ai',
+    'reflection on ai',
+    'assessing ai',
+    'critically evaluating ai'
+  ];
+  
+  const rubricEvaluatesAIReflection = rubricAIReflectionPatterns.some(pattern => 
+    rubricText.includes(pattern.toLowerCase())
+  );
+  
+  // Also check for required rubric criteria from contract
+  const requiredRubricCriteria = [
+    'הבנת המסגרת התיאורטית',
+    'איכות הערכת ניתוח ה-ai',
+    'עומק ההנמקה הרפלקטיבית',
+    'understanding.*theoretical',
+    'quality.*evaluation.*ai',
+    'depth.*reflective'
+  ];
+  
+  const hasRequiredRubricCriteria = requiredRubricCriteria.some(criterion => 
+    rubricText.includes(criterion.toLowerCase())
+  );
+  
+  if (!rubricEvaluatesAIReflection && !hasRequiredRubricCriteria && rubricText.length > 0) {
+    missing.push('Rubric does not contain a criterion evaluating the student\'s critique of AI analysis');
+  }
+  
+  // Check 5: Rubric must be tabular (check for table structure)
+  const hasTableStructure = rubricText.includes('<table') || rubricText.includes('<tr') || 
+                            rubricText.includes('טבלה') || rubricText.includes('table');
+  
+  if (rubricText.length > 0 && !hasTableStructure) {
+    missing.push('Rubric must be in tabular format');
+  }
+  
+  // Check 6: Rubric criteria must have content-specific descriptions (not generic)
+  const genericCriteria = [
+    'איכות תוכן',
+    'quality of content',
+    'איכות הכתיבה',
+    'quality of writing'
+  ];
+  
+  const hasOnlyGenericCriteria = genericCriteria.some(generic => 
+    rubricText.includes(generic.toLowerCase()) && 
+    !rubricText.includes('ai') && 
+    !rubricText.includes('רפלקציה') &&
+    !rubricText.includes('reflection')
+  );
+  
+  if (hasOnlyGenericCriteria && rubricText.length > 0) {
+    missing.push('Rubric contains only generic criteria without content-specific descriptions related to AI reflection');
+  }
+  
+  return {
+    ok: missing.length === 0,
+    missing,
+    debug: {
+      hasCriticalReflectionSection,
+      rubricEvaluatesAIReflection: rubricEvaluatesAIReflection || hasRequiredRubricCriteria,
+      parallelAnalysisDetected: parallelAnalysisDetected || (aiAnalysisMentioned && studentAnalysisMentioned && !reflectionReferencesAI)
+    }
+  };
+}
+
+/**
+ * Validate external knowledge application - ensure external theories/concepts are meaningfully applied
+ * Checks if external concepts mentioned in assignment have concrete application tasks
+ */
+export function validateExternalKnowledgeApplication(structuredAssignment: {
+  studentInstructionsHtml?: string;
+  instructions?: string[];
+  requirements?: string[];
+  rubricHtml?: string;
+}): { ok: boolean; missing: string[]; externalConcepts: string[] } {
+  const missing: string[] = [];
+  const externalConcepts: string[] = [];
+  
+  const allText = [
+    structuredAssignment.studentInstructionsHtml || '',
+    (structuredAssignment.instructions || []).join(' '),
+    (structuredAssignment.requirements || []).join(' ')
+  ].join(' ').toLowerCase();
+  
+  const rubricText = (structuredAssignment.rubricHtml || '').toLowerCase();
+  
+  // Common external academic theories/authors (expandable list)
+  const externalTheoryPatterns = [
+    // Sociology/Psychology
+    { name: 'גופמן', patterns: ['גופמן', 'goffman'], concepts: ['הצגת העצמי', 'presentation of self', 'קדמת הבמה', 'frontstage', 'מאחורי הקלעים', 'backstage', 'הגדרת המצב', 'definition of the situation'] },
+    { name: 'בורדייה', patterns: ['בורדייה', 'bourdieu'], concepts: ['הון תרבותי', 'cultural capital', 'הון חברתי', 'social capital', 'הביטוס', 'habitus'] },
+    { name: 'פוקו', patterns: ['פוקו', 'foucault'], concepts: ['שיח', 'discourse', 'כוח', 'power', 'דיסציפלינה', 'discipline'] },
+    { name: 'בולבי', patterns: ['בולבי', 'bowlby'], concepts: ['התקשרות', 'attachment', 'תיאוריית ההתקשרות'] },
+    { name: 'סקינר', patterns: ['סקינר', 'skinner'], concepts: ['התניה אופרנטית', 'operant conditioning', 'חיזוק', 'reinforcement'] },
+    { name: 'פבלוב', patterns: ['פבלוב', 'pavlov'], concepts: ['התניה קלאסית', 'classical conditioning'] },
+    // Add more as needed
+  ];
+  
+  // Check for external theories mentioned
+  externalTheoryPatterns.forEach(theory => {
+    const isMentioned = theory.patterns.some(pattern => allText.includes(pattern.toLowerCase()));
+    
+    if (isMentioned) {
+      externalConcepts.push(theory.name);
+      
+      // Check if theory concepts are applied (not just mentioned)
+      const hasConceptApplication = theory.concepts.some(concept => {
+        const conceptLower = concept.toLowerCase();
+        // Check for application indicators: "יישום", "נתח", "השווה", "הסבר", "דוגמה", "מקרה"
+        const applicationKeywords = ['יישום', 'application', 'נתח', 'analyze', 'השווה', 'compare', 'הסבר', 'explain', 'דוגמה', 'example', 'מקרה', 'case', 'באמצעות', 'using', 'בעזרת', 'with'];
+        return applicationKeywords.some(keyword => 
+          allText.includes(keyword.toLowerCase()) && 
+          (allText.indexOf(keyword.toLowerCase()) < allText.indexOf(conceptLower) + 200 || 
+           allText.indexOf(conceptLower) < allText.indexOf(keyword.toLowerCase()) + 200)
+        );
+      });
+      
+      // Check if rubric includes application quality criteria for this theory
+      const hasRubricCriteria = rubricText.includes(theory.name.toLowerCase()) || 
+                                theory.concepts.some(concept => rubricText.includes(concept.toLowerCase()));
+      
+      if (!hasConceptApplication && !hasRubricCriteria) {
+        missing.push(`תיאוריה חיצונית "${theory.name}" מוזכרת אך לא מיושמת משמעותית. המטלה חייבת לכלול משימת יישום קונקרטית (דוגמה, ניתוח, השוואה) או קריטריון במחוון לאיכות היישום.`);
+      } else if (!hasConceptApplication) {
+        missing.push(`תיאוריה חיצונית "${theory.name}" מוזכרת במחוון אך לא במשימות היישום. המטלה חייבת לכלול משימת יישום קונקרטית.`);
+      } else if (!hasRubricCriteria) {
+        // Application exists but no rubric criteria - this is acceptable but could be improved
+        // Don't fail validation, but could add to missing as a suggestion
+      }
+    }
+  });
+  
+  // Also check for generic external theory mentions without specific application
+  // Look for patterns like "תיאוריה של X" or "על פי X" without follow-up application
+  const theoryMentionPatterns = [
+    /תיאוריה של ([^.\s]+)/gi,
+    /על פי ([^.\s]+)/gi,
+    /לפי ([^.\s]+)/gi,
+    /בהתאם ל([^.\s]+)/gi
+  ];
+  
+  theoryMentionPatterns.forEach(pattern => {
+    const matches = allText.match(pattern);
+    if (matches) {
+      matches.forEach(match => {
+        // Check if there's application within reasonable distance (500 chars)
+        const matchIndex = allText.indexOf(match.toLowerCase());
+        const contextAfter = allText.substring(matchIndex, matchIndex + 500);
+        const hasApplication = ['יישום', 'application', 'נתח', 'analyze', 'דוגמה', 'example', 'מקרה', 'case'].some(
+          keyword => contextAfter.includes(keyword.toLowerCase())
+        );
+        
+        if (!hasApplication && matchIndex > 0) {
+          // Don't add to missing if it's already in our known theories list
+          const theoryName = match.replace(/תיאוריה של |על פי |לפי |בהתאם ל/gi, '').trim();
+          if (!externalTheoryPatterns.some(t => t.patterns.some(p => theoryName.includes(p)))) {
+            // Generic theory mention - could be a problem, but be lenient
+            // Only flag if it's clearly a theory name (capitalized or known pattern)
+          }
+        }
+      });
+    }
+  });
+  
+  return {
+    ok: missing.length === 0,
+    missing,
+    externalConcepts
   };
 }
 
