@@ -7,6 +7,12 @@
  * - For AI comparison tip: explicit Prompt A + Prompt B
  */
 export type AiMode = 'optional' | 'required' | 'comparison' | 'reflection';
+export interface TipContract {
+    requiredSections: string[];
+    prohibitedPatterns: string[];
+    requiredRubricCriteria: string[];
+    intent: string;
+}
 export interface TipImplementationSpec {
     id?: string;
     titleMatchers: string[];
@@ -20,7 +26,15 @@ export interface TipImplementationSpec {
     involvesAI?: boolean;
     aiMode?: AiMode;
     aiTools?: string[];
+    contract?: TipContract;
 }
+/**
+ * Get tip spec by title or id
+ */
+export declare function getTipSpec(tip: {
+    id?: string;
+    title: string;
+}): TipImplementationSpec | null;
 /**
  * Build AI mode-specific addon block for prompt
  */
@@ -72,6 +86,42 @@ export declare function validateTipImplementationRequirements(structuredAssignme
     missing: string[];
 };
 /**
+ * Validate am_03 assignment - enforce strict pedagogical contract
+ * The assignment is INVALID if:
+ * - No section titled "רפלקציה ביקורתית על ניתוח ה-AI" exists
+ * - The reflection does not explicitly reference the AI's analysis
+ * - The assignment contains two unrelated analyses (AI + student) without hierarchy
+ * - The rubric does NOT contain a criterion evaluating the student's critique of AI
+ */
+export declare function validateAm03Assignment(structuredAssignment: {
+    studentInstructionsHtml?: string;
+    instructions?: string[];
+    requirements?: string[];
+    rubricHtml?: string;
+}): {
+    ok: boolean;
+    missing: string[];
+    debug?: {
+        hasCriticalReflectionSection: boolean;
+        rubricEvaluatesAIReflection: boolean;
+        parallelAnalysisDetected: boolean;
+    };
+};
+/**
+ * Validate external knowledge application - ensure external theories/concepts are meaningfully applied
+ * Checks if external concepts mentioned in assignment have concrete application tasks
+ */
+export declare function validateExternalKnowledgeApplication(structuredAssignment: {
+    studentInstructionsHtml?: string;
+    instructions?: string[];
+    requirements?: string[];
+    rubricHtml?: string;
+}): {
+    ok: boolean;
+    missing: string[];
+    externalConcepts: string[];
+};
+/**
  * Validate section depth - ensure core sections have at least 2 paragraphs with ≥3 sentences each
  */
 export declare function validateSectionDepth(structuredAssignment: {
@@ -109,19 +159,6 @@ export declare function validateAiPrompts(structuredAssignment: {
 }>): {
     ok: boolean;
     missing: string[];
-};
-/**
- * Validate external knowledge application - ensure external theories/concepts are meaningfully applied
- */
-export declare function validateExternalKnowledgeApplication(structuredAssignment: {
-    studentInstructionsHtml?: string;
-    instructions?: string[];
-    requirements?: string[];
-    rubricHtml?: string;
-}): {
-    ok: boolean;
-    missing: string[];
-    externalConcepts: string[];
 };
 /**
  * Normalize rubric HTML to use point ranges (0-7, 8-15, 16-20) instead of percentages
