@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import { getTipSpec, TipImplementationSpec, AiMode } from './tipImplementation';
+import { getTipSpec, TipImplementationSpec } from './tipImplementation';
 
 // TipSpecUniversal schema with Zod validation
 export const TipSpecUniversalSchema = z.object({
