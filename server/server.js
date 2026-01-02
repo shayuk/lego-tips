@@ -478,6 +478,39 @@ app.post('/api/generate-assignment', async (req, res) => {
       }
     }
 
+    // STEP: Validate section depth and AI prompts AFTER HTML extraction
+    let sectionDepthOkBeforeRetry = false;
+    let sectionDepthOkAfterRetry = false;
+    let sectionDepthFailures = [];
+    let aiPromptsOk = false;
+    let aiPromptsFailures = [];
+
+    if (tipImplementation?.validateSectionDepth) {
+      const depthValidation = tipImplementation.validateSectionDepth(structuredAssignment);
+      sectionDepthOkBeforeRetry = depthValidation.ok;
+      sectionDepthFailures = depthValidation.failures || [];
+    } else {
+      sectionDepthOkBeforeRetry = true; // Skip validation if module not available
+    }
+
+    if (tipImplementation?.validateAiPrompts && selectedMethods.length > 0) {
+      const aiPromptsValidation = tipImplementation.validateAiPrompts(structuredAssignment, selectedMethods);
+      aiPromptsOk = aiPromptsValidation.ok;
+      aiPromptsFailures = aiPromptsValidation.missing || [];
+    } else {
+      aiPromptsOk = true; // No AI tips or module not available, validation passes
+    }
+
+    // Note: Retry logic would require OpenAI client access, which is handled via proxy
+    // For server.js, we log validation failures but don't retry (retry happens in functions)
+    if (!sectionDepthOkBeforeRetry || !aiPromptsOk) {
+      console.warn(`[Validation] Section depth or AI prompts validation failed`);
+      console.warn(`[Validation] Depth failures:`, sectionDepthFailures);
+      console.warn(`[Validation] AI prompts failures:`, aiPromptsFailures);
+    } else {
+      sectionDepthOkAfterRetry = sectionDepthOkBeforeRetry;
+    }
+
     // Normalize rubric HTML to use point ranges (0-7, 8-15, 16-20)
     if (structuredAssignment.rubricHtml && tipImplementation?.normalizeRubricHtmlToPointRanges) {
       structuredAssignment.rubricHtml = tipImplementation.normalizeRubricHtmlToPointRanges(structuredAssignment.rubricHtml);
@@ -541,7 +574,12 @@ app.post('/api/generate-assignment', async (req, res) => {
       selectedTipsCount: selectedMethods.length,
       rubricPointRanges: hasPointRanges || false,
       usedWebFallback: groundingMode === "web",
-      renderedFrom: structuredAssignment.fullAssignmentHtml ? "structuredAssignment" : "legacy"
+      renderedFrom: structuredAssignment.fullAssignmentHtml ? "structuredAssignment" : "legacy",
+      sectionDepthOkBeforeRetry,
+      sectionDepthOkAfterRetry,
+      sectionDepthFailures,
+      aiPromptsOk,
+      aiPromptsFailures
     };
 
     console.log(`✅ Assignment generated successfully using ${provider}, mode: ${groundingMode}`);

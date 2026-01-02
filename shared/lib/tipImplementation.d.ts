@@ -41,6 +41,31 @@ export declare function validateTipCompliance(structuredAssignment: {
     missing: string[];
 };
 /**
+ * Validate section depth - ensure core sections have at least 2 paragraphs with ≥3 sentences each
+ */
+export declare function validateSectionDepth(structuredAssignment: {
+    studentInstructionsHtml?: string;
+    instructions?: string[];
+    requirements?: string[];
+}): {
+    ok: boolean;
+    failures: string[];
+};
+/**
+ * Validate that AI prompts are generated when AI-based tips are selected
+ */
+export declare function validateAiPrompts(structuredAssignment: {
+    studentInstructionsHtml?: string;
+    instructions?: string[];
+    requirements?: string[];
+}, selectedTips: Array<{
+    id?: string;
+    title: string;
+}>): {
+    ok: boolean;
+    missing: string[];
+};
+/**
  * Normalize rubric HTML to use point ranges (0-7, 8-15, 16-20) instead of percentages
  */
 export declare function normalizeRubricHtmlToPointRanges(rubricHtml: string): string;
