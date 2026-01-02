@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run build:shared && tsc && vite build",
     "build:shared": "cd shared && tsc",
     "preview": "vite preview",
     "lint": "eslint src --report-unused-disable-directives",

@@ -6,6 +6,7 @@
  * - Concrete deliverables (artifacts)
  * - For AI comparison tip: explicit Prompt A + Prompt B
  */
+export type AiMode = 'optional' | 'required' | 'comparison' | 'reflection';
 export interface TipImplementationSpec {
     id?: string;
     titleMatchers: string[];
@@ -16,7 +17,17 @@ export interface TipImplementationSpec {
         promptTemplate: string;
     }[];
     rubricCriteriaHints?: string[];
+    involvesAI?: boolean;
+    aiMode?: AiMode;
+    aiTools?: string[];
 }
+/**
+ * Build AI mode-specific addon block for prompt
+ */
+export declare function buildAiModeAddon(spec: TipImplementationSpec, context: {
+    topic?: string;
+    course?: string;
+}): string;
 /**
  * Build enforcement prompt for selected tips
  */
@@ -51,6 +62,20 @@ export declare function validateSectionDepth(structuredAssignment: {
     ok: boolean;
     failures: string[];
 };
+/**
+ * Check if a tip involves AI usage
+ */
+export declare function tipInvolvesAI(tip: {
+    id?: string;
+    title: string;
+}): boolean;
+/**
+ * Extract tip identifier from an object, checking multiple possible property names
+ *
+ * @param obj - Object that may contain tip identifier in various properties
+ * @returns The first found identifier, or undefined if none found
+ */
+export declare function getTipIdentifier(obj: unknown): string | undefined;
 /**
  * Validate that AI prompts are generated when AI-based tips are selected
  */

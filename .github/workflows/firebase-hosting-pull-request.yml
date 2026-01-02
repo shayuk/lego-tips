@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       # Step 1: Install dependencies for the main project
       - name: Install Dependencies
@@ -16,6 +18,17 @@ jobs:
 
       - name: Build shared modules
         run: npm run build:shared
+
+      - name: Verify shared/lib is up-to-date
+        run: |
+          echo "=== Checking shared/lib sync ==="
+          if ! git diff --exit-code shared/lib; then
+            echo "Error: shared/lib is not up-to-date. Run 'npm run build:shared' and commit the changes."
+            echo "=== Diff for shared/lib ==="
+            git diff -- shared/lib
+            exit 1
+          fi
+          echo "OK: shared/lib is up-to-date."
 
       # Step 2: Install dependencies for the functions folder (THIS IS THE FIX)
       - name: Install Function Dependencies

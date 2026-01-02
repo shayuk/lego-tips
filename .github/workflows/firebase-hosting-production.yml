@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       # שלב 1: התקנת התלויות של הפרויקט הראשי (Frontend)
       - name: Install Frontend Dependencies
@@ -17,6 +19,17 @@ jobs:
 
       - name: Build shared modules
         run: npm run build:shared
+
+      - name: Verify shared/lib is up-to-date
+        run: |
+          echo "=== Checking shared/lib sync ==="
+          if ! git diff --exit-code shared/lib; then
+            echo "Error: shared/lib is not up-to-date. Run 'npm run build:shared' and commit the changes."
+            echo "=== Diff for shared/lib ==="
+            git diff -- shared/lib
+            exit 1
+          fi
+          echo "OK: shared/lib is up-to-date."
 
       # שלב 2: התקנת התלויות של הפונקציות (Backend) - זה התיקון הקריטי!
       - name: Install Functions Dependencies
