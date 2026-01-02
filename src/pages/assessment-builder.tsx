@@ -1187,6 +1187,7 @@ ${generatedAssessment.requirements.map((requirement, index) => `${index + 1}. ${
               sourcesUsed={sourcesUsed}
               apa7References={apa7References}
               materialQualityReport={materialQualityReport}
+              rubricCriteria={generatedRubric}
               onRetry={() => {
                 console.log('🔄 Retry generation triggered');
                 setShouldGenerateTask(false);
