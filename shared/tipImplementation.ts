@@ -14,6 +14,7 @@ export interface TipImplementationSpec {
   requiredDeliverables: string[]; // Bullet items that MUST appear
   promptArtifacts?: { label: string; promptTemplate: string }[]; // For AI comparison, etc.
   rubricCriteriaHints?: string[]; // Optional hints for rubric criteria wording
+  involvesAI?: boolean; // Explicit flag for AI involvement (optional, supports gradual migration)
 }
 
 /**
@@ -33,7 +34,8 @@ const TIP_SPECS: TipImplementationSpec[] = [
       'רפלקציה כתובה (300+ מילים) על התובנות והחסרונות',
       'ניתוח ביקורתי של בחירות ה-AI'
     ],
-    rubricCriteriaHints: ['רפלקציה על AI', 'איכות הניתוח הביקורתי', 'תיעוד השיח']
+    rubricCriteriaHints: ['רפלקציה על AI', 'איכות הניתוח הביקורתי', 'תיעוד השיח'],
+    involvesAI: true
   },
   {
     id: 'ai_comparison',
@@ -59,7 +61,8 @@ const TIP_SPECS: TipImplementationSpec[] = [
         promptTemplate: 'הזן את אותו הנושא לכלי AI שונה. השתמש בשאילתה דומה אך עם שינוי קל (למשל: הוסף הקשר נוסף או בקש גישה שונה): [נושא המטלה]'
       }
     ],
-    rubricCriteriaHints: ['השוואה בין תוצרים', 'ניתוח ביקורתי', 'זיהוי הטיות', 'איכות השאילתות']
+    rubricCriteriaHints: ['השוואה בין תוצרים', 'ניתוח ביקורתי', 'זיהוי הטיות', 'איכות השאילתות'],
+    involvesAI: true
   },
   {
     id: 'peer_review',
@@ -184,7 +187,7 @@ export function buildTipEnforcementPrompt(
   const hasAiTip = selectedTips.some(tip => tipInvolvesAI(tip));
   if (hasAiTip) {
     sections.push(`\n**חובה מוחלטת - יצירת פרומפטים ל-AI:**`);
-    sections.push(`- אם נבחר טיפ הקשור ל-AI (רפלקציה, השוואה, ניתוח ביקורתי), חובה לכלול סעיף: "פרומפטים לשימוש בכלי AI"`);
+    sections.push(`- אם נבחר טיפ הקשור ל-AI, חובה לכלול סעיף: "פרומפטים לשימוש בכלי AI"`);
     sections.push(`- בתוך הסעיף, חובה לספק פרומפטים מוכנים לשימוש (לא רק הוראה "השתמשו ב-AI")`);
     sections.push(`- הפרומפטים חייבים להתייחס לנושא המטלה הספציפי ולחומרים שהועלו`);
     sections.push(`- הפרומפטים חייבים לכלול פורמט פלט צפוי (אורך, מבנה, קריטריונים)`);
@@ -342,24 +345,36 @@ export function validateSectionDepth(structuredAssignment: {
 /**
  * Check if a tip involves AI usage
  */
-function tipInvolvesAI(tip: { id?: string; title: string }): boolean {
+export function tipInvolvesAI(tip: { id?: string; title: string }): boolean {
   const spec = getTipSpec(tip);
+
+  // If we have a spec, treat it as the source of truth.
   if (spec) {
-    // Check if tip has promptArtifacts (AI comparison) or is AI reflection
-    if (spec.promptArtifacts && spec.promptArtifacts.length > 0) {
-      return true;
-    }
-    if (spec.id === 'am_13' || tip.title.toLowerCase().includes('רפלקציה') && tip.title.toLowerCase().includes('ai')) {
-      return true;
-    }
+    // Prefer explicit flag if present (supports gradual migration).
+    if (typeof spec.involvesAI === 'boolean') return spec.involvesAI;
+
+    // Infer ONLY from explicit structured AI artifacts.
+    if (Array.isArray(spec.promptArtifacts) && spec.promptArtifacts.length > 0) return true;
+
+    // Legacy explicit exception (keep tiny and documented).
+    if (spec.id === 'am_13') return true;
+
+    return false;
   }
-  
-  // Check title for AI-related keywords
-  const titleLower = tip.title.toLowerCase();
-  return titleLower.includes('ai') || 
-         titleLower.includes('רפלקציה') ||
-         titleLower.includes('השוואה') ||
-         titleLower.includes('ביקורתי');
+
+  // No spec (unknown tip): safe fallback via explicit AI keywords only.
+  const title = tip.title || '';
+  const t = title.toLowerCase();
+
+  return (
+    t.includes('ai') ||
+    t.includes('chatgpt') ||
+    t.includes('gpt') ||
+    t.includes('claude') ||
+    t.includes('gemini') ||
+    t.includes('copilot') ||
+    title.includes('בינה מלאכותית')
+  );
 }
 
 /**

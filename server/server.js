@@ -816,7 +816,7 @@ function parseAIResponseToStructuredFormat(content, courseName, selectedMethods,
   
   // Add method-specific criteria
   selectedMethods.forEach(method => {
-    if (method.title && method.title.includes('AI רפלקציה')) {
+    if (method.title && tipImplementation?.tipInvolvesAI && tipImplementation.tipInvolvesAI({ title: method.title, id: method.id })) {
       rubricCriteria.push({
         name: 'רפלקציה על AI',
         description: 'איכות הניתוח הביקורתי של תגובות ה-AI',

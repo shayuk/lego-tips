@@ -10,6 +10,8 @@
  * - Complete server failure
  */
 
+import { tipInvolvesAI } from '../../../../shared/tipImplementation';
+
 export interface FallbackAssignment {
   title: string;
   description: string;
@@ -60,7 +62,7 @@ export function buildLocalFallbackAssignment(
 
   // Add method-specific instructions
   selectedMethods.forEach(method => {
-    if (method.title?.includes('AI רפלקציה')) {
+    if (method.title && tipInvolvesAI({ title: method.title })) {
       instructions.push(
         'השתמשו בכלי AI לחקר ראשוני של הנושא',
         'תעדו את כל השיח עם ה-AI במלואו',
@@ -152,7 +154,7 @@ export function buildFallbackRubric(
 
   // Add method-specific criteria
   selectedMethods.forEach(method => {
-    if (method.title?.includes('AI רפלקציה')) {
+    if (method.title && tipInvolvesAI({ title: method.title })) {
       criteria.push({
         name: 'רפלקציה על AI',
         description: 'איכות הניתוח הביקורתי של תגובות ה-AI',

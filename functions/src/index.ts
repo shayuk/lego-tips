@@ -6,7 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { defineSecret } from "firebase-functions/params";
 import { assessMaterialQuality, validateAssignmentSpecificity, MaterialQualityReport } from "../../shared/materialQuality";
 import { searchScholarlySources, formatAPA7References, ScholarlySource } from "../../shared/scholarlySearch";
-import { buildTipEnforcementPrompt, validateTipCompliance, normalizeRubricHtmlToPointRanges, validateSectionDepth, validateAiPrompts } from "../../shared/tipImplementation";
+import { buildTipEnforcementPrompt, validateTipCompliance, normalizeRubricHtmlToPointRanges, validateSectionDepth, validateAiPrompts, tipInvolvesAI } from "../../shared/tipImplementation";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -117,6 +117,11 @@ interface StructuredAssignment {
     rubricPointRanges?: boolean;
     usedWebFallback?: boolean;
     renderedFrom?: "structuredAssignment" | "legacy";
+    sectionDepthOkBeforeRetry?: boolean;
+    sectionDepthOkAfterRetry?: boolean;
+    sectionDepthFailures?: string[];
+    aiPromptsOk?: boolean;
+    aiPromptsFailures?: string[];
   };
 }
 
@@ -290,7 +295,7 @@ function parseAIResponseToStructuredFormat(
   
   // Add method-specific criteria
   selectedMethods.forEach(method => {
-    if (method.title && method.title.includes('AI רפלקציה')) {
+    if (method.title && tipInvolvesAI({ title: method.title })) {
       rubricCriteria.push({
         name: 'רפלקציה על AI',
         description: 'איכות הניתוח הביקורתי של תגובות ה-AI',
