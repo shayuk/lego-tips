@@ -8,7 +8,7 @@
  * - For AI comparison tip: explicit Prompt A + Prompt B
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.normalizeRubricHtmlToPointRanges = exports.validateAiPrompts = exports.getTipIdentifier = exports.tipInvolvesAI = exports.validateSectionDepth = exports.validateTipCompliance = exports.buildTipEnforcementPrompt = exports.buildAiModeAddon = void 0;
+exports.normalizeRubricHtmlToPointRanges = exports.validateAiPrompts = exports.getTipIdentifier = exports.tipInvolvesAI = exports.validateSectionDepth = exports.validateTipImplementationRequirements = exports.validateTipCompliance = exports.buildTipEnforcementPrompt = exports.buildAiModeAddon = void 0;
 /**
  * Tip specifications - single source of truth for all tips
  */
@@ -126,9 +126,9 @@ function buildAiModeAddon(spec, context) {
 
 המטלה כוללת שימוש בכלי AI כחלק מתהליך הלמידה. הסטודנטים נדרשים:
 
-1. **תיעוד השימוש ב-AI:**
-   - צילומי מסך או transcript מלא של כל השיחות עם כלי ה-AI
-   - תיעוד הפרומפטים ששימשו והתשובות שהתקבלו
+1. **תיעוד השימוש ב-AI (קל ומהיר - לא transcript מלא):**
+   - 2 צילומי מסך של שיחות עם כלי ה-AI
+   - העתקה של 2 פרומפטים מרכזיים ששימשו
    - ציון תאריכים ושעות השימוש
 
 2. **רפלקציה מעמיקה (300+ מילים) הכוללת:**
@@ -143,8 +143,8 @@ function buildAiModeAddon(spec, context) {
    - הערכת אמינות ודיוק המידע שקיבלתי
    - השוואה בין מה שלמדתי מה-AI לבין מה שלמדתי מהקורס
 
-**דרישות הגשה:**
-- יומן שיח מלא עם ה-AI (צילומי מסך או transcript)
+**דרישות הגשה (חובה):**
+- 2 צילומי מסך + העתקה של 2 פרומפטים מרכזיים
 - רפלקציה כתובה (מינימום 300 מילים)
 - ניתוח ביקורתי של בחירות ה-AI והתשובות שקיבלת`;
         }
@@ -156,7 +156,7 @@ function buildAiModeAddon(spec, context) {
 
 המטלה כוללת השוואה בין שני כלי AI שונים. הסטודנטים נדרשים:
 
-1. **יצירת שני פרומפטים:**
+1. **יצירת שני פרומפטים מפורשים (חובה):**
 
    **Prompt A (${tool1}):**
    בנה שאילתה מפורטת שתבקש מ-${tool1} לנתח/להסביר/לבצע: ${topic}
@@ -175,7 +175,7 @@ function buildAiModeAddon(spec, context) {
 
    הסטודנטים חייבים להריץ את שני ה-prompts בכלי AI שונים ולהשוות את התוצאות.
 
-3. **טבלת השוואה מפורטת** הכוללת:
+3. **טבלת השוואה מפורטת (חובה)** הכוללת:
    - דיוק: איזו תשובה הייתה מדויקת יותר?
    - עומק: איזו תשובה הייתה מעמיקה יותר?
    - הטיות: אילו הטיות זיהית בכל תשובה?
@@ -187,11 +187,16 @@ function buildAiModeAddon(spec, context) {
    - מה הסיבות להבדלים אלה?
    - איך זה משפיע על השימוש בכלי AI בעתיד?
 
-**דרישות הגשה:**
+5. **פסקת החלטה סופית (חובה):**
+   - פסקה אחת (100+ מילים) המסבירה איזו תשובה הייתה טובה יותר ולמה
+   - כוללת נימוק מפורט המבוסס על הטבלה
+
+**דרישות הגשה (חובה):**
 - תוצר מ-Prompt A (${tool1}) - צילום מסך או העתקה של התשובה המלאה
 - תוצר מ-Prompt B (${tool2}) - צילום מסך או העתקה של התשובה המלאה
 - טבלת השוואה מפורטת עם כל הקריטריונים לעיל
-- ניתוח ביקורתי של ההבדלים והטיות (200+ מילים)`;
+- ניתוח ביקורתי של ההבדלים והטיות (200+ מילים)
+- פסקת החלטה סופית (100+ מילים)`;
         }
         case 'required': {
             return `
@@ -238,47 +243,77 @@ function buildAiModeAddon(spec, context) {
 exports.buildAiModeAddon = buildAiModeAddon;
 /**
  * Build enforcement prompt for selected tips
+ * Returns both the prompt and AI mode addons separately for debugging
  */
 function buildTipEnforcementPrompt(selectedTips, topic) {
     if (selectedTips.length === 0) {
-        return '';
+        return { prompt: '', aiModeAddons: '' };
     }
     const sections = [];
     sections.push('\n**דרישות חובה - יישום טיפים פדגוגיים (NON-NEGOTIABLE):**\n');
     selectedTips.forEach((tip, index) => {
         const spec = getTipSpec(tip);
+        const tipId = getTipIdentifier(tip) || `tip_${index + 1}`;
+        // Build strict Implementation Block for each tip
+        sections.push(`\n## Tip Implementation: ${tip.title} (id: ${tipId})`);
         if (spec) {
-            // Specific tip spec
-            sections.push(`\n**טיפ ${index + 1}: ${tip.title}**`);
-            sections.push(`\nחובה לכלול במטלה:`);
-            sections.push(`1. סעיף "יישום הטיפ: ${tip.title}" עם הוראות מפורטות ופעילותיות`);
+            // A) Steps (must be included in final assignment)
+            sections.push(`\nA) Steps (must be included in final assignment):`);
             if (spec.requiredSubsections.length > 0) {
-                sections.push(`2. תת-סעיפים הבאים (כל אחד ככותרת h3 או h4):`);
-                spec.requiredSubsections.forEach(sub => {
-                    sections.push(`   - ${sub}`);
+                spec.requiredSubsections.forEach((sub, idx) => {
+                    sections.push(`   ${idx + 1}. ${sub}`);
                 });
             }
-            sections.push(`3. רשימת "מה צריך להגיש" הכוללת:`);
-            spec.requiredDeliverables.forEach(deliverable => {
-                sections.push(`   - ${deliverable}`);
+            else {
+                sections.push(`   1. Create a dedicated section "יישום הטיפ: ${tip.title}"`);
+                sections.push(`   2. Provide detailed, actionable instructions for implementing this tip`);
+                sections.push(`   3. Integrate the tip into the assignment workflow`);
+            }
+            // B) Required deliverables (must appear in "What to submit")
+            sections.push(`\nB) Required deliverables (must appear in "What to submit"):`);
+            spec.requiredDeliverables.forEach((deliverable, idx) => {
+                // Extract format/length hints if present
+                sections.push(`   - Deliverable ${idx + 1}: ${deliverable}`);
             });
+            // C) Assessment criteria (must be included in rubric)
+            sections.push(`\nC) Assessment criteria (must be included in rubric):`);
+            if (spec.rubricCriteriaHints && spec.rubricCriteriaHints.length > 0) {
+                spec.rubricCriteriaHints.forEach((hint, idx) => {
+                    sections.push(`   - Criterion ${idx + 1}: ${hint} (0–10 scoring range description)`);
+                });
+            }
+            else {
+                sections.push(`   - Criterion 1: Quality of ${tip.title} implementation (0–10 scoring range description)`);
+                sections.push(`   - Criterion 2: Depth and completeness of ${tip.title} application (0–10 scoring range description)`);
+            }
+            // D) Checklist (must be included as bullets)
+            sections.push(`\nD) Checklist (must be included as bullets):`);
+            sections.push(`   - [ ] Students must complete all steps listed in section A`);
+            sections.push(`   - [ ] Students must submit all deliverables listed in section B`);
+            sections.push(`   - [ ] Students must meet all criteria listed in section C`);
             // Special handling for AI comparison tip
             if (spec.promptArtifacts && spec.promptArtifacts.length > 0) {
-                sections.push(`\n4. **חובה מוחלטת - יצירת שני prompts מפורשים:**`);
-                spec.promptArtifacts.forEach((artifact) => {
-                    sections.push(`   - ${artifact.label}: ${artifact.promptTemplate}`);
-                });
-                sections.push(`   הסטודנטים חייבים להריץ את שני ה-prompts בכלי AI שונים ולהשוות את התוצאות.`);
-                sections.push(`   המטלה חייבת לכלול טבלת השוואה וניתוח ביקורתי של ההבדלים.`);
+                sections.push(`   - [ ] Students must create and use Prompt A: ${spec.promptArtifacts[0]?.promptTemplate || 'First AI prompt'}`);
+                if (spec.promptArtifacts[1]) {
+                    sections.push(`   - [ ] Students must create and use Prompt B: ${spec.promptArtifacts[1]?.promptTemplate || 'Second AI prompt'}`);
+                }
+                sections.push(`   - [ ] Students must create a comparison table`);
+                sections.push(`   - [ ] Students must write a final decision paragraph`);
             }
         }
         else {
             // Default spec for unknown tips
-            sections.push(`\n**טיפ ${index + 1}: ${tip.title}**`);
-            sections.push(`\nחובה לכלול במטלה:`);
-            sections.push(`1. סעיף "יישום הטיפ: ${tip.title}" עם הוראות מפורטות`);
-            sections.push(`2. רשימת "מה צריך להגיש" עם לפחות פריט אחד קונקרטי הקשור לטיפ זה`);
-            sections.push(`3. הוראות פעילותיות (לא רק אזכור כללי) שמסבירות איך ליישם את הטיפ במסגרת המטלה`);
+            sections.push(`\nA) Steps (must be included in final assignment):`);
+            sections.push(`   1. Create a dedicated section "יישום הטיפ: ${tip.title}"`);
+            sections.push(`   2. Provide detailed, actionable instructions`);
+            sections.push(`   3. Integrate the tip into the assignment workflow`);
+            sections.push(`\nB) Required deliverables (must appear in "What to submit"):`);
+            sections.push(`   - Deliverable 1: Concrete artifact related to ${tip.title} (format, length)`);
+            sections.push(`\nC) Assessment criteria (must be included in rubric):`);
+            sections.push(`   - Criterion 1: Quality of ${tip.title} implementation (0–10 scoring range description)`);
+            sections.push(`\nD) Checklist (must be included as bullets):`);
+            sections.push(`   - [ ] Students must complete all implementation steps`);
+            sections.push(`   - [ ] Students must submit required deliverables`);
         }
     });
     sections.push(`\n**חשוב מאוד:**`);
@@ -301,7 +336,7 @@ function buildTipEnforcementPrompt(selectedTips, topic) {
         sections.push(`- הפרומפטים חייבים לכלול פורמט פלט צפוי (אורך, מבנה, קריטריונים)`);
         sections.push(`- אסור להשתמש בביטויים כמו "השתמשו ב-AI כדי..." ללא פרומפט מפורש`);
     }
-    // Collect AI mode addons from selected tips
+    // Collect AI mode addons from selected tips (separate from main prompt)
     const aiModeAddons = [];
     selectedTips.forEach(tip => {
         const spec = getTipSpec(tip);
@@ -312,12 +347,17 @@ function buildTipEnforcementPrompt(selectedTips, topic) {
             }
         }
     });
-    // Append AI mode addons if any
-    if (aiModeAddons.length > 0) {
-        sections.push(`\n**הוראות שילוב AI (בהתבסס על הטיפים שנבחרו):**`);
-        sections.push(...aiModeAddons);
+    const aiModeAddonsText = aiModeAddons.length > 0
+        ? `\n**הוראות שילוב AI (בהתבסס על הטיפים שנבחרו):**\n${aiModeAddons.join('\n\n')}`
+        : '';
+    // Append AI mode addons to main prompt
+    if (aiModeAddonsText) {
+        sections.push(aiModeAddonsText);
     }
-    return sections.join('\n');
+    return {
+        prompt: sections.join('\n'),
+        aiModeAddons: aiModeAddonsText
+    };
 }
 exports.buildTipEnforcementPrompt = buildTipEnforcementPrompt;
 /**
@@ -380,6 +420,87 @@ function validateTipCompliance(structuredAssignment, selectedTips) {
     };
 }
 exports.validateTipCompliance = validateTipCompliance;
+/**
+ * Validate tip implementation requirements - stricter validation for post-generation
+ * Checks for specific AI mode requirements (reflection, comparison)
+ */
+function validateTipImplementationRequirements(structuredAssignment, selectedTips) {
+    const missing = [];
+    const allText = [
+        structuredAssignment.studentInstructionsHtml || '',
+        (structuredAssignment.instructions || []).join(' '),
+        (structuredAssignment.requirements || []).join(' ')
+    ].join(' ').toLowerCase();
+    // Check rubric has point ranges (0-10 or 0-5) instead of percentages
+    const rubricText = structuredAssignment.rubricHtml || '';
+    const hasPointRanges = rubricText.includes('0–10') ||
+        rubricText.includes('0-10') ||
+        rubricText.includes('0–7') ||
+        rubricText.includes('0-7') ||
+        rubricText.includes('0–5') ||
+        rubricText.includes('0-5');
+    if (!hasPointRanges && rubricText.length > 0) {
+        // Check if it has percentages to provide better error message
+        const hasPercentages = rubricText.includes('%') ||
+            rubricText.includes('90-100') ||
+            rubricText.includes('80-89') ||
+            rubricText.includes('70-79');
+        missing.push(`Rubric must use point ranges (0–10 or 0–5) instead of ${hasPercentages ? 'percentages' : 'current format'}`);
+    }
+    selectedTips.forEach(tip => {
+        const spec = getTipSpec(tip);
+        if (spec?.aiMode === 'reflection') {
+            // Must contain AI Reflection section + required deliverables
+            const hasReflectionSection = allText.includes('רפלקציה') ||
+                allText.includes('reflection') ||
+                allText.includes('ai reflection');
+            const hasRequiredDeliverables = (allText.includes('צילום') || allText.includes('screenshot')) &&
+                (allText.includes('פרומפט') || allText.includes('prompt')) &&
+                (allText.includes('רפלקציה') || allText.includes('reflection'));
+            if (!hasReflectionSection) {
+                missing.push(`Missing "AI Reflection" section for tip: ${tip.title}`);
+            }
+            if (!hasRequiredDeliverables) {
+                missing.push(`Missing required deliverables for reflection tip: 2 screenshots + 2 prompts + reflection`);
+            }
+        }
+        if (spec?.aiMode === 'comparison') {
+            // Must contain Prompt A, Prompt B, Comparison Table, Final Choice
+            const hasPromptA = allText.includes('prompt a') ||
+                allText.includes('prompt א') ||
+                allText.includes('שאילתה א') ||
+                allText.includes('שאילתה ראשונה');
+            const hasPromptB = allText.includes('prompt b') ||
+                allText.includes('prompt ב') ||
+                allText.includes('שאילתה ב') ||
+                allText.includes('שאילתה שנייה');
+            const hasComparisonTable = allText.includes('טבלת השוואה') ||
+                allText.includes('comparison table') ||
+                allText.includes('השוואה');
+            const hasFinalChoice = allText.includes('החלטה סופית') ||
+                allText.includes('final decision') ||
+                allText.includes('בחירה סופית') ||
+                (allText.includes('פסקה') && allText.includes('החלטה'));
+            if (!hasPromptA) {
+                missing.push(`Missing Prompt A for comparison tip: ${tip.title}`);
+            }
+            if (!hasPromptB) {
+                missing.push(`Missing Prompt B for comparison tip: ${tip.title}`);
+            }
+            if (!hasComparisonTable) {
+                missing.push(`Missing comparison table for comparison tip: ${tip.title}`);
+            }
+            if (!hasFinalChoice) {
+                missing.push(`Missing final decision paragraph for comparison tip: ${tip.title}`);
+            }
+        }
+    });
+    return {
+        ok: missing.length === 0,
+        missing
+    };
+}
+exports.validateTipImplementationRequirements = validateTipImplementationRequirements;
 /**
  * Validate section depth - ensure core sections have at least 2 paragraphs with ≥3 sentences each
  */

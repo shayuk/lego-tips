@@ -30,16 +30,36 @@ export declare function buildAiModeAddon(spec: TipImplementationSpec, context: {
 }): string;
 /**
  * Build enforcement prompt for selected tips
+ * Returns both the prompt and AI mode addons separately for debugging
  */
 export declare function buildTipEnforcementPrompt(selectedTips: Array<{
     id?: string;
     title: string;
     description?: string;
-}>, topic: string): string;
+}>, topic: string): {
+    prompt: string;
+    aiModeAddons: string;
+};
 /**
  * Validate that structured assignment complies with tip requirements
  */
 export declare function validateTipCompliance(structuredAssignment: {
+    studentInstructionsHtml?: string;
+    instructions?: string[];
+    requirements?: string[];
+    rubricHtml?: string;
+}, selectedTips: Array<{
+    id?: string;
+    title: string;
+}>): {
+    ok: boolean;
+    missing: string[];
+};
+/**
+ * Validate tip implementation requirements - stricter validation for post-generation
+ * Checks for specific AI mode requirements (reflection, comparison)
+ */
+export declare function validateTipImplementationRequirements(structuredAssignment: {
     studentInstructionsHtml?: string;
     instructions?: string[];
     requirements?: string[];

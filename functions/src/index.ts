@@ -6,7 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { defineSecret } from "firebase-functions/params";
 import { assessMaterialQuality, validateAssignmentSpecificity, MaterialQualityReport } from "../../shared/materialQuality";
 import { searchScholarlySources, formatAPA7References, ScholarlySource } from "../../shared/scholarlySearch";
-import { buildTipEnforcementPrompt, validateTipCompliance, normalizeRubricHtmlToPointRanges, validateSectionDepth, validateAiPrompts, tipInvolvesAI, getTipIdentifier } from "../../shared/tipImplementation";
+import { buildTipEnforcementPrompt, validateTipCompliance, validateTipImplementationRequirements, normalizeRubricHtmlToPointRanges, validateSectionDepth, validateAiPrompts, tipInvolvesAI, getTipIdentifier } from "../../shared/tipImplementation";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -123,6 +123,9 @@ interface StructuredAssignment {
     sectionDepthFailures?: string[];
     aiPromptsOk?: boolean;
     aiPromptsFailures?: string[];
+    selectedTipIdentifiers?: string[];
+    tipEnforcementPromptPreview?: string;
+    aiModeAddonsPreview?: string;
   };
 }
 
@@ -483,8 +486,13 @@ export const generateAssignment = onCall(
         materialSection = `תכני הקורס שהועלו:\n"${courseDescription || ''}"\n\n**מקורות אקדמיים נוספים:**\n\n${sourcesText}`;
       }
 
-      // Build tip enforcement prompt
-      const tipEnforcementPrompt = buildTipEnforcementPrompt(selectedMethods, courseDescription || courseName);
+      // Build tip enforcement prompt (returns { prompt, aiModeAddons })
+      const tipEnforcementResult = buildTipEnforcementPrompt(selectedMethods, courseDescription || courseName);
+      const tipEnforcementPrompt = tipEnforcementResult.prompt;
+      const aiModeAddons = tipEnforcementResult.aiModeAddons;
+      
+      // Extract tip identifiers for debug
+      const selectedTipIdentifiers = selectedMethods.map(m => getTipIdentifier(m) || m.title).filter(Boolean);
 
       const userPrompt = `
   ${courseContext}
@@ -651,63 +659,78 @@ export const generateAssignment = onCall(
       }
 
       // Parse the AI response into structured format
-      const structuredAssignment = parseAIResponseToStructuredFormat(
+      let structuredAssignment = parseAIResponseToStructuredFormat(
         generatedContent,
         courseName,
         selectedMethods,
         providerUsed
       );
 
-      // Validate tip compliance
+      // PHASE C: Validate tip implementation requirements (stricter validation)
+      const tipImplementationValidation = validateTipImplementationRequirements(structuredAssignment, selectedMethods);
+      if (!tipImplementationValidation.ok && selectedMethods.length > 0 && activeClient && activeProviderType) {
+        logger.warn(`[${requestId}] Tip implementation validation failed:`, tipImplementationValidation.missing);
+        
+        // ONE retry with correction message listing exactly what is missing
+        logger.info(`[${requestId}] Regenerating with tip implementation corrections`);
+        const correctionPrompt = `${userPrompt}\n\n**תיקון חובה - יישום טיפים:**\n` +
+          `התשובה הקודמת שלך חסרה את הדברים הבאים:\n${tipImplementationValidation.missing.map(m => `- ${m}`).join('\n')}\n\n` +
+          `**הוראות חובה לתיקון:**\n` +
+          `1. כל אחד מהדברים החסרים לעיל חייב להופיע במטלה.\n` +
+          `2. אם נבחר טיפ עם aiMode=reflection → המטלה חייבת לכלול סעיף "AI Reflection" + דרישות הגשה (2 צילומי מסך + 2 פרומפטים + רפלקציה).\n` +
+          `3. אם נבחר טיפ עם aiMode=comparison → המטלה חייבת לכלול "Prompt A", "Prompt B", "טבלת השוואה", "פסקת החלטה סופית".\n` +
+          `4. המחוון חייב להשתמש בטווחי נקודות (0–10 או 0–5) ולא באחוזים.\n` +
+          `5. צור מטלה חדשה מלאה שעומדת בכל הדרישות הנ"ל.`;
+        
+        try {
+          let retryContent = '';
+          if (activeProviderType === 'openai') {
+            const retryCompletion = await (activeClient as OpenAI).chat.completions.create({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: correctionPrompt }
+              ],
+              max_tokens: 4000,
+              temperature: 0.7
+            });
+            retryContent = retryCompletion.choices?.[0]?.message?.content || '';
+          } else if (activeProviderType === 'claude') {
+            const retryMessage = await (activeClient as Anthropic).messages.create({
+              model: 'claude-3-sonnet-20240229',
+              max_tokens: 4000,
+              messages: [
+                { role: 'user', content: `${systemPrompt}\n\n${correctionPrompt}` }
+              ]
+            });
+            retryContent = retryMessage.content?.[0]?.type === 'text' ? retryMessage.content[0].text : '';
+          }
+
+          if (retryContent) {
+            generatedContent = retryContent;
+            structuredAssignment = parseAIResponseToStructuredFormat(
+              generatedContent,
+              courseName,
+              selectedMethods,
+              providerUsed
+            );
+            logger.info(`[${requestId}] Retry generation completed, re-validating...`);
+            
+            // Re-validate after retry
+            const retryValidation = validateTipImplementationRequirements(structuredAssignment, selectedMethods);
+            if (!retryValidation.ok) {
+              logger.warn(`[${requestId}] Retry still has validation issues:`, retryValidation.missing);
+            }
+          }
+        } catch (retryError: any) {
+          logger.warn(`[${requestId}] Tip implementation retry generation failed: ${retryError.message}, proceeding with original`);
+        }
+      }
+
+      // Validate tip compliance (legacy check, kept for backward compatibility)
       const compliance = validateTipCompliance(structuredAssignment, selectedMethods);
       if (!compliance.ok && selectedMethods.length > 0) {
         logger.warn(`[${requestId}] Tip compliance check failed:`, compliance.missing);
-        // If critical tips are missing, regenerate once with stricter prompt
-        const criticalMissing = compliance.missing.filter(m => 
-          m.includes('Prompt A') || m.includes('Prompt B') || m.includes('יישום הטיפ')
-        );
-        if (criticalMissing.length > 0 && activeClient && activeProviderType) {
-          logger.info(`[${requestId}] Regenerating with stricter tip enforcement`);
-          const stricterPrompt = `${userPrompt}\n\n**תיקון חובה:** התשובה הקודמת שלך חסרה את הדברים הבאים:\n${criticalMissing.map(m => `- ${m}`).join('\n')}\n\nאנא צור מטלה חדשה שמכילה את כל הדרישות הנ"ל.`;
-          
-          try {
-            let retryContent = '';
-            if (activeProviderType === 'openai') {
-              const retryCompletion = await (activeClient as OpenAI).chat.completions.create({
-                model: 'gpt-4o',
-                messages: [
-                  { role: 'system', content: systemPrompt },
-                  { role: 'user', content: stricterPrompt }
-                ],
-                max_tokens: 4000,
-                temperature: 0.7
-              });
-              retryContent = retryCompletion.choices?.[0]?.message?.content || '';
-            } else if (activeProviderType === 'claude') {
-              const retryMessage = await (activeClient as Anthropic).messages.create({
-                model: 'claude-3-sonnet-20240229',
-                max_tokens: 4000,
-                messages: [
-                  { role: 'user', content: `${systemPrompt}\n\n${stricterPrompt}` }
-                ]
-              });
-              retryContent = retryMessage.content?.[0]?.type === 'text' ? retryMessage.content[0].text : '';
-            }
-
-            if (retryContent) {
-              generatedContent = retryContent;
-              const retryStructured = parseAIResponseToStructuredFormat(
-                generatedContent,
-                courseName,
-                selectedMethods,
-                providerUsed
-              );
-              Object.assign(structuredAssignment, retryStructured);
-            }
-          } catch (retryError: any) {
-            logger.warn(`[${requestId}] Retry generation failed: ${retryError.message}, proceeding with original`);
-          }
-        }
       }
 
       // Extract studentInstructionsHtml and rubricHtml from generatedContent
@@ -977,8 +1000,17 @@ export const generateAssignment = onCall(
                               structuredAssignment.rubricHtml?.includes('(8–15 נקודות)') ||
                               structuredAssignment.rubricHtml?.includes('(8-15 נקודות)');
       
+      // PHASE A: Add prompt preview debug fields
+      const tipEnforcementPromptPreview = tipEnforcementPrompt.length > 2000 
+        ? tipEnforcementPrompt.substring(tipEnforcementPrompt.length - 2000)
+        : tipEnforcementPrompt;
+      
+      const aiModeAddonsPreview = aiModeAddons.length > 2000
+        ? aiModeAddons.substring(aiModeAddons.length - 2000)
+        : aiModeAddons;
+      
       structuredAssignment.debug = {
-        generatorVersion: process.env.GIT_SHA || 'dev',
+        generatorVersion: (process?.env?.GIT_SHA as string) || 'dev',
         usedTipEnforcer: selectedMethods.length > 0,
         selectedTipsCount: selectedMethods.length,
         rubricPointRanges: hasPointRanges || false,
@@ -988,7 +1020,10 @@ export const generateAssignment = onCall(
         sectionDepthOkAfterRetry,
         sectionDepthFailures,
         aiPromptsOk,
-        aiPromptsFailures
+        aiPromptsFailures,
+        selectedTipIdentifiers: selectedTipIdentifiers.length > 0 ? selectedTipIdentifiers : undefined,
+        tipEnforcementPromptPreview: tipEnforcementPromptPreview || undefined,
+        aiModeAddonsPreview: aiModeAddonsPreview || undefined
       };
 
       logger.info(`[${requestId}] Assignment generated successfully using ${providerUsed}, mode: ${groundingMode}`);

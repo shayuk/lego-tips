@@ -125,6 +125,9 @@ export interface StructuredAssignment {
     sectionDepthFailures?: string[];
     aiPromptsOk?: boolean;
     aiPromptsFailures?: string[];
+    selectedTipIdentifiers?: string[];
+    tipEnforcementPromptPreview?: string;
+    aiModeAddonsPreview?: string;
   };
 }
 
