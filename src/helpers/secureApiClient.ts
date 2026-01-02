@@ -115,6 +115,26 @@ export interface StructuredAssignment {
   materialQualityReport?: MaterialQualityReport;
   debug?: {
     generatorVersion?: string;
+    retryCount?: number;
+    tipSpecsSummary?: Array<{
+      id?: string;
+      title: string;
+      goal: string;
+      ai_mode?: string;
+      confidence?: string;
+      source?: string;
+    }>;
+    tipImplementationPromptPreview?: string;
+    validationMissing?: string[];
+    modelRequested?: string;
+    modelUsed?: string;
+    providerRequested?: string;
+    providerUsed?: string;
+    modelFallback?: {
+      from: string;
+      to: string;
+      reason: string;
+    };
     usedTipEnforcer?: boolean;
     selectedTipsCount?: number;
     rubricPointRanges?: boolean;
@@ -128,14 +148,24 @@ export interface StructuredAssignment {
     selectedTipIdentifiers?: string[];
     tipEnforcementPromptPreview?: string;
     aiModeAddonsPreview?: string;
+    externalKnowledgeUsed?: string[];
+    externalKnowledgeRationale?: string;
+    am03ContractApplied?: boolean;
+    am03ValidationChecks?: {
+      hasCriticalReflectionSection: boolean;
+      rubricEvaluatesAIReflection: boolean;
+      parallelAnalysisDetected: boolean;
+    };
   };
 }
 
 export interface AIResponse {
   success: boolean;
   data: StructuredAssignment;  // ✅ Now structured instead of raw API response
+  debug?: StructuredAssignment['debug'];  // Debug object at top level
   provider?: string;  // Legacy field for backward compatibility
   providerUsed?: string;  // New field from server
+  modelUsed?: string;  // Model actually used
   attempts?: Array<{
     provider: 'openai' | 'claude';
     ok: boolean;

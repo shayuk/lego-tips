@@ -404,6 +404,21 @@ export const generateAssignment = onCall(
     const requestId = Math.random().toString(36).substring(7);
     const attempts: ProviderAttempt[] = [];
     let providerUsed: string = 'none';
+    let modelUsed: string = '';
+    
+    // STEP 1: Create debug object at top of handler
+    const debug: any = {
+      generatorVersion: "tipspec-universal-v1",
+      retryCount: 0,
+      tipSpecsSummary: [],
+      tipImplementationPromptPreview: "",
+      validationMissing: [],
+      modelRequested: (request.data as any)?.model || (request.data as any)?.preferredModel || "gpt-4o",
+      modelUsed: "",
+      providerRequested: (request.data as any)?.preferredProvider || "openai",
+      providerUsed: "",
+      modelFallback: undefined as { from: string; to: string; reason: string } | undefined
+    };
     
     try {
 
@@ -646,6 +661,13 @@ export const generateAssignment = onCall(
   
   **הפלט בעברית בפורמט HTML נקי וארגון מסודר** ללא תגי HTML מיותרים בתחילה או בסוף.`;
 
+      // Capture final prompt for debug (last 2000-4000 chars)
+      const finalUserPrompt = userPrompt;
+      debug.tipImplementationPromptPreview = finalUserPrompt.length > 4000 
+        ? finalUserPrompt.substring(finalUserPrompt.length - 4000)
+        : finalUserPrompt;
+      debug.tipSpecsSummary = tipSpecsSummary;
+
       let generatedContent = '';
       let activeClient: OpenAI | Anthropic | null = null;
       let activeProviderType: 'openai' | 'claude' | null = null;
@@ -667,11 +689,14 @@ export const generateAssignment = onCall(
 
           if (completion.choices?.[0]?.message?.content) {
             generatedContent = completion.choices[0].message.content;
-            providerUsed = 'OpenAI GPT-4';
+            providerUsed = 'OpenAI GPT-4o';
+            modelUsed = 'gpt-4o';
+            debug.modelUsed = 'gpt-4o';
+            debug.providerUsed = 'openai';
             activeClient = openaiClient;
             activeProviderType = 'openai';
             attempts.push({ provider: 'openai', ok: true });
-            logger.info(`[${requestId}] OpenAI generation successful`);
+            logger.info(`[${requestId}] OpenAI generation successful with gpt-4o`);
           } else {
             throw new Error('OpenAI returned empty response');
           }
@@ -714,6 +739,9 @@ export const generateAssignment = onCall(
             if (message.content?.[0]?.type === 'text') {
               generatedContent = message.content[0].text;
               providerUsed = 'Claude 3 Sonnet';
+              modelUsed = 'claude-3-sonnet-20240229';
+              debug.modelUsed = 'claude-3-sonnet-20240229';
+              debug.providerUsed = 'claude';
               activeClient = claudeClient;
               activeProviderType = 'claude';
               attempts.push({ provider: 'claude', ok: true });
@@ -808,16 +836,18 @@ export const generateAssignment = onCall(
         providerUsed
       );
 
-      // AMP: Universal TipSpec validation with retry
-      let universalValidationRetryCount = 0;
-      if (selectedMethods.length > 0 && tipSpecsSummary.length > 0) {
-        // Validate each tip's spec
+      // STEP 4: Unified validator with retry ONCE
+      // Collect all validation failures from all validators
+      const allValidationMissing: string[] = [];
+      let shouldRetry = false;
+      
+      // Validate TipSpecUniversal for each tip
+      if (selectedMethods.length > 0 && tipSpecsSummary.length > 0 && activeClient && activeProviderType) {
         for (let i = 0; i < selectedMethods.length; i++) {
           const tip = selectedMethods[i];
           const summary = tipSpecsSummary[i];
           
           if (summary && summary.source && summary.source !== 'pending') {
-            // Get the normalized spec (re-normalize if needed for validation)
             try {
               const tipInput: TipInput = {
                 id: tip.id,
@@ -833,75 +863,50 @@ export const generateAssignment = onCall(
                 tipNormalizationProvider || undefined
               );
               
-              const validation = validateWithRetry(structuredAssignment, normalized.spec, universalValidationRetryCount);
+              const validation = validateWithRetry(structuredAssignment, normalized.spec, debug.retryCount);
               
-              if (!validation.ok && validation.shouldRetry && activeClient && activeProviderType && universalValidationRetryCount < 1) {
-                logger.warn(`[${requestId}] Universal TipSpec validation failed for ${tip.title}:`, validation.missing);
-                logger.info(`[${requestId}] Regenerating with universal TipSpec corrections`);
-                
-                const universalRetryPrompt = `${userPrompt}\n\n${validation.retryPrompt}`;
-                
-                try {
-                  let retryContent = '';
-                  if (activeProviderType === 'openai') {
-                    const retryCompletion = await (activeClient as OpenAI).chat.completions.create({
-                      model: 'gpt-4o',
-                      messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: universalRetryPrompt }
-                      ],
-                      max_tokens: 4000,
-                      temperature: 0.7
-                    });
-                    retryContent = retryCompletion.choices?.[0]?.message?.content || '';
-                  } else if (activeProviderType === 'claude') {
-                    const retryMessage = await (activeClient as Anthropic).messages.create({
-                      model: 'claude-3-sonnet-20240229',
-                      max_tokens: 4000,
-                      messages: [
-                        { role: 'user', content: `${systemPrompt}\n\n${universalRetryPrompt}` }
-                      ]
-                    });
-                    retryContent = retryMessage.content?.[0]?.type === 'text' ? retryMessage.content[0].text : '';
-                  }
-
-                  if (retryContent) {
-                    generatedContent = retryContent;
-                    structuredAssignment = parseAIResponseToStructuredFormat(
-                      generatedContent,
-                      courseName,
-                      selectedMethods,
-                      providerUsed
-                    );
-                    universalValidationRetryCount++;
-                    logger.info(`[${requestId}] Universal TipSpec retry completed for ${tip.title}`);
-                  }
-                } catch (retryError: any) {
-                  logger.warn(`[${requestId}] Universal TipSpec retry generation failed: ${retryError.message}`);
+              if (!validation.ok) {
+                allValidationMissing.push(...validation.missing.map(m => `[${tip.title}] ${m}`));
+                if (validation.shouldRetry && debug.retryCount < 1) {
+                  shouldRetry = true;
                 }
               }
             } catch (error: any) {
-              logger.warn(`[${requestId}] Universal TipSpec validation error for ${tip.title}: ${error.message}`);
+              logger.warn(`[${requestId}] TipSpec validation error for ${tip.title}: ${error.message}`);
             }
           }
         }
       }
-
-      // PHASE C: Validate tip implementation requirements (stricter validation)
+      
+      // Validate tip implementation requirements
       const tipImplementationValidation = validateTipImplementationRequirements(structuredAssignment, selectedMethods);
-      if (!tipImplementationValidation.ok && selectedMethods.length > 0 && activeClient && activeProviderType) {
-        logger.warn(`[${requestId}] Tip implementation validation failed:`, tipImplementationValidation.missing);
+      if (!tipImplementationValidation.ok) {
+        allValidationMissing.push(...tipImplementationValidation.missing);
+        if (debug.retryCount < 1) {
+          shouldRetry = true;
+        }
+      }
+      
+      // Validate am_03 if selected
+      const hasAm03 = selectedMethods.some(tip => getTipIdentifier(tip) === 'am_03' || tip.id === 'am_03');
+      let am03Validation: { ok: boolean; missing: string[]; debug?: any } | null = null;
+      if (hasAm03) {
+        am03Validation = validateAm03Assignment(structuredAssignment);
+        if (!am03Validation.ok) {
+          allValidationMissing.push(...am03Validation.missing.map(m => `[am_03] ${m}`));
+          if (debug.retryCount < 1) {
+            shouldRetry = true;
+          }
+        }
+      }
+      
+      // ONE retry if validation failed
+      if (shouldRetry && debug.retryCount < 1 && activeClient && activeProviderType) {
+        debug.retryCount = 1;
+        debug.validationMissing = allValidationMissing;
+        logger.warn(`[${requestId}] Validation failed, retrying ONCE. Missing:`, allValidationMissing);
         
-        // ONE retry with correction message listing exactly what is missing
-        logger.info(`[${requestId}] Regenerating with tip implementation corrections`);
-        const correctionPrompt = `${userPrompt}\n\n**תיקון חובה - יישום טיפים:**\n` +
-          `התשובה הקודמת שלך חסרה את הדברים הבאים:\n${tipImplementationValidation.missing.map(m => `- ${m}`).join('\n')}\n\n` +
-          `**הוראות חובה לתיקון:**\n` +
-          `1. כל אחד מהדברים החסרים לעיל חייב להופיע במטלה.\n` +
-          `2. אם נבחר טיפ עם aiMode=reflection → המטלה חייבת לכלול סעיף "AI Reflection" + דרישות הגשה (2 צילומי מסך + 2 פרומפטים + רפלקציה).\n` +
-          `3. אם נבחר טיפ עם aiMode=comparison → המטלה חייבת לכלול "Prompt A", "Prompt B", "טבלת השוואה", "פסקת החלטה סופית".\n` +
-          `4. המחוון חייב להשתמש בטווחי נקודות (0–10 או 0–5) ולא באחוזים.\n` +
-          `5. צור מטלה חדשה מלאה שעומדת בכל הדרישות הנ"ל.`;
+        const retryPrompt = `${userPrompt}\n\n**תיקון חובה - המטלה לא עומדת בדרישות:**\n\n${allValidationMissing.map(m => `- ${m}`).join('\n')}\n\n**הוראות חובה לתיקון:**\n1. כל אחד מהדברים החסרים לעיל חייב להופיע במטלה.\n2. המחוון חייב להשתמש בטווחי נקודות (0–7, 8–15, 16–20) ולא באחוזים.\n3. כל קריטריון במחוון חייב לכלול תיאור ספציפי לכל רמת ביצוע (לא רק "איכות תוכן" ללא הסבר).\n4. צור מטלה חדשה מלאה שעומדת בכל הדרישות הנ"ל.`;
         
         try {
           let retryContent = '';
@@ -910,7 +915,7 @@ export const generateAssignment = onCall(
               model: 'gpt-4o',
               messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: correctionPrompt }
+                { role: 'user', content: retryPrompt }
               ],
               max_tokens: 4000,
               temperature: 0.7
@@ -921,7 +926,7 @@ export const generateAssignment = onCall(
               model: 'claude-3-sonnet-20240229',
               max_tokens: 4000,
               messages: [
-                { role: 'user', content: `${systemPrompt}\n\n${correctionPrompt}` }
+                { role: 'user', content: `${systemPrompt}\n\n${retryPrompt}` }
               ]
             });
             retryContent = retryMessage.content?.[0]?.type === 'text' ? retryMessage.content[0].text : '';
@@ -935,88 +940,23 @@ export const generateAssignment = onCall(
               selectedMethods,
               providerUsed
             );
-            logger.info(`[${requestId}] Retry generation completed, re-validating...`);
             
             // Re-validate after retry
-            const retryValidation = validateTipImplementationRequirements(structuredAssignment, selectedMethods);
-            if (!retryValidation.ok) {
-              logger.warn(`[${requestId}] Retry still has validation issues:`, retryValidation.missing);
+            const retryTipValidation = validateTipImplementationRequirements(structuredAssignment, selectedMethods);
+            if (!retryTipValidation.ok) {
+              debug.validationMissing = retryTipValidation.missing;
+              logger.warn(`[${requestId}] Retry still has validation issues:`, retryTipValidation.missing);
+            } else {
+              debug.validationMissing = [];
             }
+            
+            logger.info(`[${requestId}] Retry generation completed`);
           }
         } catch (retryError: any) {
-          logger.warn(`[${requestId}] Tip implementation retry generation failed: ${retryError.message}, proceeding with original`);
+          logger.warn(`[${requestId}] Retry generation failed: ${retryError.message}`);
         }
-      }
-
-      // PHASE D: Validate am_03 specific contract (if am_03 is selected)
-      const hasAm03 = selectedMethods.some(tip => getTipIdentifier(tip) === 'am_03' || tip.id === 'am_03');
-      let am03Validation: { ok: boolean; missing: string[]; debug?: any } | null = null;
-      if (hasAm03) {
-        am03Validation = validateAm03Assignment(structuredAssignment);
-        if (!am03Validation.ok && activeClient && activeProviderType) {
-          logger.warn(`[${requestId}] am_03 contract validation failed:`, am03Validation.missing);
-          
-          // ONE automatic retry for am_03
-          logger.info(`[${requestId}] Regenerating with am_03 contract corrections`);
-          const am03CorrectionPrompt = `${userPrompt}\n\n**תיקון חובה - חוזה פדגוגי עבור am_03:**\n` +
-            `המטלה לא עומדת בדרישות הפדגוגיות של טיפ am_03. הבעיות הבאות זוהו:\n${am03Validation.missing.map(m => `- ${m}`).join('\n')}\n\n` +
-            `**הוראות חובה לתיקון:**\n` +
-            `1. המטלה חייבת לכלול סעיף בדיוק בשם: "רפלקציה ביקורתית על ניתוח ה-AI"\n` +
-            `2. הניתוח של ה-AI הוא אובייקט לביקורת, לא מקור סמכותי.\n` +
-            `3. הסטודנט חייב לזהות:\n` +
-            `   • מה ה-AI עשה טוב,\n` +
-            `   • מה היה שטחי,\n` +
-            `   • מה חסר,\n` +
-            `   • איפה ה-AI לא הבין או פישט יתר על המידה את התיאוריה.\n` +
-            `4. הסטודנט חייב להסביר איך הניתוח צריך להשתפר כדי לעמוד בסטנדרטים אקדמיים.\n` +
-            `5. אסור לכלול ניתוח עצמאי של סטודנט שאינו קשור במפורש לתוצר ה-AI.\n` +
-            `6. המחוון חייב לכלול קריטריון המעריך את הביקורת של הסטודנט על ניתוח ה-AI.\n` +
-            `7. כתוב מחדש את המטלה כך שהסטודנט מעריך ביקורתית את ניתוח ה-AI במקום לייצר ניתוח מקביל עצמאי.\n`;
-          
-          try {
-            let retryContent = '';
-            if (activeProviderType === 'openai') {
-              const retryCompletion = await (activeClient as OpenAI).chat.completions.create({
-                model: 'gpt-4o',
-                messages: [
-                  { role: 'system', content: systemPrompt },
-                  { role: 'user', content: am03CorrectionPrompt }
-                ],
-                max_tokens: 4000,
-                temperature: 0.7
-              });
-              retryContent = retryCompletion.choices?.[0]?.message?.content || '';
-            } else if (activeProviderType === 'claude') {
-              const retryMessage = await (activeClient as Anthropic).messages.create({
-                model: 'claude-3-sonnet-20240229',
-                max_tokens: 4000,
-                messages: [
-                  { role: 'user', content: `${systemPrompt}\n\n${am03CorrectionPrompt}` }
-                ]
-              });
-              retryContent = retryMessage.content?.[0]?.type === 'text' ? retryMessage.content[0].text : '';
-            }
-
-            if (retryContent) {
-              generatedContent = retryContent;
-              structuredAssignment = parseAIResponseToStructuredFormat(
-                generatedContent,
-                courseName,
-                selectedMethods,
-                providerUsed
-              );
-              logger.info(`[${requestId}] am_03 retry generation completed, re-validating...`);
-              
-              // Re-validate am_03 after retry
-              am03Validation = validateAm03Assignment(structuredAssignment);
-              if (!am03Validation.ok) {
-                logger.warn(`[${requestId}] am_03 retry still has validation issues:`, am03Validation.missing);
-              }
-            }
-          } catch (retryError: any) {
-            logger.warn(`[${requestId}] am_03 retry generation failed: ${retryError.message}, proceeding with original`);
-          }
-        }
+      } else if (allValidationMissing.length > 0) {
+        debug.validationMissing = allValidationMissing;
       }
 
       // Validate tip compliance (legacy check, kept for backward compatibility)
@@ -1321,43 +1261,46 @@ export const generateAssignment = onCall(
         ? aiModeAddons.substring(aiModeAddons.length - 2000)
         : aiModeAddons;
       
-      // Build tip implementation prompt preview (last 2000 chars)
-      const tipImplementationPromptPreview = tipImplementationBlocks.length > 0
-        ? tipImplementationBlocks.join('\n').substring(Math.max(0, tipImplementationBlocks.join('\n').length - 2000))
+      // Merge all debug fields into the top-level debug object
+      debug.am03ContractApplied = hasAm03;
+      debug.am03ValidationChecks = hasAm03 && am03Validation ? am03Validation.debug : undefined;
+      debug.usedTipEnforcer = selectedMethods.length > 0;
+      debug.selectedTipsCount = selectedMethods.length;
+      debug.rubricPointRanges = hasPointRanges || false;
+      debug.usedWebFallback = groundingMode === "web";
+      debug.renderedFrom = structuredAssignment.fullAssignmentHtml ? "structuredAssignment" : "legacy";
+      debug.sectionDepthOkBeforeRetry = sectionDepthOkBeforeRetry;
+      debug.sectionDepthOkAfterRetry = sectionDepthOkAfterRetry;
+      debug.sectionDepthFailures = sectionDepthFailures;
+      debug.aiPromptsOk = aiPromptsOk;
+      debug.aiPromptsFailures = aiPromptsFailures;
+      debug.selectedTipIdentifiers = selectedTipIdentifiers.length > 0 ? selectedTipIdentifiers : undefined;
+      debug.tipEnforcementPromptPreview = tipEnforcementPromptPreview || undefined;
+      debug.aiModeAddonsPreview = aiModeAddonsPreview || undefined;
+      debug.externalKnowledgeUsed = externalConceptsUsed.length > 0 ? externalConceptsUsed : undefined;
+      debug.externalKnowledgeRationale = externalConceptsUsed.length > 0 
+        ? `תיאוריות חיצוניות שזוהו במטלה: ${externalConceptsUsed.join(', ')}. ${externalKnowledgeOk ? 'כל התיאוריות מיושמות משמעותית במטלה.' : 'חלק מהתיאוריות דורשות יישום נוסף.'}`
         : undefined;
-
-      structuredAssignment.debug = {
-        generatorVersion: 'tipspec-universal-v1',
-        am03ContractApplied: hasAm03,
-        am03ValidationChecks: hasAm03 && am03Validation ? am03Validation.debug : undefined,
-        usedTipEnforcer: selectedMethods.length > 0,
-        selectedTipsCount: selectedMethods.length,
-        rubricPointRanges: hasPointRanges || false,
-        usedWebFallback: groundingMode === "web",
-        renderedFrom: structuredAssignment.fullAssignmentHtml ? "structuredAssignment" : "legacy",
-        sectionDepthOkBeforeRetry,
-        sectionDepthOkAfterRetry,
-        sectionDepthFailures,
-        aiPromptsOk,
-        aiPromptsFailures,
-        selectedTipIdentifiers: selectedTipIdentifiers.length > 0 ? selectedTipIdentifiers : undefined,
-        tipEnforcementPromptPreview: tipEnforcementPromptPreview || undefined,
-        aiModeAddonsPreview: aiModeAddonsPreview || undefined,
-        externalKnowledgeUsed: externalConceptsUsed.length > 0 ? externalConceptsUsed : undefined,
-        externalKnowledgeRationale: externalConceptsUsed.length > 0 
-          ? `תיאוריות חיצוניות שזוהו במטלה: ${externalConceptsUsed.join(', ')}. ${externalKnowledgeOk ? 'כל התיאוריות מיושמות משמעותית במטלה.' : 'חלק מהתיאוריות דורשות יישום נוסף.'}`
-          : undefined,
-        tipSpecsSummary: tipSpecsSummary.length > 0 ? tipSpecsSummary : undefined,
-        tipImplementationPromptPreview: tipImplementationPromptPreview || undefined
-      };
+      
+      // Ensure tipImplementationPromptPreview contains A-F blocks (use final prompt)
+      if (!debug.tipImplementationPromptPreview || debug.tipImplementationPromptPreview.length === 0) {
+        debug.tipImplementationPromptPreview = finalUserPrompt.length > 4000 
+          ? finalUserPrompt.substring(finalUserPrompt.length - 4000)
+          : finalUserPrompt;
+      }
+      
+      // Attach debug to structuredAssignment as well for backward compatibility
+      structuredAssignment.debug = { ...debug };
 
       logger.info(`[${requestId}] Assignment generated successfully using ${providerUsed}, mode: ${groundingMode}`);
-      logger.info(`[${requestId}] Debug: ${JSON.stringify(structuredAssignment.debug)}`);
+      logger.info(`[${requestId}] Debug: ${JSON.stringify(debug)}`);
 
       return {
         success: true,
         data: structuredAssignment,
+        debug: debug, // Attach debug at top level
         providerUsed,
+        modelUsed: modelUsed || providerUsed,
         attempts,
         requestId,
         timestamp: new Date().toISOString()
@@ -1447,7 +1390,7 @@ export const getServerStatus = onCall(
   {
     secrets: [openAIKeySecret, claudeKeySecret], // Include secrets to check if they're configured
   },
-  async (request) => {
+  async () => {
     try {
       // Check if OpenAI key is configured (without initializing the client)
       let openaiStatus: 'configured' | 'missing' = 'missing';
