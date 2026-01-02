@@ -6,7 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { defineSecret } from "firebase-functions/params";
 import { assessMaterialQuality, validateAssignmentSpecificity, MaterialQualityReport } from "../../shared/materialQuality";
 import { searchScholarlySources, formatAPA7References, ScholarlySource } from "../../shared/scholarlySearch";
-import { buildTipEnforcementPrompt, validateTipCompliance, normalizeRubricHtmlToPointRanges, validateSectionDepth, validateAiPrompts, tipInvolvesAI } from "../../shared/tipImplementation";
+import { buildTipEnforcementPrompt, validateTipCompliance, normalizeRubricHtmlToPointRanges, validateSectionDepth, validateAiPrompts, tipInvolvesAI, getTipIdentifier } from "../../shared/tipImplementation";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -76,8 +76,9 @@ interface AssignmentParams {
   department?: string;
   courseDescription?: string;
   selectedMethods?: Array<{
+    id?: string;
     title: string;
-    description: string;
+    description?: string;
   }>;
   uploadedFiles?: any[];
   preferredProvider?: 'openai';
@@ -209,7 +210,7 @@ function buildFullAssignmentHtml(
 function parseAIResponseToStructuredFormat(
   content: string,
   courseName: string,
-  selectedMethods: Array<{ title: string; description?: string }>,
+  selectedMethods: Array<{ id?: string; title: string; description?: string }>,
   provider: string
 ): StructuredAssignment {
   try {
@@ -295,12 +296,16 @@ function parseAIResponseToStructuredFormat(
   
   // Add method-specific criteria
   selectedMethods.forEach(method => {
-    if (method.title && tipInvolvesAI({ title: method.title })) {
-      rubricCriteria.push({
-        name: 'רפלקציה על AI',
-        description: 'איכות הניתוח הביקורתי של תגובות ה-AI',
-        levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
-      });
+    if (method.title) {
+      const identifier = getTipIdentifier(method);
+      const tipParam = identifier ? { id: identifier, title: method.title } : { title: method.title };
+      if (tipInvolvesAI(tipParam)) {
+        rubricCriteria.push({
+          name: 'רפלקציה על AI',
+          description: 'איכות הניתוח הביקורתי של תגובות ה-AI',
+          levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
+        });
+      }
     }
     if (method.title && method.title.includes('עבודה קבוצתית')) {
       rubricCriteria.push({

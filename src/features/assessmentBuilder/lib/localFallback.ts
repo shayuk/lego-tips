@@ -10,7 +10,7 @@
  * - Complete server failure
  */
 
-import { tipInvolvesAI } from '../../../../shared/tipImplementation';
+import { tipInvolvesAI, getTipIdentifier } from '../../../../shared/tipImplementation';
 
 export interface FallbackAssignment {
   title: string;
@@ -48,7 +48,7 @@ export function buildLocalFallbackAssignment(
   courseName: string,
   faculty: string | undefined,
   department: string | undefined,
-  selectedMethods: Array<{ title?: string; description?: string }>,
+  selectedMethods: Array<{ id?: string; title?: string; description?: string }>,
   reason: string = 'Server generation failed'
 ): FallbackResult {
   const methodTitles = selectedMethods.map(m => m.title || 'שיטה פדגוגית').join(', ');
@@ -62,12 +62,16 @@ export function buildLocalFallbackAssignment(
 
   // Add method-specific instructions
   selectedMethods.forEach(method => {
-    if (method.title && tipInvolvesAI({ title: method.title })) {
-      instructions.push(
-        'השתמשו בכלי AI לחקר ראשוני של הנושא',
-        'תעדו את כל השיח עם ה-AI במלואו',
-        'כתבו רפלקציה מעמיקה (300+ מילים) על תובנות ה-AI ומה שחסר לו'
-      );
+    if (method.title) {
+      const identifier = getTipIdentifier(method);
+      const tipParam = identifier ? { id: identifier, title: method.title } : { title: method.title };
+      if (tipInvolvesAI(tipParam)) {
+        instructions.push(
+          'השתמשו בכלי AI לחקר ראשוני של הנושא',
+          'תעדו את כל השיח עם ה-AI במלואו',
+          'כתבו רפלקציה מעמיקה (300+ מילים) על תובנות ה-AI ומה שחסר לו'
+        );
+      }
     }
     
     if (method.title?.includes('עבודה קבוצתית') || method.title?.includes('עבודה בקבוצות')) {
@@ -132,7 +136,7 @@ export function buildLocalFallbackAssignment(
  * Build fallback rubric criteria based on selected methods
  */
 export function buildFallbackRubric(
-  selectedMethods: Array<{ title?: string; description?: string }>
+  selectedMethods: Array<{ id?: string; title?: string; description?: string }>
 ): FallbackRubricCriteria[] {
   const criteria: FallbackRubricCriteria[] = [
     {
@@ -154,12 +158,16 @@ export function buildFallbackRubric(
 
   // Add method-specific criteria
   selectedMethods.forEach(method => {
-    if (method.title && tipInvolvesAI({ title: method.title })) {
-      criteria.push({
-        name: 'רפלקציה על AI',
-        description: 'איכות הניתוח הביקורתי של תגובות ה-AI',
-        levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
-      });
+    if (method.title) {
+      const identifier = getTipIdentifier(method);
+      const tipParam = identifier ? { id: identifier, title: method.title } : { title: method.title };
+      if (tipInvolvesAI(tipParam)) {
+        criteria.push({
+          name: 'רפלקציה על AI',
+          description: 'איכות הניתוח הביקורתי של תגובות ה-AI',
+          levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
+        });
+      }
     }
     if (method.title?.includes('עבודה קבוצתית') || method.title?.includes('עבודה בקבוצות')) {
       criteria.push({

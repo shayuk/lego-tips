@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '../../../helpers/useToast';
 import { generateAssignmentWithRetry, checkAvailableProviders, handleAPIError, APIUsageTracker, checkServerHealth, isProduction, ScholarlySource, MaterialQualityReport } from '../../../helpers/secureApiClient';
 import { buildLocalFallbackAssignment, buildFallbackRubric, generateFallbackRubricHtml } from '../lib/localFallback';
+import { getTipIdentifier } from '../../../../shared/tipImplementation';
 
 // 📝 Assessment Types - מתואמים עם תגובת השרת
 interface GeneratedAssessment {
@@ -168,6 +169,7 @@ const useAssessmentGenerator = (params: {
         department: actualDepartment,
         courseDescription: actualDescription,
         selectedMethods: actualTips.map(tip => ({
+          id: getTipIdentifier(tip),
           title: tip.title || 'שיטה פדגוגית',
           description: tip.description || ''
         })),

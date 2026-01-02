@@ -120,6 +120,11 @@ export interface StructuredAssignment {
     rubricPointRanges?: boolean;
     usedWebFallback?: boolean;
     renderedFrom?: "structuredAssignment" | "legacy";
+    sectionDepthOkBeforeRetry?: boolean;
+    sectionDepthOkAfterRetry?: boolean;
+    sectionDepthFailures?: string[];
+    aiPromptsOk?: boolean;
+    aiPromptsFailures?: string[];
   };
 }
 

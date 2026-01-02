@@ -816,12 +816,16 @@ function parseAIResponseToStructuredFormat(content, courseName, selectedMethods,
   
   // Add method-specific criteria
   selectedMethods.forEach(method => {
-    if (method.title && tipImplementation?.tipInvolvesAI && tipImplementation.tipInvolvesAI({ title: method.title, id: method.id })) {
-      rubricCriteria.push({
-        name: 'רפלקציה על AI',
-        description: 'איכות הניתוח הביקורתי של תגובות ה-AI',
-        levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
-      });
+    if (method.title && tipImplementation?.tipInvolvesAI) {
+      const identifier = tipImplementation.getTipIdentifier ? tipImplementation.getTipIdentifier(method) : (method.id || method.key || method.slug || method.methodId || method.tipId || method.specId || method.code);
+      const tipParam = identifier ? { id: identifier, title: method.title } : { title: method.title };
+      if (tipImplementation.tipInvolvesAI(tipParam)) {
+        rubricCriteria.push({
+          name: 'רפלקציה על AI',
+          description: 'איכות הניתוח הביקורתי של תגובות ה-AI',
+          levels: ['ביצוע בסיסי (0–7 נקודות)', 'ביצוע מתקדם (8–15 נקודות)', 'ביצוע מיטבי (16–20 נקודות)']
+        });
+      }
     }
     if (method.title && method.title.includes('עבודה קבוצתית')) {
       rubricCriteria.push({
