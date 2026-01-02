@@ -521,6 +521,41 @@ function validateTipImplementationRequirements(structuredAssignment, selectedTip
             rubricText.includes('70-79');
         missing.push(`Rubric must use point ranges (0–10 or 0–5) instead of ${hasPercentages ? 'percentages' : 'current format'}`);
     }
+    // Check for generic rubric criteria (איכות תוכן without content-specific descriptors)
+    const genericCriteriaPatterns = [
+        /איכות תוכן[^<]*<\/t[dh]>/i,
+        /quality of content[^<]*<\/t[dh]>/i,
+        /איכות הכתיבה[^<]*<\/t[dh]>/i,
+        /quality of writing[^<]*<\/t[dh]>/i
+    ];
+    // Check if rubric contains generic criteria without specific descriptors
+    const hasGenericCriteria = genericCriteriaPatterns.some(pattern => {
+        const match = rubricText.match(pattern);
+        if (match) {
+            // Check if the next cell(s) contain only generic descriptions (numeric ranges without "what student demonstrates")
+            const criterionIndex = rubricText.indexOf(match[0]);
+            const afterCriterion = rubricText.substring(criterionIndex + match[0].length, criterionIndex + 500);
+            // Check if levels only contain numeric ranges without content-specific descriptions
+            const hasOnlyNumericLevels = /(0[–-]\d+|90[–-]100|80[–-]89|70[–-]79)/i.test(afterCriterion) &&
+                !/(מיישם|מציג|מנתח|מסביר|מדגים|demonstrates|applies|analyzes|explains|shows)/i.test(afterCriterion);
+            return hasOnlyNumericLevels;
+        }
+        return false;
+    });
+    if (hasGenericCriteria) {
+        missing.push(`Rubric contains generic criteria ("איכות תוכן" or "Quality of content") without content-specific descriptors. Each criterion must describe what the student demonstrates, not just numeric ranges.`);
+    }
+    // Check rubric levels have content-specific descriptions (not just numeric ranges)
+    const rubricLevelCells = rubricText.match(/<t[dh][^>]*>([^<]+)<\/t[dh]>/gi) || [];
+    const hasOnlyNumericLevels = rubricLevelCells.some(cell => {
+        const cellText = cell.replace(/<[^>]+>/g, '').trim();
+        // Check if cell contains only numeric ranges without descriptive text
+        return /^(0[–-]\d+|90[–-]100|80[–-]89|70[–-]79|ביצוע|performance|excellent|good|basic|weak)[\s]*$/i.test(cellText) &&
+            !/(מיישם|מציג|מנתח|מסביר|מדגים|demonstrates|applies|analyzes|explains|shows|מה|what|how)/i.test(cellText);
+    });
+    if (hasOnlyNumericLevels && rubricText.length > 0) {
+        missing.push(`Rubric levels contain only numeric ranges without descriptions of what the student demonstrates. Each level must describe specific performance indicators.`);
+    }
     selectedTips.forEach(tip => {
         const spec = getTipSpec(tip);
         if (spec?.aiMode === 'reflection') {
