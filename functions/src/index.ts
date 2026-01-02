@@ -13,6 +13,13 @@ import { validateWithRetry } from "../../shared/tipSpecValidator";
 // Initialize Firebase Admin
 admin.initializeApp();
 
+// BUILD_ID marker for deployment verification
+// Uses git commit hash from environment (set during CI/CD) or falls back to timestamp
+declare const process: { env?: { GIT_SHA?: string; GITHUB_SHA?: string } };
+const BUILD_ID = (process?.env?.GIT_SHA) || 
+                 (process?.env?.GITHUB_SHA) || 
+                 `local-${new Date().toISOString()}`;
+
 // Define secrets for API keys
 const openAIKeySecret = defineSecret("OPENAI_KEY");
 const claudeKeySecret = defineSecret("CLAUDE_API_KEY");
@@ -409,6 +416,7 @@ export const generateAssignment = onCall(
     // STEP 1: Create debug object at top of handler
     const debug: any = {
       generatorVersion: "tipspec-universal-v1",
+      buildId: BUILD_ID,
       retryCount: 0,
       tipSpecsSummary: [],
       tipImplementationPromptPreview: "",
@@ -442,6 +450,15 @@ export const generateAssignment = onCall(
       }
 
       logger.info(`[${requestId}] Assignment generation request - Course: ${courseName}`);
+
+      // TRACE POINT 1: Right after payload parse
+      logger.info(`[${requestId}] TRACE-1: Payload parsed`, {
+        selectedMethods: selectedMethods.map(m => ({ id: m.id, title: m.title })),
+        selectedMethodsCount: selectedMethods.length,
+        preferredProvider: params.preferredProvider || 'openai',
+        modelRequested: debug.modelRequested,
+        providerRequested: debug.providerRequested
+      });
 
       // Build comprehensive prompt
       const selectedComponents = selectedMethods.map(m => m.title || 'שיטה פדגוגית');
@@ -660,6 +677,16 @@ export const generateAssignment = onCall(
     * דוגמה: "איכות יישום מושגי גופמן: מעולה - מיישם במדויק 'הצגת העצמי', 'הגדרת המצב', ו'קדמת הבמה/מאחורי הקלעים' למקרה עכשווי עם הסבר ברור. טוב - מיישם חלק מהמושגים נכון אך עם עומק מוגבל או דוגמאות חלקיות. בסיסי - מזכיר מושגים אך מיישם אותם באופן שטחי או תיאורי. חלש - מזכיר את התיאוריה ללא יישום משמעותי."
   
   **הפלט בעברית בפורמט HTML נקי וארגון מסודר** ללא תגי HTML מיותרים בתחילה או בסוף.`;
+
+      // TRACE POINT 2: Right after TipSpec blocks appended
+      const tipBlocksText = tipImplementationBlocks.join('\n\n');
+      const hasAGoalMarker = tipBlocksText.includes('A) Goal') || tipBlocksText.includes('A)') || userPrompt.includes('A) Goal');
+      logger.info(`[${requestId}] TRACE-2: TipSpec blocks appended`, {
+        tipImplementationBlocksCount: tipImplementationBlocks.length,
+        tipBlocksTotalLength: tipBlocksText.length,
+        hasAGoalMarker: hasAGoalMarker,
+        tipBlocksPreview: tipBlocksText.substring(0, 200)
+      });
 
       // Capture final prompt for debug (last 2000-4000 chars)
       const finalUserPrompt = userPrompt;
@@ -1295,10 +1322,40 @@ export const generateAssignment = onCall(
       logger.info(`[${requestId}] Assignment generated successfully using ${providerUsed}, mode: ${groundingMode}`);
       logger.info(`[${requestId}] Debug: ${JSON.stringify(debug)}`);
 
+      // Ensure debug is attached to structuredAssignment (frontend accesses result.data.debug)
+      structuredAssignment.debug = { ...debug };
+
+      // TRACE POINT 3: Right before return
+      const debugKeys = Object.keys(debug);
+      const hasGeneratorVersion = 'generatorVersion' in debug;
+      const hasBuildId = 'buildId' in debug;
+      const hasTipSpecsSummary = 'tipSpecsSummary' in debug;
+      const hasTipImplementationPromptPreview = 'tipImplementationPromptPreview' in debug;
+      const hasModelUsed = 'modelUsed' in debug;
+      const hasProviderUsed = 'providerUsed' in debug;
+      logger.info(`[${requestId}] TRACE-3: Before return - Debug object check`, {
+        debugKeysCount: debugKeys.length,
+        debugKeys: debugKeys,
+        hasGeneratorVersion,
+        hasBuildId,
+        buildIdValue: debug.buildId,
+        hasTipSpecsSummary,
+        tipSpecsSummaryLength: debug.tipSpecsSummary?.length || 0,
+        hasTipImplementationPromptPreview,
+        tipImplementationPromptPreviewLength: debug.tipImplementationPromptPreview?.length || 0,
+        hasModelUsed,
+        modelUsedValue: debug.modelUsed,
+        hasProviderUsed,
+        providerUsedValue: debug.providerUsed,
+        resultDebugExists: !!structuredAssignment.debug,
+        resultDebugKeys: structuredAssignment.debug ? Object.keys(structuredAssignment.debug) : []
+      });
+
       return {
         success: true,
-        data: structuredAssignment,
-        debug: debug, // Attach debug at top level
+        data: structuredAssignment, // Frontend accesses result.data, and result.data.debug
+        debug: debug, // Also at top level for convenience (frontend can access result.debug)
+        buildId: BUILD_ID, // Top-level buildId for easy visibility
         providerUsed,
         modelUsed: modelUsed || providerUsed,
         attempts,
@@ -1417,6 +1474,7 @@ export const getServerStatus = onCall(
       return {
         server: 'Pedagogical Lego Backend Proxy',
         version: '1.0.0',
+        buildId: BUILD_ID,
         status: 'running',
         providers: {
           openai: openaiStatus,

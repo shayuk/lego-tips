@@ -1,34 +1,47 @@
 # Files to delete after refactoring to feature-sliced design
 
+## ✅ CLEANUP COMPLETED
+
+All files listed below have been successfully migrated to the feature-sliced design structure and removed from their old locations.
+
+**Status:** All files verified as deleted/moved - no action required.
+
+**New locations:**
+- Components moved to: `src/features/assessmentBuilder/components/` and `src/features/pedagogicalTips/components/`
+- Hooks moved to: `src/features/assessmentBuilder/hooks/`
+- Lib files moved to: `src/features/assessmentBuilder/lib/` and `src/features/pedagogicalTips/lib/`
+
+---
+
 ## assessmentBuilder feature
 
-### Components
-src/components/AssessmentCanvas.tsx
-src/components/AssessmentCanvas.module.css
-src/components/AssessmentPreview.tsx
-src/components/AssessmentPreview.module.css
-src/components/GeneratedAssessmentDisplay.tsx
-src/components/PedagogicalMethodSelector.tsx
-src/components/PedagogicalMethodSelector.module.css
-src/components/CourseParameterSelector.tsx
-src/components/CourseParameterSelector.module.css
-src/components/SetupStep.tsx
+### Components (✅ Already deleted/moved)
+- ~~src/components/AssessmentCanvas.tsx~~ → `src/features/assessmentBuilder/components/AssessmentCanvas.tsx`
+- ~~src/components/AssessmentCanvas.module.css~~ → `src/features/assessmentBuilder/components/AssessmentCanvas.module.css`
+- ~~src/components/AssessmentPreview.tsx~~ → `src/features/assessmentBuilder/components/AssessmentPreview.tsx`
+- ~~src/components/AssessmentPreview.module.css~~ → `src/features/assessmentBuilder/components/AssessmentPreview.module.css`
+- ~~src/components/GeneratedAssessmentDisplay.tsx~~ → `src/features/assessmentBuilder/components/GeneratedAssessmentDisplay.tsx`
+- ~~src/components/PedagogicalMethodSelector.tsx~~ → `src/features/assessmentBuilder/components/PedagogicalMethodSelector.tsx`
+- ~~src/components/PedagogicalMethodSelector.module.css~~ → `src/features/assessmentBuilder/components/PedagogicalMethodSelector.module.css`
+- ~~src/components/CourseParameterSelector.tsx~~ → `src/features/assessmentBuilder/components/CourseParameterSelector.tsx`
+- ~~src/components/CourseParameterSelector.module.css~~ → `src/features/assessmentBuilder/components/CourseParameterSelector.module.css`
+- ~~src/components/SetupStep.tsx~~ → `src/features/assessmentBuilder/components/SetupStep.tsx`
 
-### Helpers (now hooks and lib)
-src/helpers/useAssessmentBuilder.tsx
-src/helpers/useAssessmentGenerator.tsx
-src/helpers/assessmentMethods.tsx
-src/helpers/assessmentTypes.tsx
-src/helpers/knowledgeAnalyzer.tsx
-src/helpers/rubricTemplates.tsx
+### Helpers (✅ Already deleted/moved - now hooks and lib)
+- ~~src/helpers/useAssessmentBuilder.tsx~~ → `src/features/assessmentBuilder/hooks/useAssessmentBuilder.tsx`
+- ~~src/helpers/useAssessmentGenerator.tsx~~ → `src/features/assessmentBuilder/hooks/useAssessmentGenerator.tsx`
+- ~~src/helpers/assessmentMethods.tsx~~ → `src/features/assessmentBuilder/lib/assessmentMethods.tsx`
+- ~~src/helpers/assessmentTypes.tsx~~ → `src/features/assessmentBuilder/lib/assessmentTypes.tsx`
+- ~~src/helpers/knowledgeAnalyzer.tsx~~ → `src/features/assessmentBuilder/lib/knowledgeAnalyzer.tsx`
+- ~~src/helpers/rubricTemplates.tsx~~ → `src/features/assessmentBuilder/lib/rubricTemplates.tsx`
 
 ## pedagogicalTips feature
 
-### Components
-src/components/PedagogicalTips.tsx
-src/components/PedagogicalTips.module.css
-src/components/TipDetailsModal.tsx
-src/components/TipDetailsModal.module.css
+### Components (✅ Already deleted/moved)
+- ~~src/components/PedagogicalTips.tsx~~ → `src/features/pedagogicalTips/components/PedagogicalTips.tsx`
+- ~~src/components/PedagogicalTips.module.css~~ → `src/features/pedagogicalTips/components/PedagogicalTips.module.css`
+- ~~src/components/TipDetailsModal.tsx~~ → `src/features/pedagogicalTips/components/TipDetailsModal.tsx`
+- ~~src/components/TipDetailsModal.module.css~~ → `src/features/pedagogicalTips/components/TipDetailsModal.module.css`
 
-### Lib
-src/helpers/pedagogicalTipStorage.ts 
+### Lib (✅ Already deleted/moved)
+- ~~src/helpers/pedagogicalTipStorage.ts~~ → `src/features/pedagogicalTips/lib/pedagogicalTipStorage.ts` 
