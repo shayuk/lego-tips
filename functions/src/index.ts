@@ -6,7 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { defineSecret } from "firebase-functions/params";
 import { assessMaterialQuality, validateAssignmentSpecificity, MaterialQualityReport } from "../../shared/materialQuality";
 import { searchScholarlySources, formatAPA7References, ScholarlySource } from "../../shared/scholarlySearch";
-import { buildTipEnforcementPrompt, validateTipCompliance, normalizeRubricHtmlToPointRanges } from "../../shared/tipImplementation";
+import { buildTipEnforcementPrompt, validateTipCompliance, normalizeRubricHtmlToPointRanges, validateSectionDepth, validateAiPrompts } from "../../shared/tipImplementation";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -770,6 +770,146 @@ export const generateAssignment = onCall(
         }
       }
 
+      // STEP: Validate section depth and AI prompts AFTER HTML extraction
+      let sectionDepthOkBeforeRetry = false;
+      let sectionDepthOkAfterRetry = false;
+      let sectionDepthFailures: string[] = [];
+      let aiPromptsOk = false;
+      let aiPromptsFailures: string[] = [];
+
+      // Validate section depth
+      const depthValidation = validateSectionDepth(structuredAssignment);
+      sectionDepthOkBeforeRetry = depthValidation.ok;
+      sectionDepthFailures = depthValidation.failures;
+
+      // Validate AI prompts if AI tips are selected
+      if (selectedMethods.length > 0) {
+        const aiPromptsValidation = validateAiPrompts(structuredAssignment, selectedMethods);
+        aiPromptsOk = aiPromptsValidation.ok;
+        aiPromptsFailures = aiPromptsValidation.missing;
+      } else {
+        aiPromptsOk = true; // No AI tips, validation passes
+      }
+
+      // If validation fails, regenerate ONCE with strict instruction
+      if ((!depthValidation.ok || !aiPromptsOk) && activeClient && activeProviderType) {
+        logger.warn(`[${requestId}] Section depth or AI prompts validation failed. Regenerating...`);
+        logger.warn(`[${requestId}] Depth failures:`, depthValidation.failures);
+        logger.warn(`[${requestId}] AI prompts failures:`, aiPromptsFailures);
+        
+        const allFailures = [...depthValidation.failures, ...aiPromptsFailures];
+        const strictRetryPrompt = `${userPrompt}\n\n**תיקון חובה - דרישות עומק ופרומפטים:**\n` +
+          `התשובה הקודמת שלך לא עמדה בדרישות הבאות:\n${allFailures.map(f => `- ${f}`).join('\n')}\n\n` +
+          `**הוראות חובה לתיקון:**\n` +
+          `1. כל אחד מהסעיפים הבאים חייב לכלול לפחות שני פסקאות מלאות (כל פסקה ≥3 משפטים):\n` +
+          `   - מטרת המשימה\n` +
+          `   - תיאור המשימה והוראות\n` +
+          `   - דרישות הגשה\n` +
+          `${!aiPromptsOk ? `2. אם נבחר טיפ הקשור ל-AI, חובה לכלול סעיף "פרומפטים לשימוש בכלי AI" עם פרומפטים מוכנים לשימוש (לא רק הוראה כללית).\n` : ''}` +
+          `3. אל תשנה את הנושא, הטיפים או המחוון - רק הוסף עומק לסעיפים הקיימים.\n` +
+          `4. צור מטלה חדשה מלאה שעומדת בכל הדרישות הנ"ל.`;
+        
+        try {
+          let retryContent = '';
+          if (activeProviderType === 'openai') {
+            const retryCompletion = await (activeClient as OpenAI).chat.completions.create({
+              model: 'gpt-4o',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: strictRetryPrompt }
+              ],
+              max_tokens: 4000,
+              temperature: 0.7
+            });
+            retryContent = retryCompletion.choices?.[0]?.message?.content || '';
+          } else if (activeProviderType === 'claude') {
+            const retryMessage = await (activeClient as Anthropic).messages.create({
+              model: 'claude-3-sonnet-20240229',
+              max_tokens: 4000,
+              messages: [
+                { role: 'user', content: `${systemPrompt}\n\n${strictRetryPrompt}` }
+              ]
+            });
+            retryContent = retryMessage.content?.[0]?.type === 'text' ? retryMessage.content[0].text : '';
+          }
+
+          if (retryContent) {
+            // Re-extract HTML from retry content
+            const retryTrimmed = (retryContent || "").trimStart();
+            const retryLooksLikeHtml =
+              retryTrimmed.startsWith("<") &&
+              /<(table|tbody|thead|tr|td|th|div|p|ul|ol|h\d)\b/i.test(retryTrimmed);
+
+            if (retryLooksLikeHtml) {
+              let retryCleanedContent = retryContent
+                .replace(/\d{1,2}\/\d{1,2}\/\d{4}/g, (match) => {
+                  const dateParts = match.split('/');
+                  if (dateParts.length === 3) {
+                    const day = parseInt(dateParts[0]);
+                    const month = parseInt(dateParts[1]) - 1;
+                    const year = parseInt(dateParts[2]);
+                    const date = new Date(year, month, day);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    if (date < today) {
+                      return 'תאריך שיקבע ע״י המרצה';
+                    }
+                  }
+                  return match;
+                })
+                .replace(/15\/05\/2022/g, 'תאריך שיקבע ע״י המרצה')
+                .replace(/תאריך הגשה[:\s]*\d{1,2}\/\d{1,2}\/\d{4}/gi, 'תאריך הגשה: ייקבע ע״י המרצה');
+
+              const retryRubricMarkers = [
+                /<h[23][^>]*>.*?מחוון.*?<\/h[23]>/i,
+                /<h[23][^>]*>.*?רובריקה.*?<\/h[23]>/i,
+                /<table[^>]*>[\s\S]*?קריטריון[\s\S]*?<\/table>/i
+              ];
+              
+              let retryRubricStartIndex = -1;
+              for (const marker of retryRubricMarkers) {
+                const match = retryCleanedContent.search(marker);
+                if (match !== -1) {
+                  retryRubricStartIndex = match;
+                  break;
+                }
+              }
+
+              if (retryRubricStartIndex !== -1) {
+                structuredAssignment.studentInstructionsHtml = retryCleanedContent.substring(0, retryRubricStartIndex).trim();
+                const retryRubricMatch = retryCleanedContent.match(/<table[^>]*>[\s\S]*?<\/table>/i);
+                if (retryRubricMatch) {
+                  structuredAssignment.rubricHtml = retryRubricMatch[0];
+                } else {
+                  structuredAssignment.rubricHtml = retryCleanedContent.substring(retryRubricStartIndex).trim();
+                }
+              } else {
+                const retryRubricTableMatch = retryCleanedContent.match(/<table[^>]*>[\s\S]*?<\/table>/i);
+                if (retryRubricTableMatch) {
+                  structuredAssignment.studentInstructionsHtml = retryCleanedContent.replace(retryRubricTableMatch[0], '').trim();
+                  structuredAssignment.rubricHtml = retryRubricTableMatch[0];
+                } else {
+                  structuredAssignment.studentInstructionsHtml = retryCleanedContent;
+                }
+              }
+            }
+            
+            // Re-validate after retry
+            const retryDepthValidation = validateSectionDepth(structuredAssignment);
+            sectionDepthOkAfterRetry = retryDepthValidation.ok;
+            
+            if (selectedMethods.length > 0) {
+              const retryAiPromptsValidation = validateAiPrompts(structuredAssignment, selectedMethods);
+              aiPromptsOk = retryAiPromptsValidation.ok;
+            }
+          }
+        } catch (retryError: any) {
+          logger.warn(`[${requestId}] Depth/AI prompts retry generation failed: ${retryError.message}`);
+        }
+      } else {
+        sectionDepthOkAfterRetry = sectionDepthOkBeforeRetry;
+      }
+
       // Normalize rubric HTML to use point ranges (0-7, 8-15, 16-20)
       if (structuredAssignment.rubricHtml) {
         structuredAssignment.rubricHtml = normalizeRubricHtmlToPointRanges(structuredAssignment.rubricHtml);
@@ -833,7 +973,12 @@ export const generateAssignment = onCall(
         selectedTipsCount: selectedMethods.length,
         rubricPointRanges: hasPointRanges || false,
         usedWebFallback: groundingMode === "web",
-        renderedFrom: structuredAssignment.fullAssignmentHtml ? "structuredAssignment" : "legacy"
+        renderedFrom: structuredAssignment.fullAssignmentHtml ? "structuredAssignment" : "legacy",
+        sectionDepthOkBeforeRetry,
+        sectionDepthOkAfterRetry,
+        sectionDepthFailures,
+        aiPromptsOk,
+        aiPromptsFailures
       };
 
       logger.info(`[${requestId}] Assignment generated successfully using ${providerUsed}, mode: ${groundingMode}`);

@@ -173,6 +173,24 @@ export function buildTipEnforcementPrompt(
   sections.push(`- כל טיפ חייב לכלול לפחות deliverable אחד ספציפי`);
   sections.push(`- אין להסתפק בהזכרת הטיפ - יש לשלב אותו באופן פעיל במטלה`);
 
+  // Add section depth requirements
+  sections.push(`\n**דרישות עומק חובה (NON-NEGOTIABLE):**`);
+  sections.push(`- הסעיף "מטרת המשימה" חייב לכלול לפחות שני פסקאות מלאות (כל פסקה ≥3 משפטים)`);
+  sections.push(`- הסעיף "תיאור המשימה והוראות" חייב לכלול לפחות שני פסקאות מלאות (כל פסקה ≥3 משפטים)`);
+  sections.push(`- הסעיף "דרישות הגשה" חייב לכלול לפחות שני פסקאות מלאות (כל פסקה ≥3 משפטים)`);
+  sections.push(`- אסור להשתמש בנקודות או רשימות במקום פסקאות - כל סעיף חייב להכיל פסקאות מלאות`);
+
+  // Add AI prompt generation requirements
+  const hasAiTip = selectedTips.some(tip => tipInvolvesAI(tip));
+  if (hasAiTip) {
+    sections.push(`\n**חובה מוחלטת - יצירת פרומפטים ל-AI:**`);
+    sections.push(`- אם נבחר טיפ הקשור ל-AI (רפלקציה, השוואה, ניתוח ביקורתי), חובה לכלול סעיף: "פרומפטים לשימוש בכלי AI"`);
+    sections.push(`- בתוך הסעיף, חובה לספק פרומפטים מוכנים לשימוש (לא רק הוראה "השתמשו ב-AI")`);
+    sections.push(`- הפרומפטים חייבים להתייחס לנושא המטלה הספציפי ולחומרים שהועלו`);
+    sections.push(`- הפרומפטים חייבים לכלול פורמט פלט צפוי (אורך, מבנה, קריטריונים)`);
+    sections.push(`- אסור להשתמש בביטויים כמו "השתמשו ב-AI כדי..." ללא פרומפט מפורש`);
+  }
+
   return sections.join('\n');
 }
 
@@ -245,6 +263,188 @@ export function validateTipCompliance(
       }
     }
   });
+
+  return {
+    ok: missing.length === 0,
+    missing
+  };
+}
+
+/**
+ * Validate section depth - ensure core sections have at least 2 paragraphs with ≥3 sentences each
+ */
+export function validateSectionDepth(structuredAssignment: {
+  studentInstructionsHtml?: string;
+  instructions?: string[];
+  requirements?: string[];
+}): { ok: boolean; failures: string[] } {
+  const failures: string[] = [];
+  const html = structuredAssignment.studentInstructionsHtml || '';
+  
+  // Required sections to validate
+  const requiredSections = [
+    { heading: 'מטרת המשימה', minParagraphs: 2 },
+    { heading: 'תיאור המשימה והוראות', minParagraphs: 2 },
+    { heading: 'דרישות הגשה', minParagraphs: 2 }
+  ];
+
+  requiredSections.forEach(section => {
+    // Find section by heading (h2, h3, h4)
+    const headingRegex = new RegExp(`<h[234][^>]*>.*?${section.heading}.*?</h[234]>`, 'i');
+    const headingMatch = html.match(headingRegex);
+    
+    if (!headingMatch) {
+      failures.push(`Section "${section.heading}" not found`);
+      return;
+    }
+
+    // Extract content after the heading until next heading or end
+    const headingIndex = html.indexOf(headingMatch[0]);
+    const afterHeading = html.substring(headingIndex + headingMatch[0].length);
+    
+    // Find next heading or end of document
+    const nextHeadingMatch = afterHeading.match(/<h[234][^>]*>/i);
+    const sectionContent = nextHeadingMatch 
+      ? afterHeading.substring(0, afterHeading.indexOf(nextHeadingMatch[0]))
+      : afterHeading;
+
+    // Extract paragraphs (<p> tags)
+    const paragraphMatches = sectionContent.match(/<p[^>]*>[\s\S]*?<\/p>/gi) || [];
+    
+    // Count valid paragraphs (≥3 sentences each)
+    let validParagraphCount = 0;
+    paragraphMatches.forEach(para => {
+      // Remove HTML tags to get text
+      const text = para.replace(/<[^>]+>/g, '').trim();
+      
+      // Split by sentence terminators (. ! ?)
+      const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+      
+      if (sentences.length >= 3) {
+        validParagraphCount++;
+      }
+    });
+
+    if (validParagraphCount < section.minParagraphs) {
+      failures.push(
+        `Section "${section.heading}" has only ${validParagraphCount} valid paragraph(s) ` +
+        `(minimum ${section.minParagraphs} required, each with ≥3 sentences)`
+      );
+    }
+  });
+
+  return {
+    ok: failures.length === 0,
+    failures
+  };
+}
+
+/**
+ * Check if a tip involves AI usage
+ */
+function tipInvolvesAI(tip: { id?: string; title: string }): boolean {
+  const spec = getTipSpec(tip);
+  if (spec) {
+    // Check if tip has promptArtifacts (AI comparison) or is AI reflection
+    if (spec.promptArtifacts && spec.promptArtifacts.length > 0) {
+      return true;
+    }
+    if (spec.id === 'am_13' || tip.title.toLowerCase().includes('רפלקציה') && tip.title.toLowerCase().includes('ai')) {
+      return true;
+    }
+  }
+  
+  // Check title for AI-related keywords
+  const titleLower = tip.title.toLowerCase();
+  return titleLower.includes('ai') || 
+         titleLower.includes('רפלקציה') ||
+         titleLower.includes('השוואה') ||
+         titleLower.includes('ביקורתי');
+}
+
+/**
+ * Validate that AI prompts are generated when AI-based tips are selected
+ */
+export function validateAiPrompts(
+  structuredAssignment: {
+    studentInstructionsHtml?: string;
+    instructions?: string[];
+    requirements?: string[];
+  },
+  selectedTips: Array<{ id?: string; title: string }>
+): { ok: boolean; missing: string[] } {
+  const missing: string[] = [];
+  
+  // Check if any selected tip involves AI
+  const aiTips = selectedTips.filter(tip => tipInvolvesAI(tip));
+  
+  if (aiTips.length === 0) {
+    return { ok: true, missing: [] }; // No AI tips, validation passes
+  }
+
+  const allText = [
+    structuredAssignment.studentInstructionsHtml || '',
+    (structuredAssignment.instructions || []).join(' '),
+    (structuredAssignment.requirements || []).join(' ')
+  ].join(' ').toLowerCase();
+
+  // Check for AI prompts section
+  const hasAiPromptsSection = 
+    allText.includes('פרומפטים לשימוש בכלי ai') ||
+    allText.includes('פרומפטים לשימוש ב-ai') ||
+    allText.includes('prompt a') ||
+    allText.includes('prompt א') ||
+    allText.includes('שאילתה א') ||
+    allText.includes('שאילתה ראשונה');
+
+  if (!hasAiPromptsSection) {
+    missing.push('Missing "פרומפטים לשימוש בכלי AI" section');
+  }
+
+  // Check for concrete prompts (not just instructions to use AI)
+  const hasGenericInstruction = 
+    allText.includes('השתמשו ב-ai') ||
+    allText.includes('השתמשו בai') ||
+    allText.includes('use ai');
+  
+  const hasConcretePrompt = 
+    allText.includes('prompt a:') ||
+    allText.includes('prompt א:') ||
+    allText.includes('שאילתה א:') ||
+    allText.includes('שאילתה ראשונה:') ||
+    (allText.includes('prompt a') && allText.includes('prompt b')) ||
+    (allText.includes('prompt א') && allText.includes('prompt ב'));
+
+  if (hasGenericInstruction && !hasConcretePrompt) {
+    missing.push('Found generic "use AI" instruction but no concrete prompts provided');
+  }
+
+  // For AI comparison tip, must have both Prompt A and Prompt B
+  const hasComparisonTip = aiTips.some(tip => {
+    const spec = getTipSpec(tip);
+    return spec?.promptArtifacts && spec.promptArtifacts.length > 0;
+  });
+
+  if (hasComparisonTip) {
+    const hasPromptA = 
+      allText.includes('prompt a') ||
+      allText.includes('prompt א') ||
+      allText.includes('שאילתה א') ||
+      allText.includes('שאילתה ראשונה');
+    
+    const hasPromptB = 
+      allText.includes('prompt b') ||
+      allText.includes('prompt ב') ||
+      allText.includes('שאילתה ב') ||
+      allText.includes('שאילתה שנייה');
+
+    if (!hasPromptA) {
+      missing.push('Missing Prompt A for AI comparison tip');
+    }
+    if (!hasPromptB) {
+      missing.push('Missing Prompt B for AI comparison tip');
+    }
+  }
 
   return {
     ok: missing.length === 0,

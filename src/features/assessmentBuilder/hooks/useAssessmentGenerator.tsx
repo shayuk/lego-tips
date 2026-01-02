@@ -230,6 +230,32 @@ const useAssessmentGenerator = (params: {
         }
       }
 
+      // STEP 2: Validate section depth and AI prompts (hard fail if validation failed after retry)
+      if (assignmentData.debug) {
+        const debug = assignmentData.debug;
+        const validationFailed = 
+          (debug.sectionDepthOkAfterRetry === false) || 
+          (debug.aiPromptsOk === false);
+        
+        if (validationFailed) {
+          const failures = [
+            ...(debug.sectionDepthFailures || []),
+            ...(debug.aiPromptsFailures || [])
+          ];
+          
+          const errorMsg = 
+            'המערכת לא הצליחה לייצר מטלה שעומדת בדרישות העומק/הפרומפטים.\n' +
+            'אנא נסו שוב או שנו את בחירת הטיפים.\n\n' +
+            'שגיאות אימות:\n' +
+            failures.map(f => `- ${f}`).join('\n');
+          
+          console.error('❌ Validation failed after retry:', debug);
+          console.error('Failures:', failures);
+          
+          throw new Error(errorMsg);
+        }
+      }
+
       if (missingFields.length > 0) {
         const errorMsg = `Missing structuredAssignment fields: ${missingFields.join(', ')} — generation pipeline mismatch.`;
         console.error('❌ Validation failed:', errorMsg);
