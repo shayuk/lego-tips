@@ -56,14 +56,13 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS=$HOME/firebase-service-account.json
         shell: bash
 
-      - name: 🔎 Show service account client_email (safe)
-        run: |
-          node -e "const fs=require('fs'); const p=process.env.HOME + '/firebase-service-account.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); console.log('SERVICE_ACCOUNT_CLIENT_EMAIL=' + j.client_email);"
-
       # שלב 6: פריסה ל-Firebase Functions
       - name: Deploy Functions
         run: |
           export GOOGLE_APPLICATION_CREDENTIALS=$HOME/firebase-service-account.json
+          ls -la $HOME | head -n 200
+          ls -la $HOME/firebase-service-account.json || true
+          node -e "const fs=require('fs'); const p=process.env.HOME + '/firebase-service-account.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); console.log('SERVICE_ACCOUNT_CLIENT_EMAIL=' + j.client_email);"
           firebase use lego-tips
           firebase deploy --only functions --non-interactive
         env:
