@@ -2,7 +2,7 @@
   "name": "functions",
   "scripts": {
     "lint": "echo 'Skipping lint step'",
-    "build": "tsc",
+    "build": "tsc && node -e \"const fs=require('fs'); const path=require('path'); const srcPath=path.join(__dirname,'lib','src','index.js'); const destPath=path.join(__dirname,'lib','index.js'); if(fs.existsSync(srcPath)){fs.copyFileSync(srcPath,destPath);if(fs.existsSync(srcPath+'.map'))fs.copyFileSync(srcPath+'.map',destPath+'.map');}else{const altPath=path.join(__dirname,'lib','functions','src','index.js');if(fs.existsSync(altPath)){fs.copyFileSync(altPath,destPath);if(fs.existsSync(altPath+'.map'))fs.copyFileSync(altPath+'.map',destPath+'.map');}}\"",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
