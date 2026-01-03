@@ -64,9 +64,10 @@ jobs:
           ls -la $HOME/firebase-service-account.json || true
           node -e "const fs=require('fs'); const p=process.env.HOME + '/firebase-service-account.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); console.log('SERVICE_ACCOUNT_CLIENT_EMAIL=' + j.client_email);"
           firebase use lego-tips
-          firebase deploy --only functions --non-interactive
+          firebase deploy --only functions --project lego-tips --non-interactive
         env:
           GIT_SHA: ${{ github.sha }}
+          FIREBASE_CLI_EXPERIMENTS: ""
 
       # שלב 7: פריסה ל-Firebase Hosting
       - uses: FirebaseExtended/action-hosting-deploy@v0
