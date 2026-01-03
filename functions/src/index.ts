@@ -4,11 +4,11 @@ import * as admin from "firebase-admin";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { defineSecret } from "firebase-functions/params";
-import { assessMaterialQuality, validateAssignmentSpecificity, MaterialQualityReport } from "../../shared/materialQuality";
-import { searchScholarlySources, formatAPA7References, ScholarlySource } from "../../shared/scholarlySearch";
-import { buildTipEnforcementPrompt, validateTipCompliance, validateTipImplementationRequirements, normalizeRubricHtmlToPointRanges, validateSectionDepth, validateAiPrompts, validateExternalKnowledgeApplication, tipInvolvesAI, getTipIdentifier, validateAm03Assignment } from "../../shared/tipImplementation";
-import { normalizeTipToSpec, specToImplementationBlock, TipInput, TipContext } from "../../shared/tipSpecUniversal";
-import { validateWithRetry } from "../../shared/tipSpecValidator";
+import { assessMaterialQuality, validateAssignmentSpecificity, MaterialQualityReport } from "shared/lib/materialQuality";
+import { searchScholarlySources, formatAPA7References, ScholarlySource } from "shared/lib/scholarlySearch";
+import { buildTipEnforcementPrompt, validateTipCompliance, validateTipImplementationRequirements, normalizeRubricHtmlToPointRanges, validateSectionDepth, validateAiPrompts, validateExternalKnowledgeApplication, tipInvolvesAI, getTipIdentifier, validateAm03Assignment } from "shared/lib/tipImplementation";
+import { normalizeTipToSpec, specToImplementationBlock, TipInput, TipContext } from "shared/lib/tipSpecUniversal";
+import { validateWithRetry } from "shared/lib/tipSpecValidator";
 
 // Initialize Firebase Admin
 admin.initializeApp();

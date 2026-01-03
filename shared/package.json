@@ -1,0 +1,12 @@
+{
+  "name": "shared",
+  "version": "1.0.0",
+  "description": "Shared modules for Firebase Functions and Express server",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "private": true,
+  "files": [
+    "lib/**/*"
+  ]
+}
+
