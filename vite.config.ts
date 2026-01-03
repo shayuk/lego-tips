@@ -10,7 +10,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'shared/tipImplementation': path.resolve(__dirname, './shared/tipImplementation.ts'),
     },
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
+    mainFields: ['module', 'main'],
   },
   server: {
     port: 3000,
